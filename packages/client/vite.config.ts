@@ -1,18 +1,16 @@
 /// <reference types="vitest/config" />
 /* eslint-disable */
 import tailwindcss from "@tailwindcss/vite";
-import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
-import react from "@vitejs/plugin-react";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+
 import { visualizer } from "rollup-plugin-visualizer";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
-import { ViteUserConfig } from "vitest/config.js";
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    TanStackRouterVite({ autoCodeSplitting: true }),
-    react(),
+    tanstackStart(),
     tailwindcss(),
     tsconfigPaths(),
     visualizer({
@@ -39,5 +37,5 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     globals: true,
-  } satisfies ViteUserConfig["test"],
+  },
 });
