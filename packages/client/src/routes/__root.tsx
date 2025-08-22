@@ -6,8 +6,6 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { KaServices } from ".././ka-services";
 import appCss from "../styles/app.css?url";
 
-//eslint-disable-next-line
-
 const RootComponent = () => {
   return (
     <RootDocument>
