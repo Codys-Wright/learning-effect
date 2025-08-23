@@ -6,4 +6,5 @@ import { TestGroup } from "./test-rpc.js";
 export class DomainApi extends HttpApi.make("DomainApi")
   .add(StylesGroup)
   .add(TestGroup)
-  .add(ExamplesGroup) {}
+  .add(ExamplesGroup)
+  .prefix("/api") {}
