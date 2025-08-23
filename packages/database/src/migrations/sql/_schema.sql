@@ -13,6 +13,17 @@ CREATE TABLE public.effect_sql_migrations (
     name text NOT NULL
 );
 
+CREATE TABLE public.examples (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    version text NOT NULL,
+    name text NOT NULL,
+    description text NOT NULL,
+    metadata jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    deleted_at timestamp with time zone
+);
+
 CREATE TABLE public.styles (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name text NOT NULL,
@@ -32,11 +43,16 @@ CREATE TABLE public.tests (
 ALTER TABLE ONLY public.effect_sql_migrations
     ADD CONSTRAINT effect_sql_migrations_pkey PRIMARY KEY (migration_id);
 
+ALTER TABLE ONLY public.examples
+    ADD CONSTRAINT examples_pkey PRIMARY KEY (id);
+
 ALTER TABLE ONLY public.styles
     ADD CONSTRAINT styles_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY public.tests
     ADD CONSTRAINT tests_pkey PRIMARY KEY (id);
+
+CREATE TRIGGER update_examples_updated_at BEFORE UPDATE ON public.examples FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 CREATE TRIGGER update_styles_updated_at BEFORE UPDATE ON public.styles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
@@ -44,3 +60,4 @@ CREATE TRIGGER update_tests_updated_at BEFORE UPDATE ON public.tests FOR EACH RO
 
 INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (1, '2025-08-22 09:19:37.751492+00', 'create-styles_table');
 INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (2, '2025-08-23 03:28:15.608534+00', 'create-tests_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (3, '2025-08-23 06:05:26.458332+00', 'create-examples_table');

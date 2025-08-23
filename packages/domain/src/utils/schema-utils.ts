@@ -230,6 +230,13 @@ export class SemVer extends Schema.String.pipe(
     {
       message: () =>
         "Must be a valid semantic version (e.g., 1.0.0, 2.1.0-alpha.1, 1.0.0+build.123)",
+      jsonSchema: {
+        type: "string",
+        pattern:
+          "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+        description: "A semantic version string (e.g., 1.0.0, 2.1.0-alpha.1, 1.0.0+build.123)",
+        examples: ["1.0.0", "2.1.0-alpha.1", "1.0.0+build.123"],
+      },
     },
   ),
 ) {}

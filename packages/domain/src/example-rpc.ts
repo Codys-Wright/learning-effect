@@ -13,6 +13,9 @@
 //      2)
 //     - Make examples-rpc-live.ts in server/src/, this is the live implementation of this file where we make the handlers for the api and provide the repo
 //
+//      3)
+//     - Add the layer Repo into server/src/server,ts
+//
 // - Database:
 //     - Add a migration file in database/src/migrations which is SQL for creating the table in the database
 //
@@ -54,7 +57,7 @@ export class Example extends Schema.Class<Example>("Example")({
   //Always include a createdAt and UpdatedAt time, but deletedAt is optional for things you want to be able to soft delete
   createdAt: Schema.DateTimeUtc,
   updatedAt: Schema.DateTimeUtc,
-  deletedAt: Schema.DateTimeUtc,
+  deletedAt: Schema.NullOr(Schema.DateTimeUtc),
 }) {}
 
 //3) Define the Schema for upserting the entity, this does not need to include createdAt or updatedAt because those are handled
