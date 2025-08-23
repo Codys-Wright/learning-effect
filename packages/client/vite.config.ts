@@ -14,7 +14,7 @@ export default defineConfig(({ command, mode }) => ({
     // Only load TanStack Start when not running tests to avoid SSR conflicts
     ...(process.env.VITEST || mode === "test"
       ? []
-      : [tanstackStart({ customViteReactPlugin: true })]),
+      : [tanstackStart({ customViteReactPlugin: true, target: "netlify" })]),
     react(),
     tailwindcss(),
     tsconfigPaths(),
