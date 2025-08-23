@@ -58,7 +58,9 @@ const UpsertTest: React.FC = () => {
                   name={field.name}
                   value={field.state.value}
                   onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
+                  onChange={(e) => {
+                    field.handleChange(e.target.value);
+                  }}
                   placeholder="Enter test title..."
                   className="w-full px-3 py-2 border border-border rounded-md shadow-sm bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
                 />
@@ -81,7 +83,9 @@ const UpsertTest: React.FC = () => {
                   name={field.name}
                   value={field.state.value}
                   onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
+                  onChange={(e) => {
+                    field.handleChange(e.target.value);
+                  }}
                   placeholder="Enter test description..."
                   rows={3}
                   className="w-full px-3 py-2 border border-border rounded-md shadow-sm bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-colors resize-vertical"
@@ -119,7 +123,7 @@ const SuccessView: React.FC<{ tests: ReadonlyArray<Test> }> = ({ tests }) => {
       <UpsertTest />
 
       {tests.length > 0 && (
-        <>
+        <React.Fragment>
           <Separator className="my-6" />
 
           <section className="space-y-4">
@@ -149,7 +153,7 @@ const SuccessView: React.FC<{ tests: ReadonlyArray<Test> }> = ({ tests }) => {
               ))}
             </div>
           </section>
-        </>
+        </React.Fragment>
       )}
 
       {tests.length === 0 && (
@@ -183,7 +187,7 @@ const LoadingView: React.FC = () => {
   return (
     <div className="flex items-center justify-center py-12">
       <div className="flex items-center space-x-3">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
         <p className="text-muted-foreground">Loading tests...</p>
       </div>
     </div>

@@ -214,6 +214,27 @@ export const URLString: Schema.transform<typeof Schema.URL, typeof Schema.String
 );
 
 /**
+ * A schema for validating semantic version strings (semver).
+ * Supports format: MAJOR.MINOR.PATCH[-prerelease][+buildmetadata]
+ * Examples: "1.0.0", "2.1.3-alpha.1", "1.0.0+build.123"
+ *
+ * @category schema
+ */
+export class SemVer extends Schema.String.pipe(
+  Schema.filter(
+    (s): s is string => {
+      const semverRegex =
+        /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
+      return semverRegex.test(s);
+    },
+    {
+      message: () =>
+        "Must be a valid semantic version (e.g., 1.0.0, 2.1.0-alpha.1, 1.0.0+build.123)",
+    },
+  ),
+) {}
+
+/**
  * A schema for destructive transformations when you need to infer the type from the result of the transformation callback, without specifying the encoded type.
  *
  * @category schema
