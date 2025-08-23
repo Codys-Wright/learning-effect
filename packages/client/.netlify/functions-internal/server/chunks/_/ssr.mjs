@@ -2772,7 +2772,7 @@ async function ca(e) {
     case ia:
       return await Promise.resolve().then(() => zn);
     case oa:
-      return await import("./_tanstack-start-manifest_v-B9MaEW5w.mjs");
+      return await import("./_tanstack-start-manifest_v-DBwO5Ofs.mjs");
     case la:
       return await import("./_tanstack-start-server-fn-manifest_v-FmFgRqLi.mjs");
     default:
@@ -3901,7 +3901,7 @@ const Ts = Ns(As.Default),
         { name: "viewport", content: "width=device-width, initial-scale=1" },
         { title: "AuthKit Example in TanStack Start" },
       ],
-      links: [{ rel: "stylesheet", href: "/assets/app-BjIAfiS8.css" }],
+      links: [{ rel: "stylesheet", href: "/assets/app-XqBJzJ1S.css" }],
     }),
     component: () =>
       jsxs(_s, {
@@ -4104,7 +4104,7 @@ const Qs = {
   },
   en = Layer.unwrapEffect(
     Effect.gen(function* () {
-      return PgClient.layer({ url: yield* Config.redacted("DATABASE_URL"), ...Qs });
+      return PgClient.layer({ url: yield* Config.redacted("DATABASE_URL"), ssl: true, ...Qs });
     }),
   ).pipe((e) =>
     Layer.retry(
