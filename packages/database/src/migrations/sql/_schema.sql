@@ -58,6 +58,6 @@ CREATE TRIGGER update_styles_updated_at BEFORE UPDATE ON public.styles FOR EACH 
 
 CREATE TRIGGER update_tests_updated_at BEFORE UPDATE ON public.tests FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (1, '2025-08-22 09:19:37.751492+00', 'create-styles_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (2, '2025-08-23 03:28:15.608534+00', 'create-tests_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (3, '2025-08-23 06:05:26.458332+00', 'create-examples_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (1, '2025-08-23 09:17:29.894888+00', 'create-styles_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (2, '2025-08-23 09:17:29.894888+00', 'create-tests_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (3, '2025-08-23 09:17:29.894888+00', 'create-examples_table');

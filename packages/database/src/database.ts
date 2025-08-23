@@ -47,6 +47,7 @@ export const PgLive = Layer.unwrapEffect(
   Effect.gen(function* () {
     return PgClient.layer({
       url: yield* Config.redacted("DATABASE_URL"),
+      ssl: true,
       ...pgConfig,
     });
   }),
