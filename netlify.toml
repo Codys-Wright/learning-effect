@@ -1,14 +1,12 @@
 [build]
 # Build command for the client application
-command = "pnpm build"
+command = "export VITE_DEPLOY_URL=$URL && echo 'Setting VITE_DEPLOY_URL to:' $VITE_DEPLOY_URL && pnpm build"
 
 # Directory to publish (the built client application)
 publish = "packages/client/dist"
 
 # Environment variables available during build
 [build.environment]
-# Expose Netlify's DEPLOY_URL as VITE_DEPLOY_URL for Vite access
-VITE_DEPLOY_URL = "${DEPLOY_URL}"
 
 # Set Node.js version
 NODE_VERSION = "22.14.0"
