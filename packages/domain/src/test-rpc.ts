@@ -16,7 +16,7 @@ export class Test extends Schema.Class<Test>("Test")({
 
 //Define the requirements for upserting based on the contract, defining your rules
 export class UpsertTestPayload extends Schema.Class<UpsertTestPayload>("UpsertTestPayload")({
-  id: Schema.optional(Test),
+  id: Schema.optional(TestId),
   title: Schema.Trim.pipe(
     Schema.nonEmptyString({
       message: () => "Name is required",

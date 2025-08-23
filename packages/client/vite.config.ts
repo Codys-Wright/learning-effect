@@ -2,15 +2,20 @@
 /* eslint-disable */
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import react from "@vitejs/plugin-react";
 
 import { visualizer } from "rollup-plugin-visualizer";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command, mode }) => ({
   plugins: [
-    tanstackStart(),
+    // Only load TanStack Start when not running tests to avoid SSR conflicts
+    ...(process.env.VITEST || mode === "test"
+      ? []
+      : [tanstackStart({ customViteReactPlugin: true })]),
+    react(),
     tailwindcss(),
     tsconfigPaths(),
     visualizer({
@@ -38,4 +43,4 @@ export default defineConfig({
     setupFiles: ["./src/test/setup.ts"],
     globals: true,
   },
-});
+}));
