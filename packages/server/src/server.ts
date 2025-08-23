@@ -1,16 +1,12 @@
 import { HttpApiScalar, HttpLayerRouter, HttpServer, HttpServerResponse } from "@effect/platform";
 import { DomainApi } from "@org/domain/domain-api";
 import { Layer } from "effect";
-import { ExamplesRpcLive } from "./domain/styles/examples-rpc-live.js";
+import { ExamplesRpcLive } from "./domain/examples/examples-rpc-live.js";
 import { StylesRpcLive } from "./domain/styles/styles-rpc-live.js";
-import { TestsRpcLive } from "./domain/styles/tests-rpc-live.js";
 
-const ApiLive = HttpLayerRouter.addHttpApi(DomainApi, {
+export const ApiLive = HttpLayerRouter.addHttpApi(DomainApi, {
   openapiPath: "/api/docs/openapi.json",
-}).pipe(
-  Layer.provide([StylesRpcLive, TestsRpcLive, ExamplesRpcLive]),
-  Layer.provide(HttpServer.layerContext),
-);
+}).pipe(Layer.provide([StylesRpcLive, ExamplesRpcLive]), Layer.provide(HttpServer.layerContext));
 
 const HealthRouter = HttpLayerRouter.use((router) =>
   router.add("GET", "/api/health", HttpServerResponse.text("OK")),
@@ -31,12 +27,11 @@ const CorsLayer = HttpLayerRouter.cors({
 const AllRoutes = Layer.mergeAll(ApiLive, HealthRouter, DocsRoute, CorsLayer);
 
 // Making a web handler for use directly inside of tanstack start
-export const { dispose: domainWebDispose, handler: domainWebHandler } =
-  HttpLayerRouter.toWebHandler(AllRoutes);
+export const { dispose: webDispose, handler: webHandler } = HttpLayerRouter.toWebHandler(AllRoutes);
 
 // When the process is interrupted, we want to clean up resources
 process.on("SIGINT", () => {
-  domainWebDispose().then(
+  webDispose().then(
     () => {
       process.exit(0);
     },
@@ -45,9 +40,6 @@ process.on("SIGINT", () => {
     },
   );
 });
-
-// Export the main web handler for TanStack Start integration
-export const webHandler = domainWebHandler;
 
 // const HttpLive = HttpLayerRouter.serve(AllRoutes).pipe(
 //   Layer.provide(

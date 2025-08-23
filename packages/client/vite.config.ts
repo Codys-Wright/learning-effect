@@ -9,7 +9,7 @@ import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 // https://vite.dev/config/
-export default defineConfig(({ command, mode }) => ({
+export default defineConfig(({ mode }) => ({
   plugins: [
     // Only load TanStack Start when not running tests to avoid SSR conflicts
     ...(process.env.VITEST || mode === "test"
@@ -37,7 +37,6 @@ export default defineConfig(({ command, mode }) => ({
     },
   },
   envDir: "../../",
-  // @ts-expect-error - Vitest config is not typed
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],

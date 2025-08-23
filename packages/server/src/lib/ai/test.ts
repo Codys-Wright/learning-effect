@@ -19,15 +19,15 @@ const main = Effect.gen(function* () {
     prompt: "What is the capital of France?",
     systemPrompt: "You are a helpful assistant that can answer questions about the world.",
   });
-  console.log({ text });
+  yield* Effect.log({ text });
 
   const todo = yield* model.generateObject({
     prompt: "Create a random todo item",
     schema: Todo,
   });
-  console.log({ todo });
+  yield* Effect.log({ todo });
 
-  console.log("\nStream:");
+  yield* Effect.log("\nStream:");
   yield* model
     .streamText({
       prompt: "Write a poem about the color blue",

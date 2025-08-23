@@ -252,7 +252,7 @@ export default [
       "no-dupe-keys": "error",
       "no-else-return": "error",
       "no-unreachable": "error",
-      "no-use-before-define": "warn",
+      "no-use-before-define": "off",
       "dot-notation": "error",
       eqeqeq: "error",
       "no-lonely-if": "error",

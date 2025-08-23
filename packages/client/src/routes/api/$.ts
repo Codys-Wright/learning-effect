@@ -1,11 +1,16 @@
-import { domainWebHandler } from "@org/server/server";
+import { webHandler } from "@org/server/server";
 import { createServerFileRoute } from "@tanstack/react-start/server";
 
+// Helper to handle all HTTP methods consistently
+const handleRequest = async ({ request }: { request: Request }): Promise<Response> => {
+  return webHandler(request);
+};
+
 export const ServerRoute = createServerFileRoute("/api/$").methods({
-  GET: async ({ request }) => domainWebHandler(request),
-  POST: async ({ request }) => domainWebHandler(request),
-  PUT: async ({ request }) => domainWebHandler(request),
-  PATCH: async ({ request }) => domainWebHandler(request),
-  DELETE: async ({ request }) => domainWebHandler(request),
-  OPTIONS: async ({ request }) => domainWebHandler(request),
+  GET: handleRequest,
+  POST: handleRequest,
+  PUT: handleRequest,
+  PATCH: handleRequest,
+  DELETE: handleRequest,
+  OPTIONS: handleRequest,
 });

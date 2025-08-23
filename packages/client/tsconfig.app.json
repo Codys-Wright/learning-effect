@@ -11,7 +11,6 @@
     "declarationMap": false,
     "composite": false,
 
-    /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
@@ -26,9 +25,11 @@
       "@org/domain": ["../domain/src/index.js"],
       "@org/domain/*": ["../domain/src/*.js"],
       "@org/server": ["../server/src/index.js"],
-      "@org/server/*": ["../server/src/*.js"]
+      "@org/server/*": ["../server/src/*.js"],
+      "@org/database": ["../database/src/index.js"],
+      "@org/database/*": ["../database/src/*.js"]
     }
   },
   "include": ["src", "prettier.config.js"],
-  "references": [{ "path": "../domain" }]
+  "references": [{ "path": "../domain" }, { "path": "../database" }, { "path": "../server" }]
 }
