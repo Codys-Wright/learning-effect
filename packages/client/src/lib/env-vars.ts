@@ -23,7 +23,7 @@ export const envVars = pipe(
     onTrue: constant(vitestMockEnvVars),
     onFalse: constant({
       ENV: import.meta.env.VITE_ENV as unknown,
-      API_URL: isVitest ? "http://localhost:8080/api" : (import.meta.env.URL as unknown),
+      API_URL: import.meta.env.VITE_API_URL as unknown,
     } satisfies Record<keyof typeof EnvVars.Encoded, unknown>),
   }),
   Schema.decodeUnknownEither(EnvVars),
