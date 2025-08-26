@@ -17,7 +17,7 @@ export const QuizzesRpcLive = HttpApiBuilder.group(DomainApi, "Quizzes", (handle
           const questions =
             payload.questions !== undefined
               ? yield* questionService.createMany(payload.questions)
-              : [];
+              : undefined;
 
           if (payload.id !== undefined) {
             return yield* repo.update({

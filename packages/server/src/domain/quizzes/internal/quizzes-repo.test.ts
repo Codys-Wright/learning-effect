@@ -26,7 +26,7 @@ it.layer(layer, { timeout: "30 seconds" })("QuizzesRepo", (it) => {
         version: "1.0.0",
         questions: [],
 
-        metadata: null,
+        metadata: undefined,
       });
 
       // Verify the quiz was created with correct data
@@ -68,7 +68,7 @@ it.layer(layer, { timeout: "30 seconds" })("QuizzesRepo", (it) => {
             minLabel: "Poor",
             maxLabel: "Excellent",
           },
-          metadata: null,
+          metadata: undefined,
         },
         {
           order: 2,
@@ -78,7 +78,7 @@ it.layer(layer, { timeout: "30 seconds" })("QuizzesRepo", (it) => {
           data: {
             type: "email" as const,
           },
-          metadata: null,
+          metadata: undefined,
         },
         {
           order: 3,
@@ -89,7 +89,7 @@ it.layer(layer, { timeout: "30 seconds" })("QuizzesRepo", (it) => {
             type: "multiple-choice" as const,
             choices: ["Option A", "Option B", "Option C"],
           },
-          metadata: null,
+          metadata: undefined,
         },
       ]);
 
@@ -100,7 +100,7 @@ it.layer(layer, { timeout: "30 seconds" })("QuizzesRepo", (it) => {
         description: "This quiz tests various question types",
         version: "1.0.0",
         questions,
-        metadata: null,
+        metadata: undefined,
       });
 
       // Verify the quiz was created with correct data
@@ -156,7 +156,7 @@ it.layer(layer, { timeout: "30 seconds" })("QuizzesRepo", (it) => {
             type: "text" as const,
             placeholder: "Enter your answer",
           },
-          metadata: null,
+          metadata: undefined,
         },
       ]);
 
@@ -167,7 +167,7 @@ it.layer(layer, { timeout: "30 seconds" })("QuizzesRepo", (it) => {
         description: "Original description",
         version: "1.0.0",
         questions: originalQuestions,
-        metadata: null,
+        metadata: undefined,
       });
 
       // Create new questions for the update
@@ -184,7 +184,7 @@ it.layer(layer, { timeout: "30 seconds" })("QuizzesRepo", (it) => {
             minLabel: "Terrible",
             maxLabel: "Amazing",
           },
-          metadata: null,
+          metadata: undefined,
         },
         {
           order: 2,
@@ -194,7 +194,7 @@ it.layer(layer, { timeout: "30 seconds" })("QuizzesRepo", (it) => {
           data: {
             type: "email" as const,
           },
-          metadata: null,
+          metadata: undefined,
         },
       ]);
 

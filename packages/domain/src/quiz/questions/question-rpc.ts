@@ -25,6 +25,7 @@
 //
 
 import { HttpApiSchema } from "@effect/platform";
+import { faker } from "@faker-js/faker";
 import { NullOrFromFallible } from "@org/domain/utils/schema-utils";
 import { Schema } from "effect";
 import { QuestionData, UpsertQuestionData } from "./question-types.js";
@@ -47,11 +48,23 @@ export class Question extends Schema.Class<Question>("Question")({
   id: QuestionId,
 
   //Define the actual entity here
-  order: Schema.Number,
-  title: Schema.String,
-  subtitle: Schema.optional(Schema.String),
+  order: Schema.Number.annotations({
+    arbitrary: () => (fc) => fc.constant(null).map(() => faker.number.int({ min: 1, max: 50 })),
+  }),
+  title: Schema.String.annotations({
+    arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.sentence()),
+  }),
+  subtitle: Schema.optional(
+    Schema.String.annotations({
+      arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.words(3)),
+    }),
+  ),
 
-  description: Schema.optional(Schema.String),
+  description: Schema.optional(
+    Schema.String.annotations({
+      arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.paragraph()),
+    }),
+  ),
   //determines the type, and all type specific fields
   data: QuestionData,
 
@@ -67,7 +80,9 @@ export class UpsertQuestionPayload extends Schema.Class<UpsertQuestionPayload>(
 )({
   id: Schema.optional(QuestionId),
 
-  order: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+  order: Schema.Number.pipe(Schema.int(), Schema.nonNegative()).annotations({
+    arbitrary: () => (fc) => fc.constant(null).map(() => faker.number.int({ min: 1, max: 50 })),
+  }),
 
   title: Schema.Trim.pipe(
     Schema.nonEmptyString({
@@ -76,7 +91,9 @@ export class UpsertQuestionPayload extends Schema.Class<UpsertQuestionPayload>(
     Schema.maxLength(200, {
       message: () => "Title must be at most 200 characters long",
     }),
-  ),
+  ).annotations({
+    arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.sentence().slice(0, 200)),
+  }),
   subtitle: Schema.optional(
     Schema.Trim.pipe(
       Schema.nonEmptyString({
@@ -85,7 +102,9 @@ export class UpsertQuestionPayload extends Schema.Class<UpsertQuestionPayload>(
       Schema.maxLength(300, {
         message: () => "Subtitle must be at most 300 characters long",
       }),
-    ),
+    ).annotations({
+      arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.words(3).slice(0, 300)),
+    }),
   ),
   description: Schema.optional(
     Schema.Trim.pipe(
@@ -95,7 +114,9 @@ export class UpsertQuestionPayload extends Schema.Class<UpsertQuestionPayload>(
       Schema.maxLength(1_000, {
         message: () => "Description must be at most 1,000 characters long",
       }),
-    ),
+    ).annotations({
+      arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.paragraph().slice(0, 1000)),
+    }),
   ),
 
   data: UpsertQuestionData,

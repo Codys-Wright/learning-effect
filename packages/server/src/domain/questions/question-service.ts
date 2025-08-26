@@ -1,4 +1,8 @@
-import type { Question, QuestionId, UpsertQuestionPayload } from "@org/domain/quiz/types/question";
+import type {
+  Question,
+  QuestionId,
+  UpsertQuestionPayload,
+} from "@org/domain/quiz/questions/question-rpc";
 import { Effect } from "effect";
 
 export class QuestionService extends Effect.Service<QuestionService>()("QuestionService", {

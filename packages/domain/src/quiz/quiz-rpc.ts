@@ -25,9 +25,10 @@
 //
 
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "@effect/platform";
+import { faker } from "@faker-js/faker";
 import { Schema } from "effect";
 import { NullOrFromFallible, SemVer, Slug } from "./../utils/schema-utils.js";
-import { Question, UpsertQuestionPayload } from "./types/question.js";
+import { Question, UpsertQuestionPayload } from "./questions/question-rpc.js";
 
 //1) Create a branded ID type for the entity to avoid confusion in logs and merging other id types
 export const QuizId = Schema.UUID.pipe(Schema.brand("QuizId"));
@@ -39,7 +40,17 @@ export type QuizId = typeof QuizId.Type;
 //Define any metadata for the schema, this goes through the NullorFromFallible schema util that will keep any JSON that meets our expectations,
 // and silently return null if it is malformed data
 export class QuizMetadata extends Schema.Class<QuizMetadata>("QuizMetadata")({
-  tags: Schema.optional(Schema.Array(Schema.String)),
+  tags: Schema.optional(
+    Schema.Array(
+      Schema.String.annotations({
+        arbitrary: () => (fc) => fc.constant(null).map(() => faker.word.noun()),
+      }),
+    ),
+  ),
+  customFields: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
+}) {}
+
+export class QuizSettings extends Schema.Class<QuizSettings>("QuizSettings")({
   customFields: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
 }) {}
 
@@ -50,10 +61,25 @@ export class Quiz extends Schema.Class<Quiz>("Quiz")({
   slug: Slug,
 
   //Define the actual entity here
-  title: Schema.String,
-  subtitle: Schema.optional(Schema.NullOr(Schema.String)),
-  description: Schema.optional(Schema.NullOr(Schema.String)),
+  title: Schema.String.annotations({
+    arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.words(3)),
+  }),
+  subtitle: Schema.optional(
+    Schema.NullOr(
+      Schema.String.annotations({
+        arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.sentence()),
+      }),
+    ),
+  ),
+  description: Schema.optional(
+    Schema.NullOr(
+      Schema.String.annotations({
+        arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.paragraphs(2)),
+      }),
+    ),
+  ),
   questions: Schema.optional(Schema.parseJson(Schema.Array(Question))),
+  settings: Schema.optional(Schema.NullOr(Schema.parseJson(NullOrFromFallible(QuizSettings)))),
 
   //optional metadata - stored as JSON in database
   metadata: Schema.optional(Schema.NullOr(Schema.parseJson(NullOrFromFallible(QuizMetadata)))),
@@ -78,7 +104,9 @@ export class UpsertQuizPayload extends Schema.Class<UpsertQuizPayload>("UpsertQu
     Schema.maxLength(30, {
       message: () => "Title must be at most 30 characters long",
     }),
-  ),
+  ).annotations({
+    arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.words(3).slice(0, 30)),
+  }),
   subtitle: Schema.optional(
     Schema.NullOr(
       Schema.Trim.pipe(
@@ -88,7 +116,9 @@ export class UpsertQuizPayload extends Schema.Class<UpsertQuizPayload>("UpsertQu
         Schema.maxLength(100, {
           message: () => "subtitle must be at most 30 characters long",
         }),
-      ),
+      ).annotations({
+        arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.sentence().slice(0, 100)),
+      }),
     ),
   ),
   description: Schema.optional(
@@ -100,11 +130,15 @@ export class UpsertQuizPayload extends Schema.Class<UpsertQuizPayload>("UpsertQu
         Schema.maxLength(1_000, {
           message: () => "Description must be at most 1,000 characters long",
         }),
-      ),
+      ).annotations({
+        arbitrary: () => (fc) =>
+          fc.constant(null).map(() => faker.lorem.paragraphs(2).slice(0, 1000)),
+      }),
     ),
   ),
 
   questions: Schema.optional(Schema.Array(UpsertQuestionPayload)),
+  settings: Schema.optional(Schema.NullOr(Schema.parseJson(NullOrFromFallible(QuizSettings)))),
 
   metadata: Schema.optional(QuizMetadata),
 

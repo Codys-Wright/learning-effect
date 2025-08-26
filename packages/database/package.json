@@ -36,7 +36,8 @@
     "@effect/platform-node": "*",
     "@effect/sql": "*",
     "@effect/sql-pg": "*",
-    "@effect/cli": "*"
+    "@effect/cli": "*",
+    "@org/domain": "workspace:^"
   },
   "effect": {
     "generateExports": {

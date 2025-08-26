@@ -1,11 +1,20 @@
+import { faker } from "@faker-js/faker";
 import { Schema } from "effect";
 
 const RatingQuestionData = Schema.Struct({
   type: Schema.Literal("rating"),
-  minRating: Schema.Number,
-  maxRating: Schema.Number,
-  minLabel: Schema.String,
-  maxLabel: Schema.String,
+  minRating: Schema.Number.annotations({
+    arbitrary: () => (fc) => fc.constant(null).map(() => faker.number.int({ min: 0, max: 2 })),
+  }),
+  maxRating: Schema.Number.annotations({
+    arbitrary: () => (fc) => fc.constant(null).map(() => faker.number.int({ min: 5, max: 10 })),
+  }),
+  minLabel: Schema.String.annotations({
+    arbitrary: () => (fc) => fc.constant(null).map(() => faker.word.adjective()),
+  }),
+  maxLabel: Schema.String.annotations({
+    arbitrary: () => (fc) => fc.constant(null).map(() => faker.word.adjective()),
+  }),
 }).pipe(
   Schema.annotations({
     jsonSchema: {
@@ -17,18 +26,26 @@ const RatingQuestionData = Schema.Struct({
 
 const UpsertRatingQuestionData = Schema.Struct({
   type: Schema.Literal("rating"),
-  minRating: Schema.Number,
-  maxRating: Schema.Number,
+  minRating: Schema.Number.annotations({
+    arbitrary: () => (fc) => fc.constant(null).map(() => faker.number.int({ min: 0, max: 2 })),
+  }),
+  maxRating: Schema.Number.annotations({
+    arbitrary: () => (fc) => fc.constant(null).map(() => faker.number.int({ min: 5, max: 10 })),
+  }),
   minLabel: Schema.Trim.pipe(
     Schema.nonEmptyString({
       message: () => "Minimum label cannot be empty",
     }),
-  ),
+  ).annotations({
+    arbitrary: () => (fc) => fc.constant(null).map(() => faker.word.adjective()),
+  }),
   maxLabel: Schema.Trim.pipe(
     Schema.nonEmptyString({
       message: () => "Maximum label cannot be empty",
     }),
-  ),
+  ).annotations({
+    arbitrary: () => (fc) => fc.constant(null).map(() => faker.word.adjective()),
+  }),
 }).pipe(
   Schema.filter((data) => data.minRating <= data.maxRating, {
     message: () => "minimum rating cannot be greater than maximum rating",
@@ -44,7 +61,18 @@ const UpsertRatingQuestionData = Schema.Struct({
 
 const MultipleChoiceQuestionData = Schema.Struct({
   type: Schema.Literal("multiple-choice"),
-  choices: Schema.Array(Schema.String),
+  choices: Schema.Array(
+    Schema.String.annotations({
+      arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.words(2)),
+    }),
+  ).annotations({
+    arbitrary: () => (fc) =>
+      fc
+        .constant(null)
+        .map(() =>
+          Array.from({ length: faker.number.int({ min: 2, max: 6 }) }, () => faker.lorem.words(2)),
+        ),
+  }),
 }).pipe(
   Schema.annotations({
     jsonSchema: {
@@ -56,7 +84,18 @@ const MultipleChoiceQuestionData = Schema.Struct({
 
 const UpsertMultipleChoiceQuestionData = Schema.Struct({
   type: Schema.Literal("multiple-choice"),
-  choices: Schema.Array(Schema.String),
+  choices: Schema.Array(
+    Schema.String.annotations({
+      arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.words(2)),
+    }),
+  ).annotations({
+    arbitrary: () => (fc) =>
+      fc
+        .constant(null)
+        .map(() =>
+          Array.from({ length: faker.number.int({ min: 2, max: 6 }) }, () => faker.lorem.words(2)),
+        ),
+  }),
 }).pipe(
   Schema.annotations({
     jsonSchema: {
@@ -68,7 +107,11 @@ const UpsertMultipleChoiceQuestionData = Schema.Struct({
 
 const TextQuestionData = Schema.Struct({
   type: Schema.Literal("text"),
-  placeholder: Schema.optional(Schema.String),
+  placeholder: Schema.optional(
+    Schema.String.annotations({
+      arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.words(4)),
+    }),
+  ),
 }).pipe(
   Schema.annotations({
     jsonSchema: {
@@ -80,7 +123,11 @@ const TextQuestionData = Schema.Struct({
 
 const UpsertTextQuestionData = Schema.Struct({
   type: Schema.Literal("text"),
-  placeholder: Schema.optional(Schema.String),
+  placeholder: Schema.optional(
+    Schema.String.annotations({
+      arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.words(4)),
+    }),
+  ),
 }).pipe(
   Schema.annotations({
     jsonSchema: {

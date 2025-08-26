@@ -28,6 +28,7 @@
   "dependencies": {
     "@effect/platform": "*",
     "@effect/rpc": "*",
+    "@faker-js/faker": "^10.0.0",
     "effect": "*"
   },
   "effect": {
