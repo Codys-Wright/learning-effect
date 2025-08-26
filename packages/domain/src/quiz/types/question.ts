@@ -25,8 +25,8 @@
 //
 
 import { HttpApiSchema } from "@effect/platform";
+import { NullOrFromFallible } from "@org/domain/utils/schema-utils";
 import { Schema } from "effect";
-import { NullOrFromFallible, SemVer, Slug } from "./../../utils/schema-utils.js";
 import { QuestionData, UpsertQuestionData } from "./question-types.js";
 
 //1) Create a branded ID type for the entity to avoid confusion in logs and merging other id types
@@ -49,9 +49,9 @@ export class Question extends Schema.Class<Question>("Question")({
   //Define the actual entity here
   order: Schema.Number,
   title: Schema.String,
-  subtitle: Schema.String,
+  subtitle: Schema.optional(Schema.String),
 
-  description: Schema.String,
+  description: Schema.optional(Schema.String),
   //determines the type, and all type specific fields
   data: QuestionData,
 
@@ -66,31 +66,31 @@ export class UpsertQuestionPayload extends Schema.Class<UpsertQuestionPayload>(
   "UpsertQuestionPayload",
 )({
   id: Schema.optional(QuestionId),
-  version: Schema.optional(SemVer),
-  slug: Schema.optional(Slug),
+
+  order: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
 
   title: Schema.Trim.pipe(
     Schema.nonEmptyString({
       message: () => "title is required",
     }),
-    Schema.maxLength(30, {
-      message: () => "Title must be at most 30 characters long",
+    Schema.maxLength(200, {
+      message: () => "Title must be at most 200 characters long",
     }),
   ),
   subtitle: Schema.optional(
     Schema.Trim.pipe(
       Schema.nonEmptyString({
-        message: () => "subtitle is required",
+        message: () => "subtitle is required when provided",
       }),
-      Schema.maxLength(100, {
-        message: () => "subtitle must be at most 30 characters long",
+      Schema.maxLength(300, {
+        message: () => "Subtitle must be at most 300 characters long",
       }),
     ),
   ),
   description: Schema.optional(
     Schema.Trim.pipe(
       Schema.nonEmptyString({
-        message: () => "description is required",
+        message: () => "description is required when provided",
       }),
       Schema.maxLength(1_000, {
         message: () => "Description must be at most 1,000 characters long",
@@ -99,7 +99,7 @@ export class UpsertQuestionPayload extends Schema.Class<UpsertQuestionPayload>(
   ),
 
   data: UpsertQuestionData,
-  metadata: Schema.optional(QuestionMetadata),
+  metadata: Schema.optional(Schema.NullOr(QuestionMetadata)),
 
   //
 }) {}

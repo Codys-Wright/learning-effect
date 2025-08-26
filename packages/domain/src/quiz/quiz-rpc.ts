@@ -51,12 +51,12 @@ export class Quiz extends Schema.Class<Quiz>("Quiz")({
 
   //Define the actual entity here
   title: Schema.String,
-  subtitle: Schema.String,
-  description: Schema.optional(Schema.String),
-  questions: Schema.parseJson(Schema.Array(Question)),
+  subtitle: Schema.optional(Schema.NullOr(Schema.String)),
+  description: Schema.optional(Schema.NullOr(Schema.String)),
+  questions: Schema.optional(Schema.parseJson(Schema.Array(Question))),
 
   //optional metadata - stored as JSON in database
-  metadata: Schema.parseJson(NullOrFromFallible(QuizMetadata)),
+  metadata: Schema.optional(Schema.NullOr(Schema.parseJson(NullOrFromFallible(QuizMetadata)))),
 
   //Always include a createdAt and UpdatedAt time, but deletedAt is optional for things you want to be able to soft delete
   createdAt: Schema.DateTimeUtc,
@@ -70,7 +70,6 @@ export class Quiz extends Schema.Class<Quiz>("Quiz")({
 export class UpsertQuizPayload extends Schema.Class<UpsertQuizPayload>("UpsertQuizPayload")({
   id: Schema.optional(QuizId),
   version: Schema.optional(SemVer),
-  slug: Schema.optional(Slug),
 
   title: Schema.Trim.pipe(
     Schema.nonEmptyString({
@@ -80,24 +79,32 @@ export class UpsertQuizPayload extends Schema.Class<UpsertQuizPayload>("UpsertQu
       message: () => "Title must be at most 30 characters long",
     }),
   ),
-  subtitle: Schema.Trim.pipe(
-    Schema.nonEmptyString({
-      message: () => "subtitle is required",
-    }),
-    Schema.maxLength(100, {
-      message: () => "subtitle must be at most 30 characters long",
-    }),
+  subtitle: Schema.optional(
+    Schema.NullOr(
+      Schema.Trim.pipe(
+        Schema.nonEmptyString({
+          message: () => "subtitle is required",
+        }),
+        Schema.maxLength(100, {
+          message: () => "subtitle must be at most 30 characters long",
+        }),
+      ),
+    ),
   ),
-  description: Schema.Trim.pipe(
-    Schema.nonEmptyString({
-      message: () => "description is required",
-    }),
-    Schema.maxLength(1_000, {
-      message: () => "Description must be at most 1,000 characters long",
-    }),
+  description: Schema.optional(
+    Schema.NullOr(
+      Schema.Trim.pipe(
+        Schema.nonEmptyString({
+          message: () => "description is required",
+        }),
+        Schema.maxLength(1_000, {
+          message: () => "Description must be at most 1,000 characters long",
+        }),
+      ),
+    ),
   ),
 
-  questions: Schema.Array(UpsertQuestionPayload),
+  questions: Schema.optional(Schema.Array(UpsertQuestionPayload)),
 
   metadata: Schema.optional(QuizMetadata),
 

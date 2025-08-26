@@ -11,7 +11,7 @@ const CreateQuizInput = Quiz.pipe(
 );
 
 const UpdateQuizInput = Quiz.pipe(
-  Schema.pick("id", "version", "slug", "title", "subtitle", "description", "questions", "metadata"),
+  Schema.pick("id", "version", "title", "subtitle", "description", "questions", "metadata"),
 );
 type UpdateQuizInput = typeof UpdateQuizInput.Type;
 
@@ -53,7 +53,6 @@ export class QuizzesRepo extends Effect.Service<QuizzesRepo>()("QuizzesRepo", {
             quizzes ${sql.insert({
             ...request,
             slug,
-            questions: request.questions,
           })}
           RETURNING
             *
@@ -77,7 +76,6 @@ export class QuizzesRepo extends Effect.Service<QuizzesRepo>()("QuizzesRepo", {
             ${sql.update({
             ...request,
             slug,
-            questions: request.questions,
           })}
           WHERE
             id = ${request.id}
@@ -89,13 +87,19 @@ export class QuizzesRepo extends Effect.Service<QuizzesRepo>()("QuizzesRepo", {
     });
 
     //Only sets the deleted_at timestamp so that it will be excluded from all further queries
+    //Also appends timestamp to slug to avoid unique constraint violations on future creates
     const del = SqlSchema.single({
       Request: QuizId,
       Result: Schema.Unknown,
       execute: (id) => sql`
         UPDATE quizzes
         SET
-          deleted_at = now()
+          deleted_at = now(),
+          slug = slug || '-deleted-' || extract(
+            epoch
+            FROM
+              now()
+          )::bigint
         WHERE
           id = ${id}
           AND deleted_at IS NULL

@@ -90,7 +90,6 @@ export class UpsertExamplePayload extends Schema.Class<UpsertExamplePayload>(
 
   //
 }) {}
-
 //4) Define an Error for the entity, this will help us trace any errors back here if something is wrong
 export class ExampleNotFoundError extends Schema.TaggedError<ExampleNotFoundError>(
   "ExampleNotFoundError",

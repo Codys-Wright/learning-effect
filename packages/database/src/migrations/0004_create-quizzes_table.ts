@@ -10,7 +10,7 @@ export default Effect.flatMap(
       version TEXT NOT NULL,
       slug TEXT NOT NULL UNIQUE,
       title TEXT NOT NULL,
-      subtitle TEXT NOT NULL,
+      subtitle TEXT,
       description TEXT,
       questions JSONB NOT NULL DEFAULT '[]',
       metadata JSONB,

@@ -12,6 +12,7 @@ import { createServerRootRoute } from '@tanstack/react-start/server'
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as QuizRouteImport } from './routes/quiz'
+import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as ExampleRouteImport } from './routes/example'
 import { Route as IndexRouteImport } from './routes/index'
 import { ServerRoute as ApiSplatServerRouteImport } from './routes/api/$'
@@ -21,6 +22,11 @@ const rootServerRouteImport = createServerRootRoute()
 const QuizRoute = QuizRouteImport.update({
   id: '/quiz',
   path: '/quiz',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlaygroundRoute = PlaygroundRouteImport.update({
+  id: '/playground',
+  path: '/playground',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExampleRoute = ExampleRouteImport.update({
@@ -42,30 +48,34 @@ const ApiSplatServerRoute = ApiSplatServerRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/example': typeof ExampleRoute
+  '/playground': typeof PlaygroundRoute
   '/quiz': typeof QuizRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/example': typeof ExampleRoute
+  '/playground': typeof PlaygroundRoute
   '/quiz': typeof QuizRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/example': typeof ExampleRoute
+  '/playground': typeof PlaygroundRoute
   '/quiz': typeof QuizRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/example' | '/quiz'
+  fullPaths: '/' | '/example' | '/playground' | '/quiz'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/example' | '/quiz'
-  id: '__root__' | '/' | '/example' | '/quiz'
+  to: '/' | '/example' | '/playground' | '/quiz'
+  id: '__root__' | '/' | '/example' | '/playground' | '/quiz'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ExampleRoute: typeof ExampleRoute
+  PlaygroundRoute: typeof PlaygroundRoute
   QuizRoute: typeof QuizRoute
 }
 export interface FileServerRoutesByFullPath {
@@ -99,6 +109,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof QuizRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/playground': {
+      id: '/playground'
+      path: '/playground'
+      fullPath: '/playground'
+      preLoaderRoute: typeof PlaygroundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/example': {
       id: '/example'
       path: '/example'
@@ -130,6 +147,7 @@ declare module '@tanstack/react-start/server' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ExampleRoute: ExampleRoute,
+  PlaygroundRoute: PlaygroundRoute,
   QuizRoute: QuizRoute,
 }
 export const routeTree = rootRouteImport
