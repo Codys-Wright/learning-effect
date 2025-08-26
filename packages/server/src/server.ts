@@ -2,11 +2,15 @@ import { HttpApiScalar, HttpLayerRouter, HttpServer, HttpServerResponse } from "
 import { DomainApi } from "@org/domain/domain-api";
 import { Layer } from "effect";
 import { ExamplesRpcLive } from "./domain/examples/examples-rpc-live.js";
+import { QuizzesRpcLive } from "./domain/quizzes/quizzes-rpc-live.js";
 import { StylesRpcLive } from "./domain/styles/styles-rpc-live.js";
 
 export const ApiLive = HttpLayerRouter.addHttpApi(DomainApi, {
   openapiPath: "/api/docs/openapi.json",
-}).pipe(Layer.provide([StylesRpcLive, ExamplesRpcLive]), Layer.provide(HttpServer.layerContext));
+}).pipe(
+  Layer.provide([StylesRpcLive, ExamplesRpcLive, QuizzesRpcLive]),
+  Layer.provide(HttpServer.layerContext),
+);
 
 const HealthRouter = HttpLayerRouter.use((router) =>
   router.add("GET", "/api/health", HttpServerResponse.text("OK")),

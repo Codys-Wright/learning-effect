@@ -214,6 +214,52 @@ export const URLString: Schema.transform<typeof Schema.URL, typeof Schema.String
 );
 
 /**
+ * A schema for validating URL slug strings.
+ * A slug should contain only lowercase letters, numbers, and hyphens.
+ * No leading/trailing hyphens or consecutive hyphens allowed.
+ *
+ * @category schema
+ */
+export class Slug extends Schema.String.pipe(
+  Schema.filter(
+    (s): s is string => {
+      const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+      return slugRegex.test(s);
+    },
+    {
+      message: () =>
+        "Invalid slug format. Must contain only lowercase letters, numbers, and hyphens, with no consecutive hyphens or leading/trailing hyphens",
+      jsonSchema: {
+        type: "string",
+        pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+        description: "A URL-friendly slug containing only lowercase letters, numbers, and hyphens",
+        examples: ["hello-world", "my-awesome-post", "article-123"],
+      },
+    },
+  ),
+) {}
+
+/**
+ * A schema for transforming any string into a valid slug.
+ * This will automatically convert the input string to a proper slug format.
+ * Converts to lowercase, replaces spaces with hyphens, and removes special characters.
+ *
+ * @category schema
+ */
+export class SlugFromString extends Schema.transform(Schema.String, Slug, {
+  strict: true,
+  decode: (input) => {
+    return input
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "") // Remove special characters except spaces and hyphens
+      .replace(/\s+/g, "-") // Replace spaces with hyphens
+      .replace(/-+/g, "-") // Remove consecutive hyphens
+      .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+  },
+  encode: identity,
+}) {}
+
+/**
  * A schema for validating semantic version strings (semver).
  * Supports format: MAJOR.MINOR.PATCH[-prerelease][+buildmetadata]
  * Examples: "1.0.0", "2.1.3-alpha.1", "1.0.0+build.123"

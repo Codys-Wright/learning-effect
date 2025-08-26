@@ -45,9 +45,10 @@ export const pgConfig = {
 
 export const PgLive = Layer.unwrapEffect(
   Effect.gen(function* () {
+    const env = yield* Config.string("ENV").pipe(Config.withDefault("production"));
     return PgClient.layer({
       url: yield* Config.redacted("DATABASE_URL"),
-      ssl: true,
+      ssl: env !== "local",
       ...pgConfig,
     });
   }),
