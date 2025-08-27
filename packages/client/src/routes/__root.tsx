@@ -10,8 +10,8 @@ const RootComponent = () => {
   return (
     <RootDocument>
       <RegistryProvider>
-        <Toaster />
         <ThemeProvider>
+          <Toaster />
           <Outlet />
         </ThemeProvider>
         <KaServices />

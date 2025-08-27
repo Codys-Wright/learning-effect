@@ -1,9 +1,9 @@
-import { Button, Separator } from "@/components/ui";
 import { FieldInput, FieldTextarea } from "@/components/ui/form";
 import { deleteStyleAtom, stylesAtom, upsertStyleAtom } from "@/features/root/styles-atoms";
-import { makeFormOptions } from "@/lib/forms/make-form-options";
 import { Result, useAtom, useAtomRefresh, useAtomSet, useAtomValue } from "@effect-atom/atom-react";
+import { makeFormOptions } from "@org/client-core";
 import { UpsertStylePayload, type Style } from "@org/domain/styles-rpc";
+import { Button, Separator } from "@org/shadcn";
 import { useForm } from "@tanstack/react-form";
 import { Schema } from "effect";
 import { TrashIcon } from "lucide-react";

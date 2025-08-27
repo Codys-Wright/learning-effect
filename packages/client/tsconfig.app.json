@@ -29,7 +29,9 @@
       "@org/database": ["../database/src/index.js"],
       "@org/database/*": ["../database/src/*.js"],
       "@org/client-core": ["../client-core/src/index.js"],
-      "@org/client-core/*": ["../client-core/src/*.js"]
+      "@org/client-core/*": ["../client-core/src/*.js"],
+      "@org/shadcn": ["../ui/shadcn/src/index.js"],
+      "@org/shadcn/*": ["../ui/shadcn/src/*.js"]
     }
   },
   "include": ["src", "prettier.config.js"],
@@ -37,6 +39,7 @@
     { "path": "../domain" },
     { "path": "../database" },
     { "path": "../server" },
-    { "path": "../client-core" }
+    { "path": "../client-core" },
+    { "path": "../ui/shadcn" }
   ]
 }

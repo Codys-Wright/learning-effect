@@ -44,6 +44,7 @@ const config: ViteUserConfig = {
       ...alias("domain"),
       ...alias("server"),
       ...alias("client-core"),
+      ...alias("ui/shadcn"),
     },
   },
 };

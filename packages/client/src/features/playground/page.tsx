@@ -1,8 +1,8 @@
-import { Badge, Button, Card, ScrollArea } from "@/components/ui";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Atom, useAtomSet, useAtomValue } from "@effect-atom/atom-react";
 import { Question } from "@org/domain/quiz/questions/question-rpc";
+import { Badge, Button, Card, ScrollArea } from "@org/shadcn";
 import { Arbitrary, FastCheck } from "effect";
 import {
   AtSignIcon,

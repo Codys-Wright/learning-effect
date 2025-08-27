@@ -40,15 +40,22 @@
       "@org/domain": ["./packages/domain/src/index.js"],
       "@org/domain/*": ["./packages/domain/src/*.js"],
       "@org/domain/test/*": ["./packages/domain/test/*.js"],
+
       "@org/server": ["./packages/server/src/index.js"],
       "@org/server/*": ["./packages/server/src/*.js"],
       "@org/server/test/*": ["./packages/server/test/*.js"],
+
       "@org/database": ["./packages/database/src/index.js"],
       "@org/database/*": ["./packages/database/src/*.js"],
       "@org/database/test/*": ["./packages/client-core/test/*.js"],
+
       "@org/client-core": ["./packages/client-core/src/index.js"],
       "@org/client-core/*": ["./packages/client-core/src/*.js"],
-      "@org/client-core/test/*": ["./packages/client-core/test/*.js"]
+      "@org/client-core/test/*": ["./packages/client-core/test/*.js"],
+
+      "@org/ui/shadcn": ["./packages/ui/shadcn/src/index.js"],
+      "@org/ui/shadcn/*": ["./packages/ui/shadcn/src/*.js"],
+      "@org/ui/shadcn/test/*": ["./packages/ui/shadcn/test/*.js"]
     }
   }
 }

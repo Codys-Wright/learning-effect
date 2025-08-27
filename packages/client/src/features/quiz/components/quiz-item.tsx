@@ -1,7 +1,7 @@
-import { Button } from "@/components/ui";
 import { deleteQuizAtom } from "@/features/quiz/quizzes-atoms";
 import { useAtom } from "@effect-atom/atom-react";
 import { type Quiz } from "@org/domain/quiz/quiz-rpc";
+import { Button } from "@org/shadcn";
 import { TrashIcon } from "lucide-react";
 import React from "react";
 

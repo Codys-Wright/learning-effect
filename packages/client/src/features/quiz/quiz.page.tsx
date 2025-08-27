@@ -1,7 +1,7 @@
-import { Button, Separator } from "@/components/ui";
 import { quizzesAtom } from "@/features/quiz/quizzes-atoms";
 import { Result, useAtomRefresh, useAtomValue } from "@effect-atom/atom-react";
 import { type Quiz } from "@org/domain/quiz/quiz-rpc";
+import { Button, Separator } from "@org/shadcn";
 import React from "react";
 import { QuizItem } from "./components/quiz-item";
 import { UpsertQuizForm } from "./components/upsert-quiz-form";
