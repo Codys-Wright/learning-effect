@@ -481,6 +481,9 @@ importers:
       "@org/domain":
         specifier: workspace:^
         version: link:../domain/dist
+      "@org/server":
+        specifier: workspace:^
+        version: link:../server
       effect:
         specifier: 3.17.7
         version: 3.17.7
