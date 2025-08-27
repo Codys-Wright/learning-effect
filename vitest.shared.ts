@@ -43,6 +43,7 @@ const config: ViteUserConfig = {
       ...alias("database"),
       ...alias("domain"),
       ...alias("server"),
+      ...alias("client-core"),
     },
   },
 };

@@ -27,16 +27,9 @@
       "@org/server": ["../server/src/index.js"],
       "@org/server/*": ["../server/src/*.js"],
       "@org/database": ["../database/src/index.js"],
-      "@org/database/*": ["../database/src/*.js"],
-      "@org/client-core": ["../client-core/src/index.js"],
-      "@org/client-core/*": ["../client-core/src/*.js"]
+      "@org/database/*": ["../database/src/*.js"]
     }
   },
   "include": ["src", "prettier.config.js"],
-  "references": [
-    { "path": "../domain" },
-    { "path": "../database" },
-    { "path": "../server" },
-    { "path": "../client-core" }
-  ]
+  "references": [{ "path": "../domain" }, { "path": "../database" }, { "path": "../server" }]
 }

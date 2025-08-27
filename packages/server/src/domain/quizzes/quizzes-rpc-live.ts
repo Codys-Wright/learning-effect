@@ -35,7 +35,7 @@ export const QuizzesRpcLive = HttpApiBuilder.group(DomainApi, "Quizzes", (handle
             subtitle: payload.subtitle,
             description: payload.description,
             version: payload.version ?? "1.0.0",
-            questions,
+            questions: questions ?? [],
             metadata: payload.metadata,
           });
         }),

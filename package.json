@@ -83,7 +83,8 @@
     "@effect/ai-anthropic": "0.15.1",
     "@effect-atom/atom-react": "0.1.7",
     "@effect/cli": "0.69.0",
-    "dotenv-cli": "^10.0.0"
+    "dotenv-cli": "^10.0.0",
+    "nx": "21.4.1"
   },
   "pnpm": {
     "overrides": {

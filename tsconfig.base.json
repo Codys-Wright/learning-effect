@@ -45,7 +45,10 @@
       "@org/server/test/*": ["./packages/server/test/*.js"],
       "@org/database": ["./packages/database/src/index.js"],
       "@org/database/*": ["./packages/database/src/*.js"],
-      "@org/database/test/*": ["./packages/database/test/*.js"]
+      "@org/database/test/*": ["./packages/client-core/test/*.js"],
+      "@org/client-core": ["./packages/client-core/src/index.js"],
+      "@org/client-core/*": ["./packages/client-core/src/*.js"],
+      "@org/client-core/test/*": ["./packages/client-core/test/*.js"]
     }
   }
 }

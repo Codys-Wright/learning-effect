@@ -5,8 +5,8 @@ import {
   examplesAtom,
   upsertExampleAtom,
 } from "@/features/example/examples-atoms";
-import { makeFormOptions } from "@/lib/forms/make-form-options";
 import { Result, useAtom, useAtomRefresh, useAtomSet, useAtomValue } from "@effect-atom/atom-react";
+import { makeFormOptions } from "@org/client-core";
 import { UpsertExamplePayload, type Example } from "@org/domain/example-rpc";
 import { useForm } from "@tanstack/react-form";
 import { Schema } from "effect";

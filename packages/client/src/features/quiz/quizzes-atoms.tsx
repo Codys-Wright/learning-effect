@@ -1,7 +1,5 @@
-import { makeAtomRuntime } from "@/atom/make-atom-runtime";
-import { withToast } from "@/atom/with-toast";
-import { ApiClient } from "@/services/common/api-client";
 import { Atom, Registry, Result } from "@effect-atom/atom-react";
+import { ApiClient, makeAtomRuntime, withToast } from "@org/client-core";
 import { type Quiz, type QuizId, type UpsertQuizPayload } from "@org/domain/quiz/quiz-rpc";
 import { Array, Data, Effect } from "effect";
 
