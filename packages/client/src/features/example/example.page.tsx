@@ -3,8 +3,8 @@ import {
   examplesAtom,
   upsertExampleAtom,
 } from "@/features/example/examples-atoms";
+import { makeFormOptions } from "@core/client";
 import { Result, useAtom, useAtomRefresh, useAtomSet, useAtomValue } from "@effect-atom/atom-react";
-import { makeFormOptions } from "@org/client-core";
 import { UpsertExamplePayload, type Example } from "@org/domain/example-rpc";
 import { Button, FieldInput, FieldTextarea, Separator } from "@org/shadcn";
 import { useForm } from "@tanstack/react-form";

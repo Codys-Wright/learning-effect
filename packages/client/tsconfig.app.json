@@ -28,8 +28,15 @@
       "@org/server/*": ["../server/src/*.js"],
       "@org/database": ["../database/src/index.js"],
       "@org/database/*": ["../database/src/*.js"],
-      "@org/client-core": ["../client-core/src/index.js"],
-      "@org/client-core/*": ["../client-core/src/*.js"],
+
+      "@core/client": ["../core/client/src/index.js"],
+      "@core/client/*": ["../core/client/src/*.js"],
+      "@core/domain": ["../core/domain/src/index.js"],
+      "@core/domain/*": ["../core/domain/src/*.js"],
+      "@core/server": ["../core/server/src/index.js"],
+      "@core/server/*": ["../core/server/src/*.js"],
+      "@core/database": ["../core/database/src/index.js"],
+      "@core/database/*": ["../core/database/src/*.js"],
       "@org/shadcn": ["../ui/shadcn/src/index.js"],
       "@org/shadcn/*": ["../ui/shadcn/src/*.js"]
     }
@@ -39,7 +46,10 @@
     { "path": "../domain" },
     { "path": "../database" },
     { "path": "../server" },
-    { "path": "../client-core" },
+    { "path": "../core/client" },
+    { "path": "../core/domain" },
+    { "path": "../core/database" },
+    { "path": "../core/server" },
     { "path": "../ui/shadcn" }
   ]
 }

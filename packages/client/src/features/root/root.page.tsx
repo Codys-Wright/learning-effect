@@ -1,6 +1,6 @@
 import { deleteStyleAtom, stylesAtom, upsertStyleAtom } from "@/features/root/styles-atoms";
+import { makeFormOptions } from "@core/client";
 import { Result, useAtom, useAtomRefresh, useAtomSet, useAtomValue } from "@effect-atom/atom-react";
-import { makeFormOptions } from "@org/client-core";
 import { UpsertStylePayload, type Style } from "@org/domain/styles-rpc";
 import { Button, FieldInput, FieldTextarea, Separator } from "@org/shadcn";
 import { useForm } from "@tanstack/react-form";

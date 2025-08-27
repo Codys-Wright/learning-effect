@@ -37,6 +37,22 @@
     "removeComments": false,
     "plugins": [{ "name": "@effect/language-service" }],
     "paths": {
+      "@core/domain": ["./packages/core/domain/src/index.js"],
+      "@core/domain/*": ["./packages/core/domain/src/*.js"],
+      "@core/domain/test/*": ["./packages/core/domain/test/*.js"],
+
+      "@core/server": ["./packages/core/server/src/index.js"],
+      "@core/server/*": ["./packages/core/server/src/*.js"],
+      "@core/server/test/*": ["./packages/core/server/test/*.js"],
+
+      "@core/database": ["./packages/core/database/src/index.js"],
+      "@core/database/*": ["./packages/core/database/src/*.js"],
+      "@core/database/test/*": ["./packages/core/database/test/*.js"],
+
+      "@core/client": ["./packages/core/client/src/index.js"],
+      "@core/client/*": ["./packages/core/client/src/*.js"],
+      "@core/client/test/*": ["./packages/core/client/test/*.js"],
+
       "@org/domain": ["./packages/domain/src/index.js"],
       "@org/domain/*": ["./packages/domain/src/*.js"],
       "@org/domain/test/*": ["./packages/domain/test/*.js"],
@@ -48,10 +64,6 @@
       "@org/database": ["./packages/database/src/index.js"],
       "@org/database/*": ["./packages/database/src/*.js"],
       "@org/database/test/*": ["./packages/client-core/test/*.js"],
-
-      "@org/client-core": ["./packages/client-core/src/index.js"],
-      "@org/client-core/*": ["./packages/client-core/src/*.js"],
-      "@org/client-core/test/*": ["./packages/client-core/test/*.js"],
 
       "@org/ui/shadcn": ["./packages/ui/shadcn/src/index.js"],
       "@org/ui/shadcn/*": ["./packages/ui/shadcn/src/*.js"],

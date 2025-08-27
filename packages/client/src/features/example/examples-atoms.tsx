@@ -1,5 +1,5 @@
+import { ApiClient, makeAtomRuntime, withToast } from "@core/client";
 import { Atom, Registry, Result } from "@effect-atom/atom-react";
-import { ApiClient, makeAtomRuntime, withToast } from "@org/client-core";
 import { type Example, type ExampleId, type UpsertExamplePayload } from "@org/domain/example-rpc";
 import { Array, Data, Effect } from "effect";
 

@@ -27,6 +27,8 @@
   },
   "dependencies": {
     "@effect/platform": "*",
+    "@core/domain": "workspace:^",
+    "@core/client": "workspace:^",
     "@effect/rpc": "*",
     "@faker-js/faker": "^10.0.0",
     "effect": "*"
