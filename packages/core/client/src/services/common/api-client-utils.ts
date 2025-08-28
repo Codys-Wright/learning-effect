@@ -1,7 +1,7 @@
 import { envVars } from "@/lib/env-vars";
 import { Atom } from "@effect-atom/atom-react";
-import { HttpApi, HttpApiClient, type HttpApiGroup, HttpClient } from "@effect/platform";
-import { Duration, Effect, Random, Schedule } from "effect";
+import { type HttpApiClient, type HttpApiGroup, HttpClient } from "@effect/platform";
+import { Context, Duration, Effect, Random, Schedule } from "effect";
 
 export const configureApiClient = (client: HttpClient.HttpClient) =>
   client.pipe(
@@ -33,41 +33,27 @@ export type RequiresGroup<TGroup extends HttpApiGroup.HttpApiGroup.Any> = {
     Record<string, unknown>;
 };
 
-export const makeFeatureRuntimeService = <
-  TApi extends HttpApi.HttpApi.Any,
-  TGroupName extends string,
->(
-  api: TApi,
-  groupName: TGroupName,
+export const makeFeatureRuntimeService = <TGroup extends HttpApiGroup.HttpApiGroup.Any>(
+  group: TGroup,
 ) => {
-  // Create the actual API client service using the full API
-  const ApiClientService = Effect.Service<{
-    http: HttpApiClient.Client<TApi, never, never>;
-  }>()(`@org/FeatureApiClient/${groupName}`, {
-    dependencies: [FetchHttpClient.layer],
-    scoped: Effect.gen(function* () {
-      return {
-        http: yield* HttpApiClient.make(api as HttpApi.HttpApi<string, any, unknown, unknown>, {
-          baseUrl: envVars.API_URL,
-          transformClient: configureApiClient,
-        }),
-      };
-    }),
-  });
+  const FeatureApiClientService = Context.GenericTag<RequiresGroup<TGroup>>(
+    `@org/FeatureApiClient/${group.identifier}`,
+  );
 
   const runtime = Atom.context({ memoMap: Atom.defaultMemoMap });
 
   // Helper function that provides typed access to the group methods
-  const useGroupApi = <T extends { http: Record<TGroupName, unknown> }>(
-    client: T,
-  ): T["http"][TGroupName] => {
-    return client.http[groupName] as T["http"][TGroupName];
+  const useGroupApi = (client: RequiresGroup<TGroup>): GroupMethods<TGroup> => {
+    const groupName = group.identifier as HttpApiGroup.HttpApiGroup.Name<TGroup>;
+    return client.http[groupName];
   };
 
   return {
     runtime,
-    service: ApiClientService,
-    groupName,
+    service: FeatureApiClientService,
+    groupName: group.identifier as HttpApiGroup.HttpApiGroup.Name<TGroup>,
+    // Export types for convenience
+    // Export the helper function
     useGroupApi,
   } as const;
 };
