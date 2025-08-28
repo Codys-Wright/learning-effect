@@ -1,7 +1,7 @@
-import { PgContainer } from "@/lib/test-utils/pg-container.js";
+import { PgContainer } from "@core/server";
 import { expect, it } from "@effect/vitest";
 import { Effect, Layer } from "effect";
-import { QuestionService } from "../../questions/question-service.js";
+import { QuestionService } from "../services/question-service.js";
 import { QuizzesRepo } from "./quizzes-repo.js";
 
 // Set up the test layer with database dependencies

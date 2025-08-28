@@ -1,8 +1,8 @@
 import { HttpApiScalar, HttpLayerRouter, HttpServer, HttpServerResponse } from "@effect/platform";
+import { QuizzesRpcLive } from "@features/quiz/server";
 import { DomainApi } from "@my-artist-type/domain/domain-api";
 import { Layer } from "effect";
 import { ExamplesRpcLive } from "./domain/examples/examples-rpc-live.js";
-import { QuizzesRpcLive } from "./domain/quizzes/quizzes-rpc-live.js";
 import { StylesRpcLive } from "./domain/styles/styles-rpc-live.js";
 
 export const ApiLive = HttpLayerRouter.addHttpApi(DomainApi, {

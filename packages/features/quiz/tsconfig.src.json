@@ -3,7 +3,8 @@
   "include": ["src"],
   "references": [
     { "path": "../../core/domain/tsconfig.src.json" },
-    { "path": "../../core/database/tsconfig.src.json" }
+    { "path": "../../core/database/tsconfig.src.json" },
+    { "path": "../../core/server/tsconfig.src.json" }
   ],
   "compilerOptions": {
     "jsx": "react-jsx",
@@ -11,7 +12,7 @@
     "target": "ES2021",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
+    "allowImportingTsExtensions": false,
     "isolatedModules": true,
     "moduleDetection": "force",
     "resolveJsonModule": true,
@@ -20,11 +21,7 @@
     "tsBuildInfoFile": ".tsbuildinfo/src.tsbuildinfo",
     "rootDir": "src",
     "paths": {
-      "@/*": ["./src/*"],
-      "@core/domain": ["../../core/domain/src/index.js"],
-      "@core/domain/*": ["../../core/domain/src/*.js"],
-      "@core/database": ["../../core/database/src/index.js"],
-      "@core/database/*": ["../../core/database/src/*.js"]
+      "@/*": ["./src/*"]
     }
   }
 }
