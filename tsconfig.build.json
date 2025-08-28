@@ -2,10 +2,10 @@
   "extends": "./tsconfig.base.json",
   "include": [],
   "references": [
-    { "path": "packages/domain/tsconfig.build.json" },
-    { "path": "packages/database/tsconfig.build.json" },
-    { "path": "packages/client/tsconfig.build.json" },
-    { "path": "packages/server/tsconfig.build.json" },
+    { "path": "apps/my-artist-type/domain/tsconfig.build.json" },
+    { "path": "apps/my-artist-type/database/tsconfig.build.json" },
+    { "path": "apps/my-artist-type/web/tsconfig.build.json" },
+    { "path": "apps/my-artist-type/server/tsconfig.build.json" },
 
     { "path": "packages/core/domain/tsconfig.build.json" },
     { "path": "packages/core/database/tsconfig.build.json" },

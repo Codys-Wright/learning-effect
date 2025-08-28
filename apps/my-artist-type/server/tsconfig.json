@@ -1,0 +1,16 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "include": [],
+  "exclude": ["src/**/*.test.ts"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@my-artist-type/domain": ["../domain/src/index.js"],
+      "@my-artist-type/domain/*": ["../domain/src/*.js"],
+      "@my-artist-type/database": ["../database/src/index.js"],
+      "@my-artist-type/database/*": ["../database/src/*.js"]
+    }
+  },
+  "references": [{ "path": "tsconfig.src.json" }, { "path": "tsconfig.test.json" }]
+}

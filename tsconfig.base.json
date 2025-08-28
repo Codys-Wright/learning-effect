@@ -53,17 +53,17 @@
       "@core/client/*": ["./packages/core/client/src/*.js"],
       "@core/client/test/*": ["./packages/core/client/test/*.js"],
 
-      "@org/domain": ["./packages/domain/src/index.js"],
-      "@org/domain/*": ["./packages/domain/src/*.js"],
-      "@org/domain/test/*": ["./packages/domain/test/*.js"],
+      "@my-artist-type/domain": ["./apps/my-artist-type/domain/src/index.js"],
+      "@my-artist-type/domain/*": ["./apps/my-artist-type/domain/src/*.js"],
+      "@my-artist-type/domain/test/*": ["./apps/my-artist-type/domain/test/*.js"],
 
-      "@org/server": ["./packages/server/src/index.js"],
-      "@org/server/*": ["./packages/server/src/*.js"],
-      "@org/server/test/*": ["./packages/server/test/*.js"],
+      "@my-artist-type/server": ["./apps/my-artist-type/server/src/index.js"],
+      "@my-artist-type/server/*": ["./apps/my-artist-type/server/src/*.js"],
+      "@my-artist-type/server/test/*": ["./apps/my-artist-type/server/test/*.js"],
 
-      "@org/database": ["./packages/database/src/index.js"],
-      "@org/database/*": ["./packages/database/src/*.js"],
-      "@org/database/test/*": ["./packages/client-core/test/*.js"],
+      "@my-artist-type/database": ["./apps/my-artist-type/database/src/index.js"],
+      "@my-artist-type/database/*": ["./apps/my-artist-type/database/src/*.js"],
+      "@my-artist-type/database/test/*": ["./apps/my-artist-type/database/test/*.js"],
 
       "@org/ui/shadcn": ["./packages/ui/shadcn/src/index.js"],
       "@org/ui/shadcn/*": ["./packages/ui/shadcn/src/*.js"],

@@ -6,10 +6,10 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@org/domain": ["../domain/src/index.js"],
-      "@org/domain/*": ["../domain/src/*.js"],
-      "@org/database": ["../database/src/index.js"],
-      "@org/database/*": ["../database/src/*.js"]
+      "@my-artist-type/domain": ["../../../apps/my-artist-type/domain/src/index.js"],
+      "@my-artist-type/domain/*": ["../../../apps/my-artist-type/domain/src/*.js"],
+      "@my-artist-type/database": ["../../../apps/my-artist-type/database/src/index.js"],
+      "@my-artist-type/database/*": ["../../../apps/my-artist-type/database/src/*.js"]
     }
   },
   "references": [{ "path": "tsconfig.src.json" }, { "path": "tsconfig.test.json" }]

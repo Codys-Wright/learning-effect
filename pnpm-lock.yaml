@@ -202,11 +202,148 @@ importers:
         specifier: ^2.0.5
         version: 2.1.9(@types/node@22.17.2)(jsdom@26.1.0)(lightningcss@1.30.1)(terser@5.39.0)
 
-  packages/client:
+  apps/my-artist-type/database:
+    dependencies:
+      "@effect/cli":
+        specifier: 0.69.0
+        version: 0.69.0(@effect/platform@0.90.1(effect@3.17.7))(@effect/printer-ansi@0.45.0(@effect/typeclass@0.36.0(effect@3.17.7))(effect@3.17.7))(@effect/printer@0.45.0(@effect/typeclass@0.36.0(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
+      "@effect/platform":
+        specifier: 0.90.1
+        version: 0.90.1(effect@3.17.7)
+      "@effect/platform-node":
+        specifier: 0.95.0
+        version: 0.95.0(@effect/cluster@0.47.0(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(@effect/sql@0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(@effect/workflow@0.8.3(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7))(effect@3.17.7))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(@effect/sql@0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
+      "@effect/sql":
+        specifier: 0.44.1
+        version: 0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)
+      "@effect/sql-pg":
+        specifier: 0.45.0
+        version: 0.45.0(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/sql@0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
+      "@my-artist-type/domain":
+        specifier: workspace:^
+        version: link:../domain/dist
+      effect:
+        specifier: 3.17.7
+        version: 3.17.7
+      pg:
+        specifier: 8.13.1
+        version: 8.13.1
+    devDependencies:
+      "@types/pg":
+        specifier: ^8.11.11
+        version: 8.15.5
+    publishDirectory: dist
+
+  apps/my-artist-type/domain:
     dependencies:
       "@core/client":
         specifier: workspace:^
-        version: link:../core/client
+        version: link:../../../packages/core/client
+      "@core/domain":
+        specifier: workspace:^
+        version: link:../../../packages/core/domain
+      "@effect/platform":
+        specifier: 0.90.1
+        version: 0.90.1(effect@3.17.7)
+      "@effect/rpc":
+        specifier: 0.68.3
+        version: 0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)
+      "@faker-js/faker":
+        specifier: ^10.0.0
+        version: 10.0.0
+      effect:
+        specifier: 3.17.7
+        version: 3.17.7
+    devDependencies:
+      "@effect/build-utils":
+        specifier: ^0.8.3
+        version: 0.8.9
+    publishDirectory: dist
+
+  apps/my-artist-type/server:
+    dependencies:
+      "@effect/ai":
+        specifier: 0.25.2
+        version: 0.25.2(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
+      "@effect/ai-anthropic":
+        specifier: 0.15.1
+        version: 0.15.1(@effect/ai@0.25.2(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7))(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)
+      "@effect/ai-openai":
+        specifier: 0.28.2
+        version: 0.28.2(@effect/ai@0.25.2(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7))(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)
+      "@effect/cluster":
+        specifier: 0.47.0
+        version: 0.47.0(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(@effect/sql@0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(@effect/workflow@0.8.3(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
+      "@effect/experimental":
+        specifier: 0.54.5
+        version: 0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0)
+      "@effect/opentelemetry":
+        specifier: 0.56.1
+        version: 0.56.1(@effect/platform@0.90.1(effect@3.17.7))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.0.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@2.0.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.0.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-node@2.0.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.30.0)(effect@3.17.7)
+      "@effect/platform":
+        specifier: 0.90.1
+        version: 0.90.1(effect@3.17.7)
+      "@effect/platform-node":
+        specifier: 0.95.0
+        version: 0.95.0(@effect/cluster@0.47.0(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(@effect/sql@0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(@effect/workflow@0.8.3(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7))(effect@3.17.7))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(@effect/sql@0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
+      "@effect/rpc":
+        specifier: 0.68.3
+        version: 0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)
+      "@effect/sql":
+        specifier: 0.44.1
+        version: 0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)
+      "@effect/sql-pg":
+        specifier: 0.45.0
+        version: 0.45.0(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/sql@0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
+      "@my-artist-type/database":
+        specifier: workspace:^
+        version: link:../database/dist
+      "@my-artist-type/domain":
+        specifier: workspace:^
+        version: link:../domain/dist
+      "@opentelemetry/exporter-trace-otlp-http":
+        specifier: 0.200.0
+        version: 0.200.0(@opentelemetry/api@1.9.0)
+      "@opentelemetry/resources":
+        specifier: 2.0.0
+        version: 2.0.0(@opentelemetry/api@1.9.0)
+      "@opentelemetry/sdk-trace-base":
+        specifier: 2.0.0
+        version: 2.0.0(@opentelemetry/api@1.9.0)
+      "@opentelemetry/sdk-trace-node":
+        specifier: 2.0.0
+        version: 2.0.0(@opentelemetry/api@1.9.0)
+      "@opentelemetry/semantic-conventions":
+        specifier: 1.30.0
+        version: 1.30.0
+      "@testcontainers/postgresql":
+        specifier: ^10.28.0
+        version: 10.28.0
+      effect:
+        specifier: 3.17.7
+        version: 3.17.7
+      pg:
+        specifier: 8.13.1
+        version: 8.13.1
+      slugify:
+        specifier: ^1.6.6
+        version: 1.6.6
+    devDependencies:
+      "@types/pg":
+        specifier: ^8.11.11
+        version: 8.15.5
+      madge:
+        specifier: 8.0.0
+        version: 8.0.0(typescript@5.9.2)
+      tsx:
+        specifier: ^4.19.2
+        version: 4.20.4
+
+  apps/my-artist-type/web:
+    dependencies:
+      "@core/client":
+        specifier: workspace:^
+        version: link:../../../packages/core/client
       "@effect-atom/atom-react":
         specifier: 0.1.7
         version: 0.1.7(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)(react@19.0.0)(scheduler@0.25.0)
@@ -228,15 +365,15 @@ importers:
       "@hookform/resolvers":
         specifier: ^5.2.1
         version: 5.2.1(react-hook-form@7.62.0(react@19.0.0))
-      "@org/domain":
+      "@my-artist-type/domain":
         specifier: workspace:^
         version: link:../domain/dist
-      "@org/server":
+      "@my-artist-type/server":
         specifier: workspace:^
         version: link:../server
       "@org/shadcn":
         specifier: workspace:^
-        version: link:../ui/shadcn/dist
+        version: link:../../../packages/ui/shadcn/dist
       "@tailwindcss/postcss":
         specifier: ^4.1.12
         version: 4.1.12
@@ -379,12 +516,12 @@ importers:
       "@hookform/resolvers":
         specifier: ^5.2.1
         version: 5.2.1(react-hook-form@7.62.0(react@19.0.0))
-      "@org/domain":
+      "@my-artist-type/domain":
         specifier: workspace:^
-        version: link:../../domain/dist
-      "@org/server":
+        version: link:../../../apps/my-artist-type/domain/dist
+      "@my-artist-type/server":
         specifier: workspace:^
-        version: link:../../server
+        version: link:../../../apps/my-artist-type/server
       "@radix-ui/react-accordion":
         specifier: ^1.2.12
         version: 1.2.12(@types/react-dom@19.1.7(@types/react@19.1.10))(@types/react@19.1.10)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -635,9 +772,9 @@ importers:
       "@effect/sql-pg":
         specifier: 0.45.0
         version: 0.45.0(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/sql@0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
-      "@org/domain":
+      "@my-artist-type/domain":
         specifier: workspace:^
-        version: link:../../domain/dist
+        version: link:../../../apps/my-artist-type/domain/dist
       effect:
         specifier: 3.17.7
         version: 3.17.7
@@ -703,6 +840,12 @@ importers:
       "@effect/sql-pg":
         specifier: 0.45.0
         version: 0.45.0(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/sql@0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
+      "@my-artist-type/database":
+        specifier: workspace:^
+        version: link:../../../apps/my-artist-type/database/dist
+      "@my-artist-type/domain":
+        specifier: workspace:^
+        version: link:../../../apps/my-artist-type/domain/dist
       "@opentelemetry/exporter-trace-otlp-http":
         specifier: 0.200.0
         version: 0.200.0(@opentelemetry/api@1.9.0)
@@ -718,12 +861,6 @@ importers:
       "@opentelemetry/semantic-conventions":
         specifier: 1.30.0
         version: 1.30.0
-      "@org/database":
-        specifier: workspace:^
-        version: link:../../database/dist
-      "@org/domain":
-        specifier: workspace:^
-        version: link:../../domain/dist
       "@testcontainers/postgresql":
         specifier: ^10.28.0
         version: 10.28.0
@@ -746,64 +883,6 @@ importers:
       tsx:
         specifier: ^4.19.2
         version: 4.20.4
-
-  packages/database:
-    dependencies:
-      "@effect/cli":
-        specifier: 0.69.0
-        version: 0.69.0(@effect/platform@0.90.1(effect@3.17.7))(@effect/printer-ansi@0.45.0(@effect/typeclass@0.36.0(effect@3.17.7))(effect@3.17.7))(@effect/printer@0.45.0(@effect/typeclass@0.36.0(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
-      "@effect/platform":
-        specifier: 0.90.1
-        version: 0.90.1(effect@3.17.7)
-      "@effect/platform-node":
-        specifier: 0.95.0
-        version: 0.95.0(@effect/cluster@0.47.0(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(@effect/sql@0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(@effect/workflow@0.8.3(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7))(effect@3.17.7))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(@effect/sql@0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
-      "@effect/sql":
-        specifier: 0.44.1
-        version: 0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)
-      "@effect/sql-pg":
-        specifier: 0.45.0
-        version: 0.45.0(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/sql@0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
-      "@org/domain":
-        specifier: workspace:^
-        version: link:../domain/dist
-      effect:
-        specifier: 3.17.7
-        version: 3.17.7
-      pg:
-        specifier: 8.13.1
-        version: 8.13.1
-    devDependencies:
-      "@types/pg":
-        specifier: ^8.11.11
-        version: 8.15.5
-    publishDirectory: dist
-
-  packages/domain:
-    dependencies:
-      "@core/client":
-        specifier: workspace:^
-        version: link:../core/client
-      "@core/domain":
-        specifier: workspace:^
-        version: link:../core/domain
-      "@effect/platform":
-        specifier: 0.90.1
-        version: 0.90.1(effect@3.17.7)
-      "@effect/rpc":
-        specifier: 0.68.3
-        version: 0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)
-      "@faker-js/faker":
-        specifier: ^10.0.0
-        version: 10.0.0
-      effect:
-        specifier: 3.17.7
-        version: 3.17.7
-    devDependencies:
-      "@effect/build-utils":
-        specifier: ^0.8.3
-        version: 0.8.9
-    publishDirectory: dist
 
   packages/features/quiz:
     dependencies:
@@ -827,85 +906,6 @@ importers:
         specifier: ^0.8.3
         version: 0.8.9
     publishDirectory: dist
-
-  packages/server:
-    dependencies:
-      "@effect/ai":
-        specifier: 0.25.2
-        version: 0.25.2(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
-      "@effect/ai-anthropic":
-        specifier: 0.15.1
-        version: 0.15.1(@effect/ai@0.25.2(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7))(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)
-      "@effect/ai-openai":
-        specifier: 0.28.2
-        version: 0.28.2(@effect/ai@0.25.2(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7))(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)
-      "@effect/cluster":
-        specifier: 0.47.0
-        version: 0.47.0(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(@effect/sql@0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(@effect/workflow@0.8.3(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
-      "@effect/experimental":
-        specifier: 0.54.5
-        version: 0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0)
-      "@effect/opentelemetry":
-        specifier: 0.56.1
-        version: 0.56.1(@effect/platform@0.90.1(effect@3.17.7))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.0.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@2.0.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.0.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-node@2.0.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.30.0)(effect@3.17.7)
-      "@effect/platform":
-        specifier: 0.90.1
-        version: 0.90.1(effect@3.17.7)
-      "@effect/platform-node":
-        specifier: 0.95.0
-        version: 0.95.0(@effect/cluster@0.47.0(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(@effect/sql@0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(@effect/workflow@0.8.3(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7))(effect@3.17.7))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(@effect/sql@0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
-      "@effect/rpc":
-        specifier: 0.68.3
-        version: 0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)
-      "@effect/sql":
-        specifier: 0.44.1
-        version: 0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)
-      "@effect/sql-pg":
-        specifier: 0.45.0
-        version: 0.45.0(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/sql@0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
-      "@opentelemetry/exporter-trace-otlp-http":
-        specifier: 0.200.0
-        version: 0.200.0(@opentelemetry/api@1.9.0)
-      "@opentelemetry/resources":
-        specifier: 2.0.0
-        version: 2.0.0(@opentelemetry/api@1.9.0)
-      "@opentelemetry/sdk-trace-base":
-        specifier: 2.0.0
-        version: 2.0.0(@opentelemetry/api@1.9.0)
-      "@opentelemetry/sdk-trace-node":
-        specifier: 2.0.0
-        version: 2.0.0(@opentelemetry/api@1.9.0)
-      "@opentelemetry/semantic-conventions":
-        specifier: 1.30.0
-        version: 1.30.0
-      "@org/database":
-        specifier: workspace:^
-        version: link:../database/dist
-      "@org/domain":
-        specifier: workspace:^
-        version: link:../domain/dist
-      "@testcontainers/postgresql":
-        specifier: ^10.28.0
-        version: 10.28.0
-      effect:
-        specifier: 3.17.7
-        version: 3.17.7
-      pg:
-        specifier: 8.13.1
-        version: 8.13.1
-      slugify:
-        specifier: ^1.6.6
-        version: 1.6.6
-    devDependencies:
-      "@types/pg":
-        specifier: ^8.11.11
-        version: 8.15.5
-      madge:
-        specifier: 8.0.0
-        version: 8.0.0(typescript@5.9.2)
-      tsx:
-        specifier: ^4.19.2
-        version: 4.20.4
 
   packages/ui/shadcn:
     dependencies:

@@ -3,3 +3,4 @@ packages:
   - packages/ui/*
   - packages/core/*
   - packages/features/*
+  - apps/my-artist-type/*
