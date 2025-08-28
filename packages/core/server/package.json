@@ -9,6 +9,11 @@
     "url": "https://github.com/lucas-barake/rpc-tutorial.git",
     "directory": "packages/core/server"
   },
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json",
+    "./*": "./src/*.ts"
+  },
   "main": "build/esm/server.js",
   "module": "build/esm/server.js",
   "types": "build/dts/server.d.ts",
