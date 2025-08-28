@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+@source "../../../../../packages/features/quiz";
+@source "../../../../../packages/ui/shadcn";
+
 @plugin "tailwindcss-animate";
 @plugin "@tailwindcss/typography";
 
