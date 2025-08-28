@@ -9,10 +9,6 @@
     "url": "https://github.com/lucas-barake/rpc-tutorial.git",
     "directory": "apps/my-artist-type/domain"
   },
-  "publishConfig": {
-    "access": "public",
-    "directory": "dist"
-  },
   "exports": {
     ".": "./src/index.ts",
     "./package.json": "./package.json",

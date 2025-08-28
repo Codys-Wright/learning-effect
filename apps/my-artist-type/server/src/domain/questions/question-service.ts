@@ -1,8 +1,4 @@
-import type {
-  Question,
-  QuestionId,
-  UpsertQuestionPayload,
-} from "@my-artist-type/domain/quiz/questions/question-rpc";
+import type { Question, QuestionId, UpsertQuestionPayload } from "@features/quiz/domain";
 import { Effect } from "effect";
 
 export class QuestionService extends Effect.Service<QuestionService>()("QuestionService", {
