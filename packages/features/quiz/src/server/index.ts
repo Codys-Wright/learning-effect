@@ -1,2 +1,2 @@
 export * from "./quizzes-rpc-live";
-export * from "./services";
+export type * from "./services";

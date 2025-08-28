@@ -1,9 +1,8 @@
-import { ApiClient, makeAtomRuntime, withToast } from "@core/client";
+import { ApiClient, withToast } from "@core/client";
 import { Atom, Registry, Result } from "@effect-atom/atom-react";
 import { type Quiz, type QuizId, type UpsertQuizPayload } from "@features/quiz/domain";
 import { Array, Data, Effect } from "effect";
-
-const runtime = makeAtomRuntime(ApiClient.Default);
+import { runtime } from "./quiz-runtime-service";
 
 const remoteAtom = runtime.atom(
   Effect.fn(function* () {

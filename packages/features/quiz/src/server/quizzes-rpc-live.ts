@@ -1,8 +1,8 @@
 import { HttpApiBuilder } from "@effect/platform";
 import { DomainApi } from "@my-artist-type/domain/domain-api";
 import { Effect, Layer } from "effect";
-import { QuestionService } from "../questions/question-service.js";
-import { QuizzesRepo } from "./internal/quizzes-repo.js";
+import { QuestionService } from "./services/question-service";
+import { QuizzesRepo } from "./services/quizzes-repo";
 
 export const QuizzesRpcLive = HttpApiBuilder.group(DomainApi, "Quizzes", (handlers) =>
   Effect.gen(function* () {
