@@ -27,11 +27,11 @@
 import { NullOrFromFallible } from "@core/domain";
 import { HttpApiSchema } from "@effect/platform";
 import { faker } from "@faker-js/faker";
-import { Schema } from "effect";
+import { Schema as S } from "effect";
 import { QuestionData, UpsertQuestionData } from "./question-types.js";
 
 //1) Create a branded ID type for the entity to avoid confusion in logs and merging other id types
-export const QuestionId = Schema.UUID.pipe(Schema.brand("QuestionId"));
+export const QuestionId = S.UUID.pipe(S.brand("QuestionId"));
 //export a type for use with normal typescript outside of effect
 export type QuestionId = typeof QuestionId.Type;
 
@@ -39,29 +39,29 @@ export type QuestionId = typeof QuestionId.Type;
 
 //Define any metadata for the schema, this goes through the NullorFromFallible schema util that will keep any JSON that meets our expectations,
 // and silently return null if it is malformed data
-export class QuestionMetadata extends Schema.Class<QuestionMetadata>("QuestionMetadata")({
-  tags: Schema.optional(Schema.Array(Schema.String)),
-  customFields: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
+export class QuestionMetadata extends S.Class<QuestionMetadata>("QuestionMetadata")({
+  tags: S.optional(S.Array(S.String)),
+  customFields: S.optional(S.Record({ key: S.String, value: S.Unknown })),
 }) {}
 
-export class Question extends Schema.Class<Question>("Question")({
+export class Question extends S.Class<Question>("Question")({
   id: QuestionId,
 
   //Define the actual entity here
-  order: Schema.Number.annotations({
+  order: S.Number.annotations({
     arbitrary: () => (fc) => fc.constant(null).map(() => faker.number.int({ min: 1, max: 50 })),
   }),
-  title: Schema.String.annotations({
+  title: S.String.annotations({
     arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.sentence()),
   }),
-  subtitle: Schema.optional(
-    Schema.String.annotations({
+  subtitle: S.optional(
+    S.String.annotations({
       arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.words(3)),
     }),
   ),
 
-  description: Schema.optional(
-    Schema.String.annotations({
+  description: S.optional(
+    S.String.annotations({
       arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.paragraph()),
     }),
   ),
@@ -69,49 +69,47 @@ export class Question extends Schema.Class<Question>("Question")({
   data: QuestionData,
 
   //optional metadata - stored as JSON in database
-  metadata: Schema.parseJson(NullOrFromFallible(QuestionMetadata)),
+  metadata: S.parseJson(NullOrFromFallible(QuestionMetadata)),
 }) {}
 
 //3) Define the Schema for upserting the entity, this does not need to include createdAt or updatedAt because those are handled
 // at the database driver level, we also don't include deletedAt because that is its own operation "softdel"
 
-export class UpsertQuestionPayload extends Schema.Class<UpsertQuestionPayload>(
-  "UpsertQuestionPayload",
-)({
-  id: Schema.optional(QuestionId),
+export class UpsertQuestionPayload extends S.Class<UpsertQuestionPayload>("UpsertQuestionPayload")({
+  id: S.optional(QuestionId),
 
-  order: Schema.Number.pipe(Schema.int(), Schema.nonNegative()).annotations({
+  order: S.Number.pipe(S.int(), S.nonNegative()).annotations({
     arbitrary: () => (fc) => fc.constant(null).map(() => faker.number.int({ min: 1, max: 50 })),
   }),
 
-  title: Schema.Trim.pipe(
-    Schema.nonEmptyString({
+  title: S.Trim.pipe(
+    S.nonEmptyString({
       message: () => "title is required",
     }),
-    Schema.maxLength(200, {
+    S.maxLength(200, {
       message: () => "Title must be at most 200 characters long",
     }),
   ).annotations({
     arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.sentence().slice(0, 200)),
   }),
-  subtitle: Schema.optional(
-    Schema.Trim.pipe(
-      Schema.nonEmptyString({
+  subtitle: S.optional(
+    S.Trim.pipe(
+      S.nonEmptyString({
         message: () => "subtitle is required when provided",
       }),
-      Schema.maxLength(300, {
+      S.maxLength(300, {
         message: () => "Subtitle must be at most 300 characters long",
       }),
     ).annotations({
       arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.words(3).slice(0, 300)),
     }),
   ),
-  description: Schema.optional(
-    Schema.Trim.pipe(
-      Schema.nonEmptyString({
+  description: S.optional(
+    S.Trim.pipe(
+      S.nonEmptyString({
         message: () => "description is required when provided",
       }),
-      Schema.maxLength(1_000, {
+      S.maxLength(1_000, {
         message: () => "Description must be at most 1,000 characters long",
       }),
     ).annotations({
@@ -120,13 +118,13 @@ export class UpsertQuestionPayload extends Schema.Class<UpsertQuestionPayload>(
   ),
 
   data: UpsertQuestionData,
-  metadata: Schema.optional(Schema.NullOr(QuestionMetadata)),
+  metadata: S.optional(S.NullOr(QuestionMetadata)),
 
   //
 }) {}
 
 //4) Define an Error for the entity, this will help us trace any errors back here if something is wrong
-export class QuestionNotFoundError extends Schema.TaggedError<QuestionNotFoundError>(
+export class QuestionNotFoundError extends S.TaggedError<QuestionNotFoundError>(
   "QuestionNotFoundError",
 )(
   "QuestionNotFoundError",

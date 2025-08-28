@@ -1,5 +1,6 @@
 {
-  "name": "@org/quiz",
+  "name": "@features/quiz",
+  "private": true,
   "version": "0.0.0",
   "type": "module",
   "license": "MIT",
@@ -9,12 +10,12 @@
     "url": "https://github.com/lucas-barake/rpc-tutorial.git",
     "directory": "packages/domain"
   },
-  "publishConfig": {
-    "access": "public",
-    "directory": "dist"
-  },
   "exports": {
     ".": "./src/index.ts",
+    "./client": "./src/client/index.ts",
+    "./server": "./src/server/index.ts",
+    "./domain": "./src/domain/index.ts",
+    "./database": "./src/database/index.ts",
     "./package.json": "./package.json",
     "./*": "./src/*.ts"
   },

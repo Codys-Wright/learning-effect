@@ -1,6 +1,6 @@
 import { SqlClient, SqlSchema } from "@effect/sql";
+import { Quiz, QuizId, QuizNotFoundError } from "@features/quiz/domain";
 import { PgLive } from "@my-artist-type/database/database";
-import { Quiz, QuizId, QuizNotFoundError } from "@my-artist-type/domain/quiz/quiz-rpc";
 import { Effect, flow, Schema } from "effect";
 
 import { slugify } from "../utils/slugify.js";

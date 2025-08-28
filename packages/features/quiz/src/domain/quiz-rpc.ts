@@ -27,11 +27,11 @@
 import { NullOrFromFallible, SemVer, Slug } from "@core/domain";
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "@effect/platform";
 import { faker } from "@faker-js/faker";
-import { Schema } from "effect";
+import { Schema as S } from "effect";
 import { Question, UpsertQuestionPayload } from "./questions/question-rpc.js";
 
 //1) Create a branded ID type for the entity to avoid confusion in logs and merging other id types
-export const QuizId = Schema.UUID.pipe(Schema.brand("QuizId"));
+export const QuizId = S.UUID.pipe(S.brand("QuizId"));
 //export a type for use with normal typescript outside of effect
 export type QuizId = typeof QuizId.Type;
 
@@ -39,81 +39,81 @@ export type QuizId = typeof QuizId.Type;
 
 //Define any metadata for the schema, this goes through the NullorFromFallible schema util that will keep any JSON that meets our expectations,
 // and silently return null if it is malformed data
-export class QuizMetadata extends Schema.Class<QuizMetadata>("QuizMetadata")({
-  tags: Schema.optional(
-    Schema.Array(
-      Schema.String.annotations({
+export class QuizMetadata extends S.Class<QuizMetadata>("QuizMetadata")({
+  tags: S.optional(
+    S.Array(
+      S.String.annotations({
         arbitrary: () => (fc) => fc.constant(null).map(() => faker.word.noun()),
       }),
     ),
   ),
-  customFields: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
+  customFields: S.optional(S.Record({ key: S.String, value: S.Unknown })),
 }) {}
 
-export class QuizSettings extends Schema.Class<QuizSettings>("QuizSettings")({
-  customFields: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
+export class QuizSettings extends S.Class<QuizSettings>("QuizSettings")({
+  customFields: S.optional(S.Record({ key: S.String, value: S.Unknown })),
 }) {}
 
-export class Quiz extends Schema.Class<Quiz>("Quiz")({
+export class Quiz extends S.Class<Quiz>("Quiz")({
   //every entity should have an Id and a version
   id: QuizId,
   version: SemVer,
   slug: Slug,
 
   //Define the actual entity here
-  title: Schema.String.annotations({
+  title: S.String.annotations({
     arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.words(3)),
   }),
-  subtitle: Schema.optional(
-    Schema.NullOr(
-      Schema.String.annotations({
+  subtitle: S.optional(
+    S.NullOr(
+      S.String.annotations({
         arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.sentence()),
       }),
     ),
   ),
-  description: Schema.optional(
-    Schema.NullOr(
-      Schema.String.annotations({
+  description: S.optional(
+    S.NullOr(
+      S.String.annotations({
         arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.paragraphs(2)),
       }),
     ),
   ),
-  questions: Schema.optional(Schema.parseJson(Schema.Array(Question))),
-  settings: Schema.optional(Schema.NullOr(Schema.parseJson(NullOrFromFallible(QuizSettings)))),
+  questions: S.optional(S.parseJson(S.Array(Question))),
+  settings: S.optional(S.NullOr(S.parseJson(NullOrFromFallible(QuizSettings)))),
 
   //optional metadata - stored as JSON in database
-  metadata: Schema.optional(Schema.NullOr(Schema.parseJson(NullOrFromFallible(QuizMetadata)))),
+  metadata: S.optional(S.NullOr(S.parseJson(NullOrFromFallible(QuizMetadata)))),
 
   //Always include a createdAt and UpdatedAt time, but deletedAt is optional for things you want to be able to soft delete
-  createdAt: Schema.DateTimeUtc,
-  updatedAt: Schema.DateTimeUtc,
-  deletedAt: Schema.NullOr(Schema.DateTimeUtc),
+  createdAt: S.DateTimeUtc,
+  updatedAt: S.DateTimeUtc,
+  deletedAt: S.NullOr(S.DateTimeUtc),
 }) {}
 
 //3) Define the Schema for upserting the entity, this does not need to include createdAt or updatedAt because those are handled
 // at the database driver level, we also don't include deletedAt because that is its own operation "softdel"
 
-export class UpsertQuizPayload extends Schema.Class<UpsertQuizPayload>("UpsertQuizPayload")({
-  id: Schema.optional(QuizId),
-  version: Schema.optional(SemVer),
+export class UpsertQuizPayload extends S.Class<UpsertQuizPayload>("UpsertQuizPayload")({
+  id: S.optional(QuizId),
+  version: S.optional(SemVer),
 
-  title: Schema.Trim.pipe(
-    Schema.nonEmptyString({
+  title: S.Trim.pipe(
+    S.nonEmptyString({
       message: () => "title is required",
     }),
-    Schema.maxLength(30, {
+    S.maxLength(30, {
       message: () => "Title must be at most 30 characters long",
     }),
   ).annotations({
     arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.words(3).slice(0, 30)),
   }),
-  subtitle: Schema.optional(
-    Schema.NullOr(
-      Schema.Trim.pipe(
-        Schema.nonEmptyString({
+  subtitle: S.optional(
+    S.NullOr(
+      S.Trim.pipe(
+        S.nonEmptyString({
           message: () => "subtitle is required",
         }),
-        Schema.maxLength(100, {
+        S.maxLength(100, {
           message: () => "subtitle must be at most 30 characters long",
         }),
       ).annotations({
@@ -121,13 +121,13 @@ export class UpsertQuizPayload extends Schema.Class<UpsertQuizPayload>("UpsertQu
       }),
     ),
   ),
-  description: Schema.optional(
-    Schema.NullOr(
-      Schema.Trim.pipe(
-        Schema.nonEmptyString({
+  description: S.optional(
+    S.NullOr(
+      S.Trim.pipe(
+        S.nonEmptyString({
           message: () => "description is required",
         }),
-        Schema.maxLength(1_000, {
+        S.maxLength(1_000, {
           message: () => "Description must be at most 1,000 characters long",
         }),
       ).annotations({
@@ -137,16 +137,16 @@ export class UpsertQuizPayload extends Schema.Class<UpsertQuizPayload>("UpsertQu
     ),
   ),
 
-  questions: Schema.optional(Schema.Array(UpsertQuestionPayload)),
-  settings: Schema.optional(Schema.NullOr(Schema.parseJson(NullOrFromFallible(QuizSettings)))),
+  questions: S.optional(S.Array(UpsertQuestionPayload)),
+  settings: S.optional(S.NullOr(S.parseJson(NullOrFromFallible(QuizSettings)))),
 
-  metadata: Schema.optional(QuizMetadata),
+  metadata: S.optional(QuizMetadata),
 
   //
 }) {}
 
 //4) Define an Error for the entity, this will help us trace any errors back here if something is wrong
-export class QuizNotFoundError extends Schema.TaggedError<QuizNotFoundError>("QuizNotFoundError")(
+export class QuizNotFoundError extends S.TaggedError<QuizNotFoundError>("QuizNotFoundError")(
   "QuizNotFoundError",
   { id: QuizId },
   HttpApiSchema.annotations({
@@ -161,7 +161,7 @@ export class QuizNotFoundError extends Schema.TaggedError<QuizNotFoundError>("Qu
 //5) Export an HttpApiGroup so that we can incoprorate it into our DomainAPI
 // This is where we use all the building blocks we made above
 export class QuizzesGroup extends HttpApiGroup.make("Quizzes")
-  .add(HttpApiEndpoint.get("list", "/").addSuccess(Schema.Array(Quiz)))
+  .add(HttpApiEndpoint.get("list", "/").addSuccess(S.Array(Quiz)))
   .add(
     HttpApiEndpoint.put("upsert", "/")
       .addSuccess(Quiz)
@@ -171,11 +171,11 @@ export class QuizzesGroup extends HttpApiGroup.make("Quizzes")
   .add(
     HttpApiEndpoint.del("delete", "/")
       .setPayload(
-        Schema.Struct({
+        S.Struct({
           id: QuizId,
         }),
       )
-      .addSuccess(Schema.Void)
+      .addSuccess(S.Void)
       .addError(QuizNotFoundError),
   )
   .prefix("/Quizzes") {}

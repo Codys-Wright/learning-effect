@@ -29,6 +29,7 @@
     "@effect/platform": "*",
     "@core/domain": "workspace:^",
     "@core/client": "workspace:^",
+    "@features/quiz": "workspace:^",
     "@effect/rpc": "*",
     "@faker-js/faker": "^10.0.0",
     "effect": "*"

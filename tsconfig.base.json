@@ -67,7 +67,11 @@
 
       "@org/ui/shadcn": ["./packages/ui/shadcn/src/index.js"],
       "@org/ui/shadcn/*": ["./packages/ui/shadcn/src/*.js"],
-      "@org/ui/shadcn/test/*": ["./packages/ui/shadcn/test/*.js"]
+      "@org/ui/shadcn/test/*": ["./packages/ui/shadcn/test/*.js"],
+
+      "@features/quiz/": ["./packages/features/quiz/src/index.js"],
+      "@features/quiz/*": ["./packages/features/quiz/src/*.js"],
+      "@features/quiz/test/*": ["./packages/features/quiz/test/*.js"]
     }
   }
 }

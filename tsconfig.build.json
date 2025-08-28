@@ -12,6 +12,8 @@
     { "path": "packages/core/client/tsconfig.build.json" },
     { "path": "packages/core/server/tsconfig.build.json" },
 
-    { "path": "packages/ui/shadcn/tsconfig.build.json" }
+    { "path": "packages/ui/shadcn/tsconfig.build.json" },
+
+    { "path": "packages/features/quiz/tsconfig.build.json" }
   ]
 }

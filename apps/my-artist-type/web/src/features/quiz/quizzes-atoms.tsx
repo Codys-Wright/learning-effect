@@ -1,10 +1,6 @@
 import { ApiClient, makeAtomRuntime, withToast } from "@core/client";
 import { Atom, Registry, Result } from "@effect-atom/atom-react";
-import {
-  type Quiz,
-  type QuizId,
-  type UpsertQuizPayload,
-} from "@my-artist-type/domain/quiz/quiz-rpc";
+import { type Quiz, type QuizId, type UpsertQuizPayload } from "@features/quiz/domain";
 import { Array, Data, Effect } from "effect";
 
 const runtime = makeAtomRuntime(ApiClient.Default);

@@ -1,5 +1,5 @@
 import { Atom, useAtomSet, useAtomValue } from "@effect-atom/atom-react";
-import { Question } from "@my-artist-type/domain/quiz/questions/question-rpc";
+import { Question } from "@features/quiz/domain";
 import {
   Badge,
   Button,

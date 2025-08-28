@@ -5,6 +5,10 @@
     "types": ["node"],
     "outDir": "build/src",
     "tsBuildInfoFile": ".tsbuildinfo/src.tsbuildinfo",
-    "rootDir": "src"
+    "rootDir": "src",
+    "paths": {
+      "@features/quiz": ["../../../packages/features/quiz/src/index.js"],
+      "@features/quiz/*": ["../../../packages/features/quiz/src/*.js"]
+    }
   }
 }

@@ -1,6 +1,6 @@
 import { quizzesAtom } from "@/features/quiz/quizzes-atoms";
 import { Result, useAtomRefresh, useAtomValue } from "@effect-atom/atom-react";
-import { type Quiz } from "@my-artist-type/domain/quiz/quiz-rpc";
+import { type Quiz } from "@features/quiz/domain";
 import { Button, Separator } from "@org/shadcn";
 import React from "react";
 import { QuizItem } from "./components/quiz-item";

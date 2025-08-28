@@ -47,7 +47,7 @@ export const Route = createRootRoute({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "AuthKit Example in TanStack Start",
+        title: "My Artist Type",
       },
     ],
     links: [
