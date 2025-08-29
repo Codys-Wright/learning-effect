@@ -22,7 +22,7 @@ overrides:
   "@effect/ai": 0.25.2
   "@effect/ai-openai": 0.28.2
   "@effect/ai-anthropic": 0.15.1
-  "@effect-atom/atom-react": 0.1.7
+  "@effect-atom/atom-react": 0.1.15
   "@effect/cli": 0.69.0
   "@opentelemetry/resources": 2.0.0
   "@opentelemetry/sdk-trace-base": 2.0.0
@@ -55,8 +55,8 @@ importers:
         specifier: ^7.25.9
         version: 7.27.1(@babel/core@7.28.3)
       "@effect-atom/atom-react":
-        specifier: 0.1.7
-        version: 0.1.7(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)(react@19.0.0)(scheduler@0.25.0)
+        specifier: 0.1.15
+        version: 0.1.15(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)(react@19.0.0)(scheduler@0.25.0)
       "@effect/ai":
         specifier: 0.25.2
         version: 0.25.2(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
@@ -349,8 +349,8 @@ importers:
         specifier: workspace:^
         version: link:../../../packages/core/client
       "@effect-atom/atom-react":
-        specifier: 0.1.7
-        version: 0.1.7(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)(react@19.0.0)(scheduler@0.25.0)
+        specifier: 0.1.15
+        version: 0.1.15(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)(react@19.0.0)(scheduler@0.25.0)
       "@effect/platform":
         specifier: 0.90.1
         version: 0.90.1(effect@3.17.7)
@@ -503,8 +503,8 @@ importers:
   packages/core/client:
     dependencies:
       "@effect-atom/atom-react":
-        specifier: 0.1.7
-        version: 0.1.7(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)(react@19.0.0)(scheduler@0.25.0)
+        specifier: 0.1.15
+        version: 0.1.15(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)(react@19.0.0)(scheduler@0.25.0)
       "@effect/platform":
         specifier: 0.90.1
         version: 0.90.1(effect@3.17.7)
@@ -906,8 +906,8 @@ importers:
         specifier: workspace:^
         version: link:../../core/server
       "@effect-atom/atom-react":
-        specifier: 0.1.7
-        version: 0.1.7(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)(react@19.0.0)(scheduler@0.25.0)
+        specifier: 0.1.15
+        version: 0.1.15(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)(react@19.0.0)(scheduler@0.25.0)
       "@effect/ai":
         specifier: 0.25.2
         version: 0.25.2(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
@@ -1126,8 +1126,8 @@ importers:
   packages/ui/shadcn:
     dependencies:
       "@effect-atom/atom-react":
-        specifier: 0.1.7
-        version: 0.1.7(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)(react@19.0.0)(scheduler@0.25.0)
+        specifier: 0.1.15
+        version: 0.1.15(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)(react@19.0.0)(scheduler@0.25.0)
       "@effect/platform":
         specifier: 0.90.1
         version: 0.90.1(effect@3.17.7)
@@ -1792,10 +1792,10 @@ packages:
         integrity: sha512-tuKn4leCPItox1O4uunHcQF0QllDCvPWklnNQIh2PiWWVtRAGltJJnM4Cwj5AciplosD1Hiz7vAY3ew3crLb3A==,
       }
 
-  "@effect-atom/atom-react@0.1.7":
+  "@effect-atom/atom-react@0.1.15":
     resolution:
       {
-        integrity: sha512-KV7y/bDZ+r9NBVoAK04jhYLctRj1QfeDWYHrZE5UgfwhR86+UX3ngSvVayed3ZYj+pHixaNpKglzohO7ROAvsA==,
+        integrity: sha512-o0P+WtpRWuwniLqPGq9K78mwUpusstitp+SpM6vMYMkATjQgXbJIeiNrBver2NRlhQ5qFvtWDDxL94Kx8oBVcA==,
       }
     peerDependencies:
       effect: 3.17.7
@@ -14175,7 +14175,7 @@ snapshots:
 
   "@dprint/typescript@0.91.8": {}
 
-  "@effect-atom/atom-react@0.1.7(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)(react@19.0.0)(scheduler@0.25.0)":
+  "@effect-atom/atom-react@0.1.15(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)(react@19.0.0)(scheduler@0.25.0)":
     dependencies:
       "@effect-atom/atom": 0.1.20(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
       effect: 3.17.7

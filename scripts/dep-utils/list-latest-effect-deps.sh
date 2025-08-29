@@ -33,6 +33,7 @@ packages=(
     "@effect/ai-anthropic"
     "@effect/ai-google"
     "@effect-rx/rx-react"
+    "@effect-atom/atom-react"
     "@effect/cli"
     "@effect/printer"
     "@effect/printer-ansi"
@@ -72,4 +73,4 @@ for package in "${packages[@]}"; do
     fi
 done
 
-echo -e "${GREEN}Done!${NC}" 
+echo -e "${GREEN}Done!${NC}"
