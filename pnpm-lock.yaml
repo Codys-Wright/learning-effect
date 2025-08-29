@@ -219,9 +219,6 @@ importers:
       "@effect/sql-pg":
         specifier: 0.45.0
         version: 0.45.0(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/sql@0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
-      "@my-artist-type/domain":
-        specifier: workspace:^
-        version: link:../domain
       effect:
         specifier: 3.17.7
         version: 3.17.7
@@ -235,12 +232,6 @@ importers:
 
   apps/my-artist-type/domain:
     dependencies:
-      "@core/client":
-        specifier: workspace:^
-        version: link:../../../packages/core/client
-      "@core/domain":
-        specifier: workspace:^
-        version: link:../../../packages/core/domain
       "@effect/platform":
         specifier: 0.90.1
         version: 0.90.1(effect@3.17.7)
@@ -947,9 +938,6 @@ importers:
       "@faker-js/faker":
         specifier: ^10.0.0
         version: 10.0.0
-      "@features/quiz":
-        specifier: workspace:^
-        version: "link:"
       "@headlessui/react":
         specifier: ^2.2.1
         version: 2.2.7(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -959,9 +947,6 @@ importers:
       "@my-artist-type/database":
         specifier: workspace:^
         version: link:../../../apps/my-artist-type/database
-      "@my-artist-type/domain":
-        specifier: workspace:^
-        version: link:../../../apps/my-artist-type/domain
       "@my-artist-type/server":
         specifier: workspace:^
         version: link:../../../apps/my-artist-type/server
