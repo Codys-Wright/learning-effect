@@ -219,6 +219,9 @@ importers:
       "@effect/sql-pg":
         specifier: 0.45.0
         version: 0.45.0(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/sql@0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
+      "@features/quiz":
+        specifier: workspace:^
+        version: link:../../../packages/features/quiz
       effect:
         specifier: 3.17.7
         version: 3.17.7
@@ -290,9 +293,6 @@ importers:
       "@features/quiz":
         specifier: workspace:^
         version: link:../../../packages/features/quiz
-      "@my-artist-type/database":
-        specifier: workspace:^
-        version: link:../database
       "@my-artist-type/domain":
         specifier: workspace:^
         version: link:../domain
@@ -802,6 +802,9 @@ importers:
 
   packages/core/server:
     dependencies:
+      "@core/database":
+        specifier: workspace:^
+        version: link:../database
       "@effect/ai":
         specifier: 0.25.2
         version: 0.25.2(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)

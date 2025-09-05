@@ -2,7 +2,7 @@ import { FileSystem } from "@effect/platform";
 import { NodeContext } from "@effect/platform-node";
 import { SqlClient } from "@effect/sql";
 import { PgClient } from "@effect/sql-pg";
-import { pgConfig } from "@org/database/database";
+import { pgConfig } from "@my-artist-type/database/database";
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import { Effect, Layer, Redacted } from "effect";
 import * as path from "path";

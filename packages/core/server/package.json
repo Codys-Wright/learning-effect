@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "@effect/ai": "*",
+    "@core/database": "workspace:^",
     "@effect/ai-anthropic": "*",
     "@effect/ai-openai": "*",
     "@effect/cluster": "*",

@@ -23,7 +23,8 @@
     "test": "vitest",
     "coverage": "vitest --coverage",
     "migrate": "dotenv -e ../../../.env tsx ./src/scripts/migrator.ts",
-    "reset": "dotenv -e ../../../.env tsx ./src/scripts/reset.ts"
+    "reset": "dotenv -e ../../../.env tsx ./src/scripts/reset.ts",
+    "seed": "dotenv -e ../../../.env tsx ./src/scripts/seed.ts"
   },
   "dependencies": {
     "pg": "8.13.1",
@@ -32,6 +33,7 @@
     "@effect/platform-node": "*",
     "@effect/sql": "*",
     "@effect/sql-pg": "*",
+    "@features/quiz": "workspace:^",
     "@effect/cli": "*"
   },
   "effect": {

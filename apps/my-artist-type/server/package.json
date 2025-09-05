@@ -11,6 +11,11 @@
   },
   "main": "build/esm/server.js",
   "module": "build/esm/server.js",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json",
+    "./*": "./src/*.ts"
+  },
   "types": "build/dts/server.d.ts",
   "files": [
     "build"
@@ -49,7 +54,6 @@
     "@opentelemetry/sdk-trace-node": "*",
     "@opentelemetry/semantic-conventions": "*",
     "@features/quiz": "workspace:^",
-    "@my-artist-type/database": "workspace:^",
     "@my-artist-type/domain": "workspace:^",
     "@testcontainers/postgresql": "^10.28.0",
     "effect": "*",
