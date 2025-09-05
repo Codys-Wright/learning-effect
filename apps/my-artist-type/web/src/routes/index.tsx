@@ -1,6 +1,7 @@
+import { LandingPage } from "@/features/landing";
 import { createFileRoute } from "@tanstack/react-router";
 
-const RootComponent = () => {
+const _RootComponent = () => {
   return (
     <div>
       <h1>Welcome to the Root Component</h1>
@@ -9,5 +10,6 @@ const RootComponent = () => {
 };
 
 export const Route = createFileRoute("/")({
-  component: RootComponent,
+  component: LandingPage,
+  ssr: false,
 });

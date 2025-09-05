@@ -1,3 +1,4 @@
+export * from "./components/artist-type/index.js";
 export * from "./components/quiz-progress-bar.js";
 export * from "./quiz-editor/quiz-editor.page.js";
 export * from "./quiz-taker/quiz-taker.page.js";

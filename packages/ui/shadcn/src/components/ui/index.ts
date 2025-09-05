@@ -2,6 +2,7 @@ export * from "./avatar.js";
 export * from "./badge.js";
 export * from "./button.js";
 export * from "./card.js";
+export * from "./chart.js";
 export * from "./checkbox.js";
 export * from "./collapsible.js";
 export * from "./dialog/index.js";

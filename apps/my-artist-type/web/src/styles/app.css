@@ -2,6 +2,7 @@
 
 @source "../../../../../packages/features/quiz";
 @source "../../../../../packages/ui/shadcn";
+@source "../../../../../packages/ui/aceternity";
 
 @plugin "tailwindcss-animate";
 @plugin "@tailwindcss/typography";

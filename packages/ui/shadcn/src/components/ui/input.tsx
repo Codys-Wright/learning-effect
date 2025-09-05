@@ -1,3 +1,5 @@
+"use client";
+
 import { cn } from "@/lib/utils/cn";
 import { cva } from "class-variance-authority";
 import * as React from "react";
