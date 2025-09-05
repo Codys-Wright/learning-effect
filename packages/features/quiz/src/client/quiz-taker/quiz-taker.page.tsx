@@ -6,24 +6,20 @@ import { QuestionCard } from "../components/question-card.js";
 import { QuizProgressBar } from "../components/quiz-progress-bar.js";
 import { quizzesAtom } from "../quizzes-atoms.js";
 
-// PageContainer component with gradient background
+// PageContainer component with padding and layout (no background)
 interface PageContainerProps {
   children: React.ReactNode;
 }
 
 const PageContainer: React.FC<PageContainerProps> = ({ children }) => (
-  <div className="relative min-h-screen w-screen">
-    {/* Page background enhancement - full page width */}
-    <div className="pointer-events-none absolute inset-0 w-full bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
-    <div className="relative w-full px-4 py-8">{children}</div>
-  </div>
+  <div className="relative w-full px-4 py-8">{children}</div>
 );
 
 // Quiz Taker State Atoms
 const currentQuestionIndexAtom = Atom.make(0);
 
 // Atom for tracking complete quiz session with responses and logs
-const quizSessionAtom = Atom.make<{
+type QuizSession = {
   responses: Record<string, number>;
   logs: Array<{
     type: "navigation" | "selection" | "submission";
@@ -32,7 +28,9 @@ const quizSessionAtom = Atom.make<{
     action?: string;
     dateTime: Date;
   }>;
-}>({
+};
+
+const quizSessionAtom = Atom.make<QuizSession>({
   responses: {},
   logs: [],
 }).pipe(Atom.keepAlive);
@@ -243,9 +241,9 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
 
   return (
     <PageContainer>
-      <main className="flex flex-col gap-8 w-full max-w-4xl mx-auto">
+      <div className="flex flex-col gap-8 w-full max-w-4xl mx-auto">
         {/* Progress indicator */}
-        <div className="flex items-center justify-center gap-4 pt-8">
+        <div className="flex items-center justify-center gap-4">
           <span className="text-lg font-medium text-muted-foreground">
             Question {currentQuestionIndex + 1} of {questions.length}
           </span>
@@ -262,7 +260,7 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
         </div>
 
         {/* Question Card */}
-        <div className="flex items-center justify-center min-h-[70vh] py-8">
+        <div className="flex items-center justify-center min-h-[70vh]">
           <QuestionCard
             title={currentQuestion.title}
             content={currentQuestion.description ?? ""}
@@ -284,7 +282,7 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
             isLastQuestion={isLastQuestion}
           />
         </div>
-      </main>
+      </div>
     </PageContainer>
   );
 };
