@@ -944,12 +944,6 @@ importers:
       "@my-artist-type/database":
         specifier: workspace:^
         version: link:../../../apps/my-artist-type/database
-      "@my-artist-type/domain":
-        specifier: workspace:^
-        version: link:../../../apps/my-artist-type/domain
-      "@my-artist-type/server":
-        specifier: workspace:^
-        version: link:../../../apps/my-artist-type/server
       "@opentelemetry/exporter-trace-otlp-http":
         specifier: 0.200.0
         version: 0.200.0(@opentelemetry/api@1.9.0)
