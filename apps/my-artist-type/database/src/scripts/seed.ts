@@ -7,13 +7,13 @@ import { Effect } from "effect";
 NodeRuntime.runMain(
   Effect.gen(function* () {
     const repo = yield* QuizzesRepo;
-    const _questionService = yield* QuestionService;
+    const questionService = yield* QuestionService;
     const payload = getSeedPayload();
 
     yield* Effect.log("Starting database seeding...");
 
-    // Start with empty questions for basic seeding
-    const questions: Array<never> = [];
+    // Create questions first using the question service
+    const questions = payload.questions ? yield* questionService.createMany(payload.questions) : [];
 
     // Ensure all required fields are present
     const createPayload = {
