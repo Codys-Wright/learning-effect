@@ -1,6 +1,6 @@
 import { Result, useAtomRefresh, useAtomValue } from "@effect-atom/atom-react";
 import { type Question, type Quiz } from "@features/quiz/domain";
-import { Button, Card, DropdownMenu, Separator } from "@org/shadcn";
+import { Button, Card, DropdownMenu, Separator } from "@ui/shadcn";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import React, { useState } from "react";
 import { quizzesAtom } from "../quizzes-atoms.js";

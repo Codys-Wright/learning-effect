@@ -1,4 +1,4 @@
-import { Button, DropdownMenu } from "@org/shadcn";
+import { Button, DropdownMenu } from "@ui/shadcn";
 import { MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
 
 type Theme = "light" | "dark" | "system";

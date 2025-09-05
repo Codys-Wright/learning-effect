@@ -1,4 +1,4 @@
-import { cn } from "@org/shadcn";
+import { cn } from "@ui/shadcn";
 import React from "react";
 
 // 1) QuizProgressBar Component - Displays a visual progress indicator for quiz questions

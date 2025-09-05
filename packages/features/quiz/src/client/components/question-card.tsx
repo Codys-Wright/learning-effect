@@ -1,4 +1,4 @@
-import { Button, Card, cn } from "@org/shadcn";
+import { Button, Card, cn } from "@ui/shadcn";
 import React from "react";
 
 // 1) QuestionCard Component - Displays a single question with rating input and navigation
@@ -60,7 +60,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
     <Card className="gap-0 w-full max-w-3xl animate-in fade-in-0 zoom-in-95 duration-200 shadow-2xl border border-border/60 bg-card/90 dark:bg-card/70 ring-1 ring-ring/10">
       <Card.Header className="p-4 min-h-36 flex items-center justify-center text-center">
         <Card.Title className="text-2xl md:text-3xl font-bold tracking-tight leading-tight text-center">
-          {title || content}
+          {title ?? content}
         </Card.Title>
       </Card.Header>
       <Card.Content className="flex flex-col gap-6">

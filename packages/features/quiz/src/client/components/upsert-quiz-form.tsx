@@ -1,8 +1,8 @@
 import { makeFormOptions } from "@core/client";
 import { useAtomSet } from "@effect-atom/atom-react";
 import { UpsertQuizPayload } from "@features/quiz/domain";
-import { Button, FieldInput, FieldTextarea } from "@org/shadcn";
 import { useForm } from "@tanstack/react-form";
+import { Button, FieldInput, FieldTextarea } from "@ui/shadcn";
 import { Schema } from "effect";
 import React from "react";
 import { upsertQuizAtom } from "../quizzes-atoms.js";

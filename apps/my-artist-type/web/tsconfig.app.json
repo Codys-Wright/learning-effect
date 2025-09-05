@@ -37,8 +37,8 @@
       "@core/server/*": ["../../../packages/core/server/src/*.js"],
       "@core/database": ["../../../packages/core/database/src/index.js"],
       "@core/database/*": ["../../../packages/core/database/src/*.js"],
-      "@org/shadcn": ["../../../packages/ui/shadcn/src/index.js"],
-      "@org/shadcn/*": ["../../../packages/ui/shadcn/src/*.js"]
+      "@ui/shadcn": ["../../../packages/ui/shadcn/src/index.js"],
+      "@ui/shadcn/*": ["../../../packages/ui/shadcn/src/*.js"]
     }
   },
   "include": ["src", "prettier.config.js"],

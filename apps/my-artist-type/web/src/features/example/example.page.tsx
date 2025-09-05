@@ -6,8 +6,8 @@ import {
 import { makeFormOptions } from "@core/client";
 import { Result, useAtom, useAtomRefresh, useAtomSet, useAtomValue } from "@effect-atom/atom-react";
 import { UpsertExamplePayload, type Example } from "@my-artist-type/domain/example-rpc";
-import { Button, FieldInput, FieldTextarea, Separator } from "@org/shadcn";
 import { useForm } from "@tanstack/react-form";
+import { Button, FieldInput, FieldTextarea, Separator } from "@ui/shadcn";
 import { Schema } from "effect";
 import { TrashIcon } from "lucide-react";
 import React from "react";

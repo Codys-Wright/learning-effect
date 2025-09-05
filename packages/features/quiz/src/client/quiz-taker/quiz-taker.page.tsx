@@ -1,10 +1,23 @@
 import { Atom, Result, useAtom, useAtomRefresh, useAtomValue } from "@effect-atom/atom-react";
 import { type Question, type Quiz } from "@features/quiz/domain";
-import { Button, Separator } from "@org/shadcn";
+import { Button, Separator } from "@ui/shadcn";
 import React from "react";
 import { QuestionCard } from "../components/question-card.js";
 import { QuizProgressBar } from "../components/quiz-progress-bar.js";
 import { quizzesAtom } from "../quizzes-atoms.js";
+
+// PageContainer component with gradient background
+interface PageContainerProps {
+  children: React.ReactNode;
+}
+
+const PageContainer: React.FC<PageContainerProps> = ({ children }) => (
+  <div className="relative min-h-screen w-screen">
+    {/* Page background enhancement - full page width */}
+    <div className="pointer-events-none absolute inset-0 w-full bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
+    <div className="relative w-full px-4 py-8">{children}</div>
+  </div>
+);
 
 // Quiz Taker State Atoms
 const currentQuestionIndexAtom = Atom.make(0);
@@ -37,9 +50,7 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
   // Find the specific quiz by slug
   const targetQuiz = findQuizBySlug(quizzes, "my-artist-type-quiz");
 
-  // Debug logging
-
-  if (targetQuiz == null) {
+  if (targetQuiz === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-center">
@@ -56,16 +67,7 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
   // Get current question and load its saved response
   const currentQuestion = questions[currentQuestionIndex];
   const savedResponse =
-    currentQuestion != null ? quizSession.responses[currentQuestion.id] : undefined;
-
-  // Debug: Log current question state
-  // eslint-disable-next-line no-console
-  console.log(`🔍 Question ${currentQuestionIndex + 1}:`, {
-    questionId: currentQuestion?.id,
-    savedResponse,
-    totalResponses: Object.keys(quizSession.responses).length,
-    allResponses: quizSession.responses,
-  });
+    currentQuestion !== undefined ? quizSession.responses[currentQuestion.id] : undefined;
 
   if (questions.length === 0) {
     return (
@@ -78,7 +80,7 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
     );
   }
 
-  if (currentQuestion == null) {
+  if (currentQuestion === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-center">
@@ -118,23 +120,10 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
       dateTime: new Date(),
     };
 
-    // Debug: Log response storage
-    // eslint-disable-next-line no-console
-    console.log(`💾 Storing response:`, {
-      questionId: currentQuestion.id,
-      rating,
-      currentResponses: Object.keys(quizSession.responses).length,
-    });
-
     setQuizSession((prevSession) => ({
       responses: { ...prevSession.responses, [currentQuestion.id]: rating },
       logs: [...logs, newLogEntry],
     }));
-
-    // eslint-disable-next-line no-console
-    console.log(`${logMessage}:`, rating, "for", currentQuestion.id, {
-      dateTime: newLogEntry.dateTime,
-    });
   };
 
   const handleBack = () => {
@@ -166,9 +155,6 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
           ...prevSession,
           logs: [...logs, newLogEntry],
         }));
-
-        // eslint-disable-next-line no-console
-        console.log("navigated to:", targetQuestion.id, { dateTime: newLogEntry.dateTime });
       }
     }
   };
@@ -202,9 +188,6 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
           ...prevSession,
           logs: [...logs, newLogEntry],
         }));
-
-        // eslint-disable-next-line no-console
-        console.log("navigated to:", targetQuestion.id, { dateTime: newLogEntry.dateTime });
       }
     }
   };
@@ -259,69 +242,73 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
   };
 
   return (
-    <main className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-bold">Quiz Taker</h1>
-        <p className="text-muted-foreground">Demo of the QuestionCard component with mock data.</p>
-      </div>
-
-      <Separator />
-
-      <section className="flex flex-col gap-4">
-        {/* Progress indicator */}
-        <div className="flex items-center justify-center gap-4">
-          <span className="text-sm text-muted-foreground">
-            Question {currentQuestionIndex + 1} of {questions.length}
-          </span>
-          <QuizProgressBar
-            questions={questions.map((q) => ({ id: q.id as unknown as number, category: q.id }))}
-            currentIndex={currentQuestionIndex}
-            onQuestionClick={setCurrentQuestionIndex}
-            categoryColorClass={randomCategoryColorClass}
-            colorOn={true}
-          />
-        </div>
-
-        <div className="flex items-center justify-center min-h-[80vh]">
-          {(() => {
-            return (
-              <QuestionCard
-                title={currentQuestion.title}
-                content={currentQuestion.description ?? ""}
-                minLabel={
-                  currentQuestion.data.type === "rating" ? currentQuestion.data.minLabel : "Min"
-                }
-                maxLabel={
-                  currentQuestion.data.type === "rating" ? currentQuestion.data.maxLabel : "Max"
-                }
-                min={currentQuestion.data.type === "rating" ? currentQuestion.data.minRating : 1}
-                max={currentQuestion.data.type === "rating" ? currentQuestion.data.maxRating : 10}
-                currentValue={savedResponse}
-                onRatingSelect={handleRatingSelect}
-                onBack={handleBack}
-                onNext={handleNext}
-                onSubmit={handleSubmit}
-                canGoBack={!isFirstQuestion}
-                canGoNext={!isLastQuestion}
-                isLastQuestion={isLastQuestion}
-              />
-            );
-          })()}
-        </div>
-
-        {/* Debug info */}
-        <div className="bg-muted p-4 rounded-md">
-          <h3 className="text-sm font-medium mb-2">Debug Info:</h3>
-          <p className="text-xs text-muted-foreground">
-            Current Rating: {savedResponse ?? "None"} | Question: {currentQuestionIndex + 1}/
-            {questions.length}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Quiz: {targetQuiz.title} | Total Questions: {questions.length}
+    <PageContainer>
+      <main className="flex flex-col gap-6 w-full">
+        <div className="flex flex-col gap-4 w-full">
+          <h1 className="text-2xl font-bold">Quiz Taker</h1>
+          <p className="text-muted-foreground">
+            Demo of the QuestionCard component with mock data.
           </p>
         </div>
-      </section>
-    </main>
+
+        <Separator />
+
+        <section className="flex flex-col gap-4 w-full">
+          {/* Progress indicator */}
+          <div className="flex items-center justify-center gap-4">
+            <span className="text-sm text-muted-foreground">
+              Question {currentQuestionIndex + 1} of {questions.length}
+            </span>
+            <QuizProgressBar
+              questions={questions.map((q) => ({ id: q.id as unknown as number, category: q.id }))}
+              currentIndex={currentQuestionIndex}
+              onQuestionClick={setCurrentQuestionIndex}
+              categoryColorClass={randomCategoryColorClass}
+              colorOn={true}
+            />
+          </div>
+
+          <div className="flex items-center justify-center min-h-[80vh]">
+            {(() => {
+              return (
+                <QuestionCard
+                  title={currentQuestion.title}
+                  content={currentQuestion.description ?? ""}
+                  minLabel={
+                    currentQuestion.data.type === "rating" ? currentQuestion.data.minLabel : "Min"
+                  }
+                  maxLabel={
+                    currentQuestion.data.type === "rating" ? currentQuestion.data.maxLabel : "Max"
+                  }
+                  min={currentQuestion.data.type === "rating" ? currentQuestion.data.minRating : 1}
+                  max={currentQuestion.data.type === "rating" ? currentQuestion.data.maxRating : 10}
+                  currentValue={savedResponse}
+                  onRatingSelect={handleRatingSelect}
+                  onBack={handleBack}
+                  onNext={handleNext}
+                  onSubmit={handleSubmit}
+                  canGoBack={!isFirstQuestion}
+                  canGoNext={!isLastQuestion}
+                  isLastQuestion={isLastQuestion}
+                />
+              );
+            })()}
+          </div>
+
+          {/* Debug info */}
+          <div className="bg-muted p-4 rounded-md">
+            <h3 className="text-sm font-medium mb-2">Debug Info:</h3>
+            <p className="text-xs text-muted-foreground">
+              Current Rating: {savedResponse ?? "None"} | Question: {currentQuestionIndex + 1}/
+              {questions.length}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Quiz: {targetQuiz.title} | Total Questions: {questions.length}
+            </p>
+          </div>
+        </section>
+      </main>
+    </PageContainer>
   );
 };
 
@@ -340,7 +327,7 @@ export const QuizTakerPage: React.FC = () => {
   const quizzesResult = useAtomValue(quizzesAtom);
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container w-full  ">
       {Result.builder(quizzesResult)
         .onFailure(() => <ErrorView />)
         .onSuccess((quizzes) => <SuccessView quizzes={quizzes} />)

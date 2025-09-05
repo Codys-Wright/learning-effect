@@ -30,7 +30,7 @@
     "@my-artist-type/domain": "workspace:^",
     "@my-artist-type/server": "workspace:^",
     "@core/client": "workspace:^",
-    "@org/shadcn": "workspace:^",
+    "@ui/shadcn": "workspace:^",
     "@tailwindcss/postcss": "^4.1.12",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/react-form": "1.2.2",

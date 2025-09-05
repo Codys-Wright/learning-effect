@@ -1,5 +1,5 @@
 {
-  "name": "@org/shadcn",
+  "name": "@ui/shadcn",
   "version": "0.0.0",
   "type": "module",
   "license": "MIT",
@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@effect-atom/atom-react": "*",
+    "@tabler/icons-react": "^3.34.1",
     "@effect/platform": "*",
     "@effect/platform-browser": "*",
     "@effect/rpc": "*",

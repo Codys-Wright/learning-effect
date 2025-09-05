@@ -1,9 +1,9 @@
 import { ThemeProvider, useTheme } from "@/components/providers/theme-provider";
 import { KaServices } from "@core/client";
 import { RegistryProvider } from "@effect-atom/atom-react";
-import { Toaster } from "@org/shadcn";
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { Toaster } from "@ui/shadcn";
 import appCss from "../styles/app.css?url";
 
 const RootComponent = () => {

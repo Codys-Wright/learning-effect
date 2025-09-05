@@ -12,6 +12,7 @@
     { "path": "packages/core/server" },
     { "path": "packages/core/database" },
     { "path": "packages/ui/shadcn" },
+    { "path": "packages/ui/aceternity" },
     { "path": "packages/features/quiz" }
   ]
 }
