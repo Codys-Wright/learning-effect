@@ -4,6 +4,7 @@ import { RegistryProvider } from "@effect-atom/atom-react";
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Toaster } from "@ui/shadcn";
+import { NavbarHome } from "../features/landing/navbar";
 import appCss from "../styles/app.css?url";
 
 const RootComponent = () => {
@@ -13,7 +14,9 @@ const RootComponent = () => {
       <RegistryProvider>
         <ThemeProvider>
           <Toaster theme={theme} />
-          <Outlet />
+          <NavbarHome>
+            <Outlet />
+          </NavbarHome>
         </ThemeProvider>
         <KaServices />
       </RegistryProvider>

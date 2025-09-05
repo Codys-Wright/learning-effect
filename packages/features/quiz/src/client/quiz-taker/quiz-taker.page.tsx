@@ -1,6 +1,6 @@
 import { Atom, Result, useAtom, useAtomRefresh, useAtomValue } from "@effect-atom/atom-react";
 import { type Question, type Quiz } from "@features/quiz/domain";
-import { Button, Separator } from "@ui/shadcn";
+import { Button } from "@ui/shadcn";
 import React from "react";
 import { QuestionCard } from "../components/question-card.js";
 import { QuizProgressBar } from "../components/quiz-progress-bar.js";
@@ -243,70 +243,47 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
 
   return (
     <PageContainer>
-      <main className="flex flex-col gap-6 w-full">
-        <div className="flex flex-col gap-4 w-full">
-          <h1 className="text-2xl font-bold">Quiz Taker</h1>
-          <p className="text-muted-foreground">
-            Demo of the QuestionCard component with mock data.
-          </p>
+      <main className="flex flex-col gap-8 w-full max-w-4xl mx-auto">
+        {/* Progress indicator */}
+        <div className="flex items-center justify-center gap-4 pt-8">
+          <span className="text-lg font-medium text-muted-foreground">
+            Question {currentQuestionIndex + 1} of {questions.length}
+          </span>
         </div>
 
-        <Separator />
+        <div className="flex items-center justify-center">
+          <QuizProgressBar
+            questions={questions.map((q) => ({ id: q.id as unknown as number, category: q.id }))}
+            currentIndex={currentQuestionIndex}
+            onQuestionClick={setCurrentQuestionIndex}
+            categoryColorClass={randomCategoryColorClass}
+            colorOn={true}
+          />
+        </div>
 
-        <section className="flex flex-col gap-4 w-full">
-          {/* Progress indicator */}
-          <div className="flex items-center justify-center gap-4">
-            <span className="text-sm text-muted-foreground">
-              Question {currentQuestionIndex + 1} of {questions.length}
-            </span>
-            <QuizProgressBar
-              questions={questions.map((q) => ({ id: q.id as unknown as number, category: q.id }))}
-              currentIndex={currentQuestionIndex}
-              onQuestionClick={setCurrentQuestionIndex}
-              categoryColorClass={randomCategoryColorClass}
-              colorOn={true}
-            />
-          </div>
-
-          <div className="flex items-center justify-center min-h-[80vh]">
-            {(() => {
-              return (
-                <QuestionCard
-                  title={currentQuestion.title}
-                  content={currentQuestion.description ?? ""}
-                  minLabel={
-                    currentQuestion.data.type === "rating" ? currentQuestion.data.minLabel : "Min"
-                  }
-                  maxLabel={
-                    currentQuestion.data.type === "rating" ? currentQuestion.data.maxLabel : "Max"
-                  }
-                  min={currentQuestion.data.type === "rating" ? currentQuestion.data.minRating : 1}
-                  max={currentQuestion.data.type === "rating" ? currentQuestion.data.maxRating : 10}
-                  currentValue={savedResponse}
-                  onRatingSelect={handleRatingSelect}
-                  onBack={handleBack}
-                  onNext={handleNext}
-                  onSubmit={handleSubmit}
-                  canGoBack={!isFirstQuestion}
-                  canGoNext={!isLastQuestion}
-                  isLastQuestion={isLastQuestion}
-                />
-              );
-            })()}
-          </div>
-
-          {/* Debug info */}
-          <div className="bg-muted p-4 rounded-md">
-            <h3 className="text-sm font-medium mb-2">Debug Info:</h3>
-            <p className="text-xs text-muted-foreground">
-              Current Rating: {savedResponse ?? "None"} | Question: {currentQuestionIndex + 1}/
-              {questions.length}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Quiz: {targetQuiz.title} | Total Questions: {questions.length}
-            </p>
-          </div>
-        </section>
+        {/* Question Card */}
+        <div className="flex items-center justify-center min-h-[70vh] py-8">
+          <QuestionCard
+            title={currentQuestion.title}
+            content={currentQuestion.description ?? ""}
+            minLabel={
+              currentQuestion.data.type === "rating" ? currentQuestion.data.minLabel : "Min"
+            }
+            maxLabel={
+              currentQuestion.data.type === "rating" ? currentQuestion.data.maxLabel : "Max"
+            }
+            min={currentQuestion.data.type === "rating" ? currentQuestion.data.minRating : 1}
+            max={currentQuestion.data.type === "rating" ? currentQuestion.data.maxRating : 10}
+            currentValue={savedResponse}
+            onRatingSelect={handleRatingSelect}
+            onBack={handleBack}
+            onNext={handleNext}
+            onSubmit={handleSubmit}
+            canGoBack={!isFirstQuestion}
+            canGoNext={!isLastQuestion}
+            isLastQuestion={isLastQuestion}
+          />
+        </div>
       </main>
     </PageContainer>
   );
@@ -327,12 +304,12 @@ export const QuizTakerPage: React.FC = () => {
   const quizzesResult = useAtomValue(quizzesAtom);
 
   return (
-    <div className="container w-full  ">
+    <>
       {Result.builder(quizzesResult)
         .onFailure(() => <ErrorView />)
         .onSuccess((quizzes) => <SuccessView quizzes={quizzes} />)
         .onWaiting((result) => Result.isInitial(result) && result.waiting && <p>Loading...</p>)
         .orNull()}
-    </div>
+    </>
   );
 };
