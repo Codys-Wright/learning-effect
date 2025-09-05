@@ -33,8 +33,7 @@
     "@effect/platform-node": "*",
     "@effect/sql": "*",
     "@effect/sql-pg": "*",
-    "@effect/cli": "*",
-    "@my-artist-type/domain": "workspace:^"
+    "@effect/cli": "*"
   },
   "effect": {
     "generateExports": {

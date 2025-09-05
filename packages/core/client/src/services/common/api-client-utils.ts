@@ -1,5 +1,5 @@
 import { envVars } from "@/lib/env-vars";
-import { HttpApi, HttpApiClient, type HttpApiGroup, HttpClient } from "@effect/platform";
+import { type HttpApi, type HttpApiClient, type HttpApiGroup, HttpClient } from "@effect/platform";
 import { Duration, Effect, Random, Schedule } from "effect";
 
 // 🎯 NEW: Type-level API Inspector

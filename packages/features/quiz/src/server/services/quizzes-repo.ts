@@ -2,8 +2,9 @@ import { SqlClient, SqlSchema } from "@effect/sql";
 import { Quiz, QuizId, QuizNotFoundError } from "@features/quiz/domain";
 import { PgLive } from "@my-artist-type/database/database";
 import { Effect, flow, Schema } from "effect";
+import * as slugifyModule from "slugify";
 
-import slugify from "slugify";
+const slugify = slugifyModule.default;
 
 //1) Define the Inputs that the repository is expecting, we map these to UpsertPayload because it decouples them like a DTO and lets us
 //   easily see what our Repo is expecting to deal with

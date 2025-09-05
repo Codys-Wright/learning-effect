@@ -178,5 +178,4 @@ export class QuizzesGroup extends HttpApiGroup.make("Quizzes")
       .addSuccess(S.Void)
       .addError(QuizNotFoundError),
   )
-  .add(HttpApiEndpoint.put("banana", "/").addSuccess(S.Void))
   .prefix("/Quizzes") {}

@@ -770,9 +770,6 @@ importers:
       "@effect/sql-pg":
         specifier: 0.45.0
         version: 0.45.0(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/sql@0.44.1(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
-      "@my-artist-type/domain":
-        specifier: workspace:^
-        version: link:../../../apps/my-artist-type/domain
       effect:
         specifier: 3.17.7
         version: 3.17.7
@@ -947,6 +944,9 @@ importers:
       "@my-artist-type/database":
         specifier: workspace:^
         version: link:../../../apps/my-artist-type/database
+      "@my-artist-type/domain":
+        specifier: workspace:^
+        version: link:../../../apps/my-artist-type/domain
       "@my-artist-type/server":
         specifier: workspace:^
         version: link:../../../apps/my-artist-type/server

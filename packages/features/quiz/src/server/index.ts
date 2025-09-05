@@ -1,2 +1,1 @@
-export * from "./quizzes-rpc-live";
-export type * from "./services";
+export * from "./services/index.js";

@@ -1,5 +1,5 @@
 import { HttpApiBuilder } from "@effect/platform";
-import { DomainApi } from "@my-artist-type/domain/domain-api";
+import { DomainApi } from "@my-artist-type/domain";
 import { Effect, Layer } from "effect";
 import { StylesRepo } from "./internal/styles-repo.js";
 
