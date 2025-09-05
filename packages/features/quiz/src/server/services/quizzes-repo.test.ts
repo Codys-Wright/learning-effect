@@ -10,6 +10,7 @@ const layer = Layer.mergeAll(QuizzesRepo.DefaultWithoutDependencies, QuestionSer
 );
 
 // Define the test suite with the layer and timeout configuration
+// eslint-disable-next-line no-shadow
 it.layer(layer, { timeout: "30 seconds" })("QuizzesRepo", (it) => {
   // Test CREATE operation - Verifies we can create a quiz
   it.effect(

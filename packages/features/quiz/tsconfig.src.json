@@ -4,7 +4,8 @@
   "references": [
     { "path": "../../core/domain/tsconfig.src.json" },
     { "path": "../../core/database/tsconfig.src.json" },
-    { "path": "../../core/server/tsconfig.src.json" }
+    { "path": "../../core/server/tsconfig.src.json" },
+    { "path": "../../ui/shadcn/tsconfig.src.json" }
   ],
   "compilerOptions": {
     "jsx": "react-jsx",

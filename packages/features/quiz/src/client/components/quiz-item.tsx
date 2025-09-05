@@ -3,7 +3,7 @@ import { type Quiz } from "@features/quiz/domain";
 import { Button } from "@org/shadcn";
 import { TrashIcon } from "lucide-react";
 import React from "react";
-import { deleteQuizAtom } from "./../quizzes-atoms";
+import { deleteQuizAtom } from "./../quizzes-atoms.js";
 
 // 1) QuizItem Component - Displays a single quiz with delete functionality
 //    Shows quiz details and provides a delete button with loading state
