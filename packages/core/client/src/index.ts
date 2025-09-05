@@ -1,7 +1,7 @@
-export * from "./services";
+export * from "./services/index.js";
 
-export * from "./atom";
+export * from "./atom/index.js";
 
-export * from "./lib";
+export * from "./lib/index.js";
 
-export * from "./ka-services";
+export * from "./ka-services.js";

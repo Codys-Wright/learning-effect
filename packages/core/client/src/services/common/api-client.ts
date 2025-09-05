@@ -1,6 +1,6 @@
 import { envVars } from "@/lib/env-vars";
 import { FetchHttpClient, HttpApiClient } from "@effect/platform";
-import { DomainApi } from "@my-artist-type/domain/domain-api";
+import { DomainApi } from "@my-artist-type/domain";
 import { Effect } from "effect";
 import { configureApiClient } from "./api-client-utils";
 

@@ -1,3 +1,3 @@
-export type * from "./worker";
-export * from "./worker-client";
-export * from "./worker-rpc";
+export * from "./worker-client.js";
+export * from "./worker-rpc.js";
+export type * from "./worker.js";
