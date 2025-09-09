@@ -10,6 +10,7 @@ export const QuizzesRpcLive = HttpApiBuilder.group(DomainApi, "Quizzes", (handle
 
     return handlers
       .handle("list", () => repo.findAll())
+      .handle("byId", ({ payload }) => repo.findById(payload.id))
       .handle("upsert", ({ payload }) =>
         Effect.gen(function* () {
           // Transform questions using the question service

@@ -235,6 +235,32 @@ export class AnalysisGroup extends HttpApiGroup.make("Analysis")
         }),
       ),
   )
+  .add(HttpApiEndpoint.get("list", "/").addSuccess(S.Array(AnalysisResult)))
+  .add(
+    HttpApiEndpoint.get("getById", "/:id")
+      .addSuccess(AnalysisResult)
+      .addError(AnalysisResultNotFoundError)
+      .setPayload(
+        S.Struct({
+          id: AnalysisResultId,
+        }),
+      ),
+  )
+  .add(
+    HttpApiEndpoint.get("getByEngine", "/engines/:engineId")
+      .addSuccess(S.Array(AnalysisResult))
+      .setPayload(
+        S.Struct({
+          engineId: AnalysisEngineId,
+        }),
+      ),
+  )
+  .add(
+    HttpApiEndpoint.put("upsert", "/")
+      .addSuccess(AnalysisResult)
+      .addError(AnalysisResultNotFoundError)
+      .setPayload(UpsertAnalysisResultPayload),
+  )
   .add(
     HttpApiEndpoint.get("getAnalysisSummary", "/:engineId/summary")
       .addSuccess(AnalysisSummary)

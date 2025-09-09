@@ -89,6 +89,34 @@ export const AnalysisRpcLive = HttpApiBuilder.group(DomainApi, "Analysis", (hand
           return results;
         }),
       )
+      .handle("list", () => analysisRepo.findAll())
+      .handle("getById", ({ payload }) => analysisRepo.findById(payload.id))
+      .handle("getByEngine", ({ payload }) => analysisRepo.findByEngineId(payload.engineId))
+      .handle("upsert", ({ payload }) =>
+        Effect.gen(function* () {
+          if (payload.id !== undefined) {
+            return yield* analysisRepo.update({
+              id: payload.id,
+              engineId: payload.engineId,
+              engineSlug: payload.engineSlug,
+              engineVersion: payload.engineVersion,
+              responseId: payload.responseId,
+              endingResults: payload.endingResults,
+              metadata: payload.metadata,
+              analyzedAt: payload.analyzedAt,
+            });
+          }
+          return yield* analysisRepo.create({
+            engineId: payload.engineId,
+            engineSlug: payload.engineSlug,
+            engineVersion: payload.engineVersion,
+            responseId: payload.responseId,
+            endingResults: payload.endingResults,
+            metadata: payload.metadata,
+            analyzedAt: payload.analyzedAt,
+          });
+        }),
+      )
       .handle("getAnalysis", ({ payload }) => analysisRepo.findByResponseId(payload.responseId))
       .handle("getAnalysisSummary", ({ payload }) =>
         Effect.gen(function* () {

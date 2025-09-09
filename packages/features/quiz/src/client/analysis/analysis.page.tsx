@@ -1,10 +1,16 @@
-import { Result, useAtomValue } from "@effect-atom/atom-react";
+import { Result, useAtomSet, useAtomValue } from "@effect-atom/atom-react";
+import type { AnalysisEngineId, ResponseId } from "@features/quiz/domain";
 import { Badge, Button, Card, DropdownMenu } from "@ui/shadcn";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import React, { useState } from "react";
 import { enginesAtom } from "../engines/engines-atoms.js";
 import { responsesAtom } from "../responses-atoms.js";
-import { analysisAtom, analysisSummaryAtom } from "./analysis-atoms.js";
+import {
+  allAnalysisAtom,
+  analysisSummaryAtom,
+  analyzeResponseWithServiceAtom,
+  getAnalysisSummaryWithServiceAtom,
+} from "./analysis-atoms.js";
 
 // PageContainer component with padding and layout
 type PageContainerProps = {
@@ -21,12 +27,32 @@ const SuccessView: React.FC = () => {
   const [selectedEngineId, setSelectedEngineId] = useState<string>("");
 
   // Get analysis results
-  const analysisResult = useAtomValue(analysisAtom);
   const summaryResult = useAtomValue(analysisSummaryAtom);
+  const allAnalysisResult = useAtomValue(allAnalysisAtom);
 
   // Get responses and engines for dropdowns
   const responsesResult = useAtomValue(responsesAtom);
   const enginesResult = useAtomValue(enginesAtom);
+
+  // Function setters for service-based analysis
+  const analyzeResponse = useAtomSet(analyzeResponseWithServiceAtom);
+  const getAnalysisSummary = useAtomSet(getAnalysisSummaryWithServiceAtom);
+
+  // Handler functions
+  const handleGetAnalysis = () => {
+    if (selectedResponseId !== "" && selectedEngineId !== "") {
+      analyzeResponse({
+        responseId: selectedResponseId as ResponseId,
+        engineId: selectedEngineId as AnalysisEngineId,
+      });
+    }
+  };
+
+  const handleGetSummary = () => {
+    if (selectedEngineId !== "") {
+      getAnalysisSummary({ engineId: selectedEngineId as AnalysisEngineId });
+    }
+  };
 
   return (
     <main className="flex flex-col gap-6">
@@ -149,13 +175,20 @@ const SuccessView: React.FC = () => {
           <div className="flex gap-2 mt-4">
             <Button
               variant="outline"
-              disabled={selectedResponseId === "" || !Result.isSuccess(responsesResult)}
+              disabled={
+                selectedResponseId === "" ||
+                selectedEngineId === "" ||
+                !Result.isSuccess(responsesResult) ||
+                !Result.isSuccess(enginesResult)
+              }
+              onClick={handleGetAnalysis}
             >
               Get Analysis
             </Button>
             <Button
               variant="outline"
               disabled={selectedEngineId === "" || !Result.isSuccess(enginesResult)}
+              onClick={handleGetSummary}
             >
               Get Summary
             </Button>
@@ -163,11 +196,11 @@ const SuccessView: React.FC = () => {
         </Card.Content>
       </Card>
 
-      {/* Analysis Results */}
-      {Result.isSuccess(analysisResult) && analysisResult.value.length > 0 && (
+      {/* All Analysis Results */}
+      {Result.isSuccess(allAnalysisResult) && allAnalysisResult.value.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-2xl font-semibold">Analysis Results</h2>
-          {analysisResult.value.map((analysis) => (
+          <h2 className="text-2xl font-semibold">All Analysis Results</h2>
+          {allAnalysisResult.value.map((analysis) => (
             <Card key={analysis.id} className="w-full">
               <Card.Header>
                 <div className="flex items-center justify-between">
@@ -206,10 +239,41 @@ const SuccessView: React.FC = () => {
                       {new Date(analysis.createdAt.epochMillis).toLocaleString()}
                     </div>
                   </div>
+
+                  {/* Ending Results */}
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm text-muted-foreground">Ending Results</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {analysis.endingResults.map((ending, index) => (
+                        <Badge
+                          key={ending.endingId}
+                          variant={ending.isWinner ? "default" : "secondary"}
+                          className="text-xs"
+                        >
+                          {ending.endingId}: {ending.points}p ({ending.percentage.toFixed(1)}%)
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </Card.Content>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* No Analysis Results */}
+      {Result.isSuccess(allAnalysisResult) && allAnalysisResult.value.length === 0 && (
+        <div className="space-y-4">
+          <h2 className="text-2xl font-semibold">Analysis Results</h2>
+          <Card>
+            <Card.Content className="p-8 text-center">
+              <p className="text-muted-foreground">No analysis results found.</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Use the controls above to analyze a response with an analysis engine.
+              </p>
+            </Card.Content>
+          </Card>
         </div>
       )}
 
@@ -265,13 +329,13 @@ const ErrorView: React.FC = () => {
 
 // Main Analysis Page Component
 export const AnalysisPage: React.FC = () => {
-  const analysisResult = useAtomValue(analysisAtom);
+  const allAnalysisResult = useAtomValue(allAnalysisAtom);
 
   return (
     <PageContainer>
-      {Result.isSuccess(analysisResult) ? (
+      {Result.isSuccess(allAnalysisResult) ? (
         <SuccessView />
-      ) : Result.isFailure(analysisResult) ? (
+      ) : Result.isFailure(allAnalysisResult) ? (
         <ErrorView />
       ) : (
         <p>Loading...</p>

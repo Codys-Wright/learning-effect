@@ -143,6 +143,16 @@ export class QuizNotFoundError extends S.TaggedError<QuizNotFoundError>("QuizNot
 export class QuizzesGroup extends HttpApiGroup.make("Quizzes")
   .add(HttpApiEndpoint.get("list", "/").addSuccess(S.Array(Quiz)))
   .add(
+    HttpApiEndpoint.get("byId", "/:id")
+      .addSuccess(Quiz)
+      .addError(QuizNotFoundError)
+      .setPayload(
+        S.Struct({
+          id: QuizId,
+        }),
+      ),
+  )
+  .add(
     HttpApiEndpoint.put("upsert", "/")
       .addSuccess(Quiz)
       .addError(QuizNotFoundError)

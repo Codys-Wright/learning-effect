@@ -203,6 +203,9 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
             analyzedAt: now,
           };
 
+          // Log the analysis result
+          yield* Effect.logInfo("Analysis completed:", analysisResult);
+
           return analysisResult;
         });
 
