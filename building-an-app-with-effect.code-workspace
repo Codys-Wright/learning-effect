@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../../../.reference/throwaway"
+		},
+		{
+			"path": "../../../../.reference/building-an-app-with-effect"
+		}
+	],
+	"settings": {
+		"typescript.tsdk": "node_modules/typescript/lib",
+		"typescript.experimental.useTsgo": false
+	}
+}

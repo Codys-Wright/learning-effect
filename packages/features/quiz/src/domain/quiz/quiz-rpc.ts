@@ -40,13 +40,7 @@ export type QuizId = typeof QuizId.Type;
 //Define any metadata for the schema, this goes through the NullorFromFallible schema util that will keep any JSON that meets our expectations,
 // and silently return null if it is malformed data
 export class QuizMetadata extends S.Class<QuizMetadata>("QuizMetadata")({
-  tags: S.optional(
-    S.Array(
-      S.String.annotations({
-        arbitrary: () => (fc) => fc.constant(null).map(() => faker.word.noun()),
-      }),
-    ),
-  ),
+  tags: S.optional(S.Array(S.String)),
   customFields: S.optional(S.Record({ key: S.String, value: S.Unknown })),
 }) {}
 
@@ -61,23 +55,9 @@ export class Quiz extends S.Class<Quiz>("Quiz")({
   slug: Slug,
 
   //Define the actual entity here
-  title: S.String.annotations({
-    arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.words(3)),
-  }),
-  subtitle: S.optional(
-    S.NullOr(
-      S.String.annotations({
-        arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.sentence()),
-      }),
-    ),
-  ),
-  description: S.optional(
-    S.NullOr(
-      S.String.annotations({
-        arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.paragraphs(2)),
-      }),
-    ),
-  ),
+  title: S.String,
+  subtitle: S.optional(S.NullOr(S.String)),
+  description: S.optional(S.NullOr(S.String)),
   questions: S.optional(S.parseJson(S.Array(Question))),
   settings: S.optional(S.NullOr(S.parseJson(NullOrFromFallible(QuizSettings)))),
 

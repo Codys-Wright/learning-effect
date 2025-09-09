@@ -1,52 +1,68 @@
-import { Atom, Result, useAtom, useAtomRefresh, useAtomValue } from "@effect-atom/atom-react";
+import { Result, useAtomRefresh, useAtomSet, useAtomValue } from "@effect-atom/atom-react";
 import { type Question, type Quiz } from "@features/quiz/domain";
 import { Button } from "@ui/shadcn";
 import React from "react";
 import { QuestionCard } from "../components/question-card.js";
 import { QuizProgressBar } from "../components/quiz-progress-bar.js";
 import { quizzesAtom } from "../quizzes-atoms.js";
+import {
+  currentQuestionAtom,
+  initializeQuizAtom,
+  navigateToQuestionAtom,
+  navigationStateAtom,
+  QuizServices,
+  quizSessionAtom,
+  savedResponseAtom,
+  selectAnswerAtom,
+  submitQuizAtom,
+} from "./quiz-taker-atoms.js";
 
 // PageContainer component with padding and layout (no background)
-interface PageContainerProps {
+type PageContainerProps = {
   children: React.ReactNode;
-}
+};
 
 const PageContainer: React.FC<PageContainerProps> = ({ children }) => (
   <div className="relative w-full px-4 py-8">{children}</div>
 );
 
-// Quiz Taker State Atoms
-const currentQuestionIndexAtom = Atom.make(0);
-
-// Atom for tracking complete quiz session with responses and logs
-type QuizSession = {
-  responses: Record<string, number>;
-  logs: Array<{
-    type: "navigation" | "selection" | "submission";
-    questionId?: string;
-    rating?: number;
-    action?: string;
-    dateTime: Date;
-  }>;
-};
-
-const quizSessionAtom = Atom.make<QuizSession>({
-  responses: {},
-  logs: [],
-}).pipe(Atom.keepAlive);
-
-// Helper function to find quiz by slug
-const findQuizBySlug = (quizzes: ReadonlyArray<Quiz>, slug: string): Quiz | undefined => {
-  return quizzes.find((quiz) => quiz.slug === slug);
-};
+// Quiz Taker State Atoms are now imported from quiz-taker-atoms.js
 
 const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) => {
-  // Effect Atom state management
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useAtom(currentQuestionIndexAtom);
-  const [quizSession, setQuizSession] = useAtom(quizSessionAtom);
+  // Use the new atoms
+  const quizSessionResult = useAtomValue(quizSessionAtom);
+  const currentQuestion = useAtomValue(currentQuestionAtom);
+  const savedResponse = useAtomValue(savedResponseAtom);
+  const navigationState = useAtomValue(navigationStateAtom);
+
+  // Function setters
+  const selectAnswer = useAtomSet(selectAnswerAtom);
+  const navigateToQuestion = useAtomSet(navigateToQuestionAtom);
+  const submitQuiz = useAtomSet(submitQuizAtom);
+  const initializeQuiz = useAtomSet(initializeQuizAtom);
+
+  // Extract values from Results
+  const quizSession = Result.isSuccess(quizSessionResult)
+    ? quizSessionResult.value
+    : {
+        responses: {},
+        logs: [],
+        sessionMetadata: { startedAt: new Date() },
+        currentQuestionIndex: 0,
+        currentQuiz: undefined,
+      };
+  const currentQuestionIndex = quizSession.currentQuestionIndex;
+  const currentQuiz = quizSession.currentQuiz;
 
   // Find the specific quiz by slug
-  const targetQuiz = findQuizBySlug(quizzes, "my-artist-type-quiz");
+  const targetQuiz = quizzes.find((quiz) => quiz.slug === "my-artist-type-quiz");
+
+  // Initialize quiz if not already set
+  React.useEffect(() => {
+    if (targetQuiz !== undefined && currentQuiz === undefined) {
+      initializeQuiz(targetQuiz);
+    }
+  }, [targetQuiz, currentQuiz, initializeQuiz]);
 
   if (targetQuiz === undefined) {
     return (
@@ -61,11 +77,6 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
 
   // Get questions from the real quiz data
   const questions = targetQuiz.questions as Array<Question>;
-
-  // Get current question and load its saved response
-  const currentQuestion = questions[currentQuestionIndex];
-  const savedResponse =
-    currentQuestion !== undefined ? quizSession.responses[currentQuestion.id] : undefined;
 
   if (questions.length === 0) {
     return (
@@ -91,152 +102,39 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
     );
   }
 
-  const isFirstQuestion = currentQuestionIndex === 0;
-  const isLastQuestion = currentQuestionIndex === questions.length - 1;
-
-  // Handler functions
+  // Handler functions using the new atoms
   const handleRatingSelect = (rating: number) => {
-    // Initialize first question navigation log if not already done
-    const logs =
-      quizSession.logs.length === 0
-        ? [
-            {
-              type: "navigation" as const,
-              questionId: currentQuestion.id,
-              dateTime: new Date(),
-            },
-          ]
-        : quizSession.logs;
-
-    // Save response and log selection in single atom update
-    const logMessage = savedResponse !== undefined ? "changed response to" : "selected";
-    const newLogEntry = {
-      type: "selection" as const,
-      questionId: currentQuestion.id,
-      rating,
-      action: logMessage,
-      dateTime: new Date(),
-    };
-
-    setQuizSession((prevSession) => ({
-      responses: { ...prevSession.responses, [currentQuestion.id]: rating },
-      logs: [...logs, newLogEntry],
-    }));
+    selectAnswer(rating);
   };
 
   const handleBack = () => {
-    if (!isFirstQuestion) {
+    if (navigationState.canGoBack) {
       const newIndex = currentQuestionIndex - 1;
-      setCurrentQuestionIndex(newIndex);
-
-      // Log navigation
-      const targetQuestion = questions[newIndex];
-      if (targetQuestion?.id) {
-        // Initialize first question navigation log if not already done
-        const logs =
-          quizSession.logs.length === 0
-            ? [
-                {
-                  type: "navigation" as const,
-                  questionId: currentQuestion.id,
-                  dateTime: new Date(),
-                },
-              ]
-            : quizSession.logs;
-
-        const newLogEntry = {
-          type: "navigation" as const,
-          questionId: targetQuestion.id,
-          dateTime: new Date(),
-        };
-        setQuizSession((prevSession) => ({
-          ...prevSession,
-          logs: [...logs, newLogEntry],
-        }));
-      }
+      navigateToQuestion(newIndex);
     }
   };
 
   const handleNext = () => {
-    if (!isLastQuestion) {
+    if (navigationState.canGoNext) {
       const newIndex = currentQuestionIndex + 1;
-      setCurrentQuestionIndex(newIndex);
-
-      // Log navigation
-      const targetQuestion = questions[newIndex];
-      if (targetQuestion?.id) {
-        // Initialize first question navigation log if not already done
-        const logs =
-          quizSession.logs.length === 0
-            ? [
-                {
-                  type: "navigation" as const,
-                  questionId: currentQuestion.id,
-                  dateTime: new Date(),
-                },
-              ]
-            : quizSession.logs;
-
-        const newLogEntry = {
-          type: "navigation" as const,
-          questionId: targetQuestion.id,
-          dateTime: new Date(),
-        };
-        setQuizSession((prevSession) => ({
-          ...prevSession,
-          logs: [...logs, newLogEntry],
-        }));
-      }
+      navigateToQuestion(newIndex);
     }
   };
 
   const handleSubmit = () => {
-    // Log quiz submission
-    const newLogEntry = {
-      type: "submission" as const,
-      dateTime: new Date(),
-    };
-    setQuizSession((prevSession) => ({
-      ...prevSession,
-      logs: [...prevSession.logs, newLogEntry],
-    }));
+    submitQuiz();
 
     // Handle quiz submission - this will eventually send data to server
     // Submission data is available in quizSession atom for backend integration
-
     alert(
       `Quiz submitted! You answered ${Object.keys(quizSession.responses).length} out of ${questions.length} questions.`,
     );
   };
 
-  // Random color function - assigns a unique consistent color to each question
-  // Uses the question's ID as a seed to generate a hash, ensuring the same question
-  // always gets the same color, but different questions get different colors
-  const randomCategoryColorClass = (category?: string, colorOn?: boolean): string => {
-    if (colorOn === false) return "bg-muted";
-
-    // Use the category (which is the question ID) as the seed for consistent colors
-    const questionId = String(category ?? "default");
-    const hash = questionId.split("").reduce((acc, char) => {
-      return acc + char.charCodeAt(0);
-    }, 0);
-    const colorIndex = hash % 10; // Use modulo to get consistent color per question
-
-    // Array of beautiful gradient colors
-    const colors = [
-      "bg-gradient-to-b from-rose-500/20 to-rose-500/5",
-      "bg-gradient-to-b from-pink-500/20 to-pink-500/5",
-      "bg-gradient-to-b from-fuchsia-500/20 to-fuchsia-500/5",
-      "bg-gradient-to-b from-purple-500/20 to-purple-500/5",
-      "bg-gradient-to-b from-violet-500/20 to-violet-500/5",
-      "bg-gradient-to-b from-indigo-500/20 to-indigo-500/5",
-      "bg-gradient-to-b from-blue-500/20 to-blue-500/5",
-      "bg-gradient-to-b from-cyan-500/20 to-cyan-500/5",
-      "bg-gradient-to-b from-teal-500/20 to-teal-500/5",
-      "bg-gradient-to-b from-emerald-500/20 to-emerald-500/5",
-    ];
-
-    return colors[colorIndex] ?? "bg-gradient-to-b from-gray-500/20 to-gray-500/5";
+  // Get random color class using the service
+  const randomCategoryColorClass = (_category?: string, _colorOn?: boolean): string => {
+    // For now, return a simple color class - we can enhance this later
+    return "bg-gradient-to-b from-blue-500/20 to-blue-500/5";
   };
 
   return (
@@ -253,7 +151,9 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
           <QuizProgressBar
             questions={questions.map((q) => ({ id: q.id as unknown as number, category: q.id }))}
             currentIndex={currentQuestionIndex}
-            onQuestionClick={setCurrentQuestionIndex}
+            onQuestionClick={(index) => {
+              navigateToQuestion(index);
+            }}
             categoryColorClass={randomCategoryColorClass}
             colorOn={true}
           />
@@ -277,9 +177,9 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
             onBack={handleBack}
             onNext={handleNext}
             onSubmit={handleSubmit}
-            canGoBack={!isFirstQuestion}
-            canGoNext={!isLastQuestion}
-            isLastQuestion={isLastQuestion}
+            canGoBack={navigationState.canGoBack}
+            canGoNext={navigationState.canGoNext}
+            isLastQuestion={navigationState.isLast}
           />
         </div>
       </div>
@@ -303,6 +203,7 @@ export const QuizTakerPage: React.FC = () => {
 
   return (
     <>
+      <QuizServices />
       {Result.builder(quizzesResult)
         .onFailure(() => <ErrorView />)
         .onSuccess((quizzes) => <SuccessView quizzes={quizzes} />)

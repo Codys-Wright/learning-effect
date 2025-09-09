@@ -48,23 +48,10 @@ export class Question extends S.Class<Question>("Question")({
   id: QuestionId,
 
   //Define the actual entity here
-  order: S.Number.annotations({
-    arbitrary: () => (fc) => fc.constant(null).map(() => faker.number.int({ min: 1, max: 50 })),
-  }),
-  title: S.String.annotations({
-    arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.sentence()),
-  }),
-  subtitle: S.optional(
-    S.String.annotations({
-      arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.words(3)),
-    }),
-  ),
-
-  description: S.optional(
-    S.String.annotations({
-      arbitrary: () => (fc) => fc.constant(null).map(() => faker.lorem.paragraph()),
-    }),
-  ),
+  order: S.Number,
+  title: S.String,
+  subtitle: S.optional(S.String),
+  description: S.optional(S.String),
   //determines the type, and all type specific fields
   data: QuestionData,
 
