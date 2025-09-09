@@ -19,10 +19,12 @@ export class PgContainer extends Effect.Service<PgContainer>()("PgContainer", {
       const sql = yield* SqlClient.SqlClient;
       const fs = yield* FileSystem.FileSystem;
 
+      // Find the project root by looking for package.json
       const currentFileDir = path.dirname(fileURLToPath(import.meta.url));
-      const schemaPath = path.resolve(
-        currentFileDir,
-        "../../../../database/src/migrations/sql/_schema.sql",
+      const projectRoot = path.resolve(currentFileDir, "../../../../../..");
+      const schemaPath = path.join(
+        projectRoot,
+        "apps/my-artist-type/database/src/migrations/sql/_schema.sql",
       );
 
       const schema = yield* fs.readFileString(schemaPath);

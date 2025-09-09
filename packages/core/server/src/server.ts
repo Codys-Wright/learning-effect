@@ -1,5 +1,6 @@
 import { HttpApiScalar, HttpLayerRouter, HttpServer, HttpServerResponse } from "@effect/platform";
 import { DomainApi } from "@my-artist-type/domain/domain-api";
+import { ResponsesRpcLive } from "@my-artist-type/server/domain/responses/responses-rpc-live.js";
 import { Layer } from "effect";
 import { ExamplesRpcLive } from "./domain/examples/examples-rpc-live.js";
 import { QuizzesRpcLive } from "./domain/quizzes/quizzes-rpc-live.js";
@@ -8,7 +9,7 @@ import { StylesRpcLive } from "./domain/styles/styles-rpc-live.js";
 export const ApiLive = HttpLayerRouter.addHttpApi(DomainApi, {
   openapiPath: "/api/docs/openapi.json",
 }).pipe(
-  Layer.provide([StylesRpcLive, ExamplesRpcLive, QuizzesRpcLive]),
+  Layer.provide([StylesRpcLive, ExamplesRpcLive, QuizzesRpcLive, ResponsesRpcLive]),
   Layer.provide(HttpServer.layerContext),
 );
 

@@ -45,6 +45,15 @@ const config: ViteUserConfig = {
       ...alias("server"),
       ...alias("client-core"),
       ...alias("ui/shadcn"),
+      // My Artist Type app aliases
+      "@my-artist-type/domain": path.join(__dirname, "apps/my-artist-type/domain/src"),
+      "@my-artist-type/domain/*": path.join(__dirname, "apps/my-artist-type/domain/src/*"),
+      "@my-artist-type/database": path.join(__dirname, "apps/my-artist-type/database/src"),
+      "@my-artist-type/database/*": path.join(__dirname, "apps/my-artist-type/database/src/*"),
+      "@my-artist-type/server": path.join(__dirname, "apps/my-artist-type/server/src"),
+      "@my-artist-type/server/*": path.join(__dirname, "apps/my-artist-type/server/src/*"),
+      "@my-artist-type/web": path.join(__dirname, "apps/my-artist-type/web/src"),
+      "@my-artist-type/web/*": path.join(__dirname, "apps/my-artist-type/web/src/*"),
     },
   },
 };

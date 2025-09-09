@@ -24,7 +24,6 @@
 //     - Any pages related to this feature will go in client/src/features/${featurename}/response.page.tsx, then that component is imported into the main router
 //
 
-import { NullOrFromFallible } from "@core/domain";
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "@effect/platform";
 import { Schema as S } from "effect";
 import { QuizId } from "../quiz/quiz-rpc.js";
@@ -76,16 +75,16 @@ export class QuizResponse extends S.Class<QuizResponse>("QuizResponse")({
   quizId: QuizId,
 
   // Core response data
-  answers: S.Array(QuestionResponse),
+  answers: S.optional(S.parseJson(S.Array(QuestionResponse))),
 
   // Session tracking
-  sessionMetadata: SessionMetadata,
+  sessionMetadata: S.parseJson(SessionMetadata),
 
   // Interaction logging for UX analysis
-  interactionLogs: S.optional(S.Array(InteractionLog)),
+  interactionLogs: S.optional(S.parseJson(S.Array(InteractionLog))),
 
   //optional metadata - stored as JSON in database
-  metadata: S.optional(S.NullOr(S.parseJson(NullOrFromFallible(ResponseMetadata)))),
+  metadata: S.optional(S.NullOr(S.parseJson(ResponseMetadata))),
 
   //Always include a createdAt and UpdatedAt time, but deletedAt is optional for things you want to be able to soft delete
   createdAt: S.DateTimeUtc,

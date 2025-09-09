@@ -38,6 +38,18 @@ CREATE TABLE public.quizzes (
     deleted_at timestamp with time zone
 );
 
+CREATE TABLE public.responses (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    quiz_id uuid NOT NULL,
+    answers jsonb DEFAULT '[]'::jsonb NOT NULL,
+    session_metadata jsonb NOT NULL,
+    interaction_logs jsonb DEFAULT '[]'::jsonb,
+    metadata jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    deleted_at timestamp with time zone
+);
+
 CREATE TABLE public.styles (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name text NOT NULL,
@@ -66,6 +78,9 @@ ALTER TABLE ONLY public.quizzes
 ALTER TABLE ONLY public.quizzes
     ADD CONSTRAINT quizzes_slug_key UNIQUE (slug);
 
+ALTER TABLE ONLY public.responses
+    ADD CONSTRAINT responses_pkey PRIMARY KEY (id);
+
 ALTER TABLE ONLY public.styles
     ADD CONSTRAINT styles_pkey PRIMARY KEY (id);
 
@@ -78,15 +93,29 @@ CREATE INDEX idx_quizzes_deleted_at ON public.quizzes USING btree (deleted_at);
 
 CREATE INDEX idx_quizzes_slug ON public.quizzes USING btree (slug);
 
+CREATE INDEX idx_responses_created_at ON public.responses USING btree (created_at);
+
+CREATE INDEX idx_responses_deleted_at ON public.responses USING btree (deleted_at);
+
+CREATE INDEX idx_responses_quiz_id ON public.responses USING btree (quiz_id);
+
+CREATE INDEX idx_responses_session_metadata_started_at ON public.responses USING gin (((session_metadata -> 'startedAt'::text)));
+
 CREATE TRIGGER update_examples_updated_at BEFORE UPDATE ON public.examples FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 CREATE TRIGGER update_quizzes_updated_at BEFORE UPDATE ON public.quizzes FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE TRIGGER update_responses_updated_at BEFORE UPDATE ON public.responses FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 CREATE TRIGGER update_styles_updated_at BEFORE UPDATE ON public.styles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 CREATE TRIGGER update_tests_updated_at BEFORE UPDATE ON public.tests FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (1, '2025-09-05 02:59:53.169634+00', 'create-styles_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (2, '2025-09-05 02:59:53.169634+00', 'create-tests_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (3, '2025-09-05 02:59:53.169634+00', 'create-examples_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (4, '2025-09-05 02:59:53.169634+00', 'create-quizzes_table');
+ALTER TABLE ONLY public.responses
+    ADD CONSTRAINT responses_quiz_id_fkey FOREIGN KEY (quiz_id) REFERENCES public.quizzes(id);
+
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (1, '2025-09-09 07:08:51.862157+00', 'create-styles_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (2, '2025-09-09 07:08:51.862157+00', 'create-tests_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (3, '2025-09-09 07:08:51.862157+00', 'create-examples_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (4, '2025-09-09 07:08:51.862157+00', 'create-quizzes_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (5, '2025-09-09 07:08:51.862157+00', 'create_responses_table');
