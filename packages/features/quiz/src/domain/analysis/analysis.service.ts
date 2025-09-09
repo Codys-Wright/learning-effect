@@ -32,6 +32,7 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
         Effect.sync(() =>
           questions.reduce(
             (map, question, index) => {
+              // Map by question ID since seed script now maps content to actual IDs
               map[question.id] = String(index + 1);
               return map;
             },
@@ -58,6 +59,12 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
             weight: number;
           }> = [];
 
+          console.log(`Computing points for ending: ${ending.endingId}`, {
+            endingId: ending.endingId,
+            rulesCount: ending.questionRules.length,
+            config: config,
+          });
+
           for (const response of responses) {
             // Only process numeric responses
             if (typeof response.value !== "number") continue;
@@ -66,38 +73,63 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
             if (indexKey === undefined) continue;
 
             const rule = ending.questionRules.find((r) => r.questionId === response.questionId);
-            if (rule === undefined) continue;
-
-            if (rule.idealAnswers.includes(response.value)) {
-              const baseWeight = rule.isPrimary ? config.primaryWeight : config.nonPrimaryWeight;
-              const customWeight = rule.weightMultiplier ?? 1.0;
-
-              // Calculate distance weighting
-              const nearest = rule.idealAnswers.reduce((best, ideal) => {
-                const distance = Math.abs(ideal - (response.value as number));
-                return distance < best ? distance : best;
-              }, Number.POSITIVE_INFINITY);
-
-              const distanceGamma = rule.distanceGamma ?? config.distanceGamma;
-              const distanceWeight = Math.max(
-                0,
-                Math.min(1, 1 - Math.pow(nearest / 10, distanceGamma)),
+            if (rule === undefined) {
+              console.log(
+                `No rule found for question ${response.questionId} in ending ${ending.endingId}`,
               );
-
-              const points = config.scoreMultiplier * baseWeight * customWeight * distanceWeight;
-              totalPoints += points;
-
-              questionBreakdown.push({
-                questionId: response.questionId,
-                points,
-                idealAnswers: [...rule.idealAnswers],
-                userAnswer: response.value,
-                distance: nearest,
-                weight: baseWeight * customWeight,
-              });
+              continue;
             }
+
+            console.log(
+              `Processing question ${response.questionId} for ending ${ending.endingId}:`,
+              {
+                userAnswer: response.value,
+                idealAnswers: rule.idealAnswers,
+                isPrimary: rule.isPrimary,
+              },
+            );
+
+            // Calculate points based on distance from ideal answers (not exact match)
+            const baseWeight = rule.isPrimary ? config.primaryWeight : config.nonPrimaryWeight;
+            const customWeight = rule.weightMultiplier ?? 1.0;
+
+            // Find the nearest ideal answer
+            const nearest = rule.idealAnswers.reduce((best, ideal) => {
+              const distance = Math.abs(ideal - (response.value as number));
+              return distance < best ? distance : best;
+            }, Number.POSITIVE_INFINITY);
+
+            // Calculate distance weighting (like in throwaway reference)
+            const distanceGamma = rule.distanceGamma ?? config.distanceGamma;
+            const distanceWeight = Math.max(
+              0,
+              Math.min(1, 1 - Math.pow(nearest / 10, distanceGamma)),
+            );
+
+            const points = config.scoreMultiplier * baseWeight * customWeight * distanceWeight;
+            totalPoints += points;
+
+            console.log(`Points calculated for question ${response.questionId}:`, {
+              nearest,
+              distanceWeight,
+              baseWeight,
+              customWeight,
+              scoreMultiplier: config.scoreMultiplier,
+              points,
+              totalPoints,
+            });
+
+            questionBreakdown.push({
+              questionId: response.questionId,
+              points,
+              idealAnswers: [...rule.idealAnswers],
+              userAnswer: response.value,
+              distance: nearest,
+              weight: baseWeight * customWeight,
+            });
           }
 
+          console.log(`Final points for ending ${ending.endingId}:`, totalPoints);
           return { questionBreakdown, totalPoints };
         });
 
@@ -175,12 +207,45 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
       // Analyze a complete quiz response using an analysis engine
       const analyzeResponse = (engine: AnalysisEngine, quiz: Quiz, response: QuizResponse) =>
         Effect.gen(function* () {
+          // Log the engine details for debugging
+          yield* Effect.logInfo("Analysis Engine:", {
+            id: engine.id,
+            slug: engine.slug,
+            version: engine.version,
+            isActive: engine.isActive,
+            endingsCount: engine.endings.length,
+            scoringConfig: engine.scoringConfig,
+          });
+
+          // Log each ending with its rules
+          engine.endings.forEach((ending, index) => {
+            console.log(`Ending ${index + 1}: ${ending.endingId}`, {
+              endingId: ending.endingId,
+              name: ending.name,
+              rulesCount: ending.questionRules.length,
+              rules: ending.questionRules.map((rule) => ({
+                questionId: rule.questionId,
+                idealAnswers: rule.idealAnswers,
+                isPrimary: rule.isPrimary,
+              })),
+            });
+          });
+
           // Extract responses and questions
           const responses = response.answers ?? [];
           const questions = quiz.questions ?? [];
 
+          yield* Effect.logInfo("Analysis Input:", {
+            responsesCount: responses.length,
+            questionsCount: questions.length,
+            responseId: response.id,
+            quizId: quiz.id,
+          });
+
           // Build question index map
           const questionIndexById = yield* buildQuestionIndexMap(questions);
+
+          yield* Effect.logInfo("Question Index Map:", questionIndexById);
 
           // Compute all ending scores
           const endingResults = yield* computeAllEndingScores(responses, questionIndexById, engine);

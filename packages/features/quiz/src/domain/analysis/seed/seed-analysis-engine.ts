@@ -73,7 +73,7 @@ export const getSeedAnalysisEnginePayload = (): {
     }>,
   ) => {
     const questionRulesTransformed: Array<QuestionRule> = questionRules.map((rule) => ({
-      questionId: rule.question.id.toString(),
+      questionId: rule.question.id.toString(), // Use numeric ID which corresponds to question order
       idealAnswers: Array.isArray(rule.IdealAnswers)
         ? rule.IdealAnswers
         : [typeof rule.IdealAnswers === "string" ? parseInt(rule.IdealAnswers) : rule.IdealAnswers],

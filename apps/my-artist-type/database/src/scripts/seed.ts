@@ -39,6 +39,23 @@ NodeRuntime.runMain(
     const seededQuiz = yield* quizRepo.create(createQuizPayload);
     yield* Effect.log(`Created quiz: ${seededQuiz.title} (ID: ${seededQuiz.id})`);
 
+    // Map analysis engine question rules to use actual question IDs from the created quiz
+    // The seed data uses question IDs 1, 2, 3, etc., which correspond to the order field in quiz questions
+    const questionIdMap = new Map<string, string>();
+    seededQuiz.questions?.forEach((question) => {
+      // Map by order number to the actual question ID
+      questionIdMap.set(question.order.toString(), question.id);
+    });
+
+    // Update analysis engine endings to use actual question IDs
+    const updatedEndings = analysisEnginePayload.endings.map((ending) => ({
+      ...ending,
+      questionRules: ending.questionRules.map((rule) => ({
+        ...rule,
+        questionId: questionIdMap.get(rule.questionId) ?? rule.questionId, // Use actual question ID if found, fallback to original
+      })),
+    }));
+
     // Create the analysis engine
     const createAnalysisEnginePayload = {
       name: analysisEnginePayload.name,
@@ -46,7 +63,7 @@ NodeRuntime.runMain(
       version: analysisEnginePayload.version ?? "1.0.0",
       slug: analysisEnginePayload.slug ?? "artist-type-quiz-v1",
       scoringConfig: analysisEnginePayload.scoringConfig,
-      endings: analysisEnginePayload.endings,
+      endings: updatedEndings,
       metadata: analysisEnginePayload.metadata ?? undefined,
       isActive: analysisEnginePayload.isActive ?? true,
     };

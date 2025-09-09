@@ -190,10 +190,10 @@ ALTER TABLE ONLY public.analysis_results
 ALTER TABLE ONLY public.responses
     ADD CONSTRAINT responses_quiz_id_fkey FOREIGN KEY (quiz_id) REFERENCES public.quizzes(id);
 
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (1, '2025-09-09 09:18:49.284019+00', 'create-styles_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (2, '2025-09-09 09:18:49.284019+00', 'create-tests_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (3, '2025-09-09 09:18:49.284019+00', 'create-examples_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (4, '2025-09-09 09:18:49.284019+00', 'create-quizzes_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (5, '2025-09-09 09:18:49.284019+00', 'create_responses_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (6, '2025-09-09 09:18:49.284019+00', 'create_analysis_engines_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (7, '2025-09-09 09:18:49.284019+00', 'create_analysis_results_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (1, '2025-09-09 11:23:58.973061+00', 'create-styles_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (2, '2025-09-09 11:23:58.973061+00', 'create-tests_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (3, '2025-09-09 11:23:58.973061+00', 'create-examples_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (4, '2025-09-09 11:23:58.973061+00', 'create-quizzes_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (5, '2025-09-09 11:23:58.973061+00', 'create_responses_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (6, '2025-09-09 11:23:58.973061+00', 'create_analysis_engines_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (7, '2025-09-09 11:23:58.973061+00', 'create_analysis_results_table');
