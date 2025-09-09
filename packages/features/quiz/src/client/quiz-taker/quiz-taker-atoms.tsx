@@ -1,16 +1,21 @@
+import { ApiClient } from "@core/client";
 import { Atom, Registry, Result, useAtomMount } from "@effect-atom/atom-react";
 import {
   type InteractionLog,
+  type QuestionResponse,
   type Quiz,
   type QuizSession,
   type SessionMetadata,
+  type UpsertResponsePayload,
 } from "@features/quiz/domain";
-import { DateTime, Effect, LogLevel, Logger } from "effect";
+import { DateTime, Effect, Layer, LogLevel, Logger } from "effect";
 import type React from "react";
 import { QuizTakerService } from "./quiz-taker.service.js";
 
-// Create a runtime with the QuizTakerService
-export const quizTakerRuntime = Atom.runtime(QuizTakerService.Default);
+// Create a runtime with the QuizTakerService and ApiClient
+export const quizTakerRuntime = Atom.runtime(
+  Layer.mergeAll(QuizTakerService.Default, ApiClient.Default),
+);
 
 // Add pretty logger to the runtime
 Atom.runtime.addGlobalLayer(Logger.pretty);
@@ -143,7 +148,7 @@ export const submitQuizAtom = quizTakerRuntime.fn(
     const registry = yield* Registry.AtomRegistry;
     const sessionResult = registry.get(quizSessionAtom);
 
-    if (!Result.isSuccess(sessionResult)) {
+    if (!Result.isSuccess(sessionResult) || sessionResult.value.currentQuiz === undefined) {
       return;
     }
 
@@ -157,6 +162,28 @@ export const submitQuizAtom = quizTakerRuntime.fn(
 
     const updatedSession = yield* QuizTakerService.submitQuiz(sessionResult.value);
     const newState = { ...sessionResult.value, ...updatedSession };
+
+    // Convert quiz session to response payload
+    const now = yield* DateTime.now;
+    const answers: Array<QuestionResponse> = Object.entries(newState.responses).map(
+      ([questionId, value]) => ({
+        questionId,
+        value,
+        answeredAt: now,
+      }),
+    );
+
+    const responsePayload: UpsertResponsePayload = {
+      quizId: sessionResult.value.currentQuiz.id,
+      answers,
+      sessionMetadata: newState.sessionMetadata,
+      interactionLogs: newState.logs,
+      metadata: undefined,
+    };
+
+    // Save the response to the database
+    const api = yield* ApiClient;
+    yield* api.http.Responses.upsert({ payload: responsePayload });
 
     // Log the final session state after submission
     yield* Effect.log("Quiz submission - Final session state:", {

@@ -11,6 +11,7 @@
 import { createServerRootRoute } from '@tanstack/react-start/server'
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResponsesRouteImport } from './routes/responses'
 import { Route as QuizTakerRouteImport } from './routes/quiz-taker'
 import { Route as QuizEditorRouteImport } from './routes/quiz-editor'
 import { Route as QuizRouteImport } from './routes/quiz'
@@ -21,6 +22,11 @@ import { ServerRoute as ApiSplatServerRouteImport } from './routes/api/$'
 
 const rootServerRouteImport = createServerRootRoute()
 
+const ResponsesRoute = ResponsesRouteImport.update({
+  id: '/responses',
+  path: '/responses',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const QuizTakerRoute = QuizTakerRouteImport.update({
   id: '/quiz-taker',
   path: '/quiz-taker',
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/quiz': typeof QuizRoute
   '/quiz-editor': typeof QuizEditorRoute
   '/quiz-taker': typeof QuizTakerRoute
+  '/responses': typeof ResponsesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByTo {
   '/quiz': typeof QuizRoute
   '/quiz-editor': typeof QuizEditorRoute
   '/quiz-taker': typeof QuizTakerRoute
+  '/responses': typeof ResponsesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -81,6 +89,7 @@ export interface FileRoutesById {
   '/quiz': typeof QuizRoute
   '/quiz-editor': typeof QuizEditorRoute
   '/quiz-taker': typeof QuizTakerRoute
+  '/responses': typeof ResponsesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -91,6 +100,7 @@ export interface FileRouteTypes {
     | '/quiz'
     | '/quiz-editor'
     | '/quiz-taker'
+    | '/responses'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -99,6 +109,7 @@ export interface FileRouteTypes {
     | '/quiz'
     | '/quiz-editor'
     | '/quiz-taker'
+    | '/responses'
   id:
     | '__root__'
     | '/'
@@ -107,6 +118,7 @@ export interface FileRouteTypes {
     | '/quiz'
     | '/quiz-editor'
     | '/quiz-taker'
+    | '/responses'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -116,6 +128,7 @@ export interface RootRouteChildren {
   QuizRoute: typeof QuizRoute
   QuizEditorRoute: typeof QuizEditorRoute
   QuizTakerRoute: typeof QuizTakerRoute
+  ResponsesRoute: typeof ResponsesRoute
 }
 export interface FileServerRoutesByFullPath {
   '/api/$': typeof ApiSplatServerRoute
@@ -141,6 +154,13 @@ export interface RootServerRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/responses': {
+      id: '/responses'
+      path: '/responses'
+      fullPath: '/responses'
+      preLoaderRoute: typeof ResponsesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/quiz-taker': {
       id: '/quiz-taker'
       path: '/quiz-taker'
@@ -204,6 +224,7 @@ const rootRouteChildren: RootRouteChildren = {
   QuizRoute: QuizRoute,
   QuizEditorRoute: QuizEditorRoute,
   QuizTakerRoute: QuizTakerRoute,
+  ResponsesRoute: ResponsesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
