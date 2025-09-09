@@ -4,6 +4,8 @@
 import { SemVer, Slug } from "@core/domain";
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "@effect/platform";
 import { Schema as S } from "effect";
+import { QuizNotFoundError } from "../quiz/quiz-rpc.js";
+import { ResponseId, ResponseNotFoundError } from "../responses/response-rpc.js";
 import {
   AnalysisEngineId,
   AnalysisEngineNotFoundError,
@@ -54,7 +56,7 @@ export class AnalysisResult extends S.Class<AnalysisResult>("AnalysisResult")({
   engineVersion: SemVer,
 
   // Which response was analyzed
-  responseId: S.String,
+  responseId: ResponseId,
 
   // Results for each ending
   endingResults: S.parseJson(S.Array(EndingResult)),
@@ -83,7 +85,7 @@ export class UpsertAnalysisResultPayload extends S.Class<UpsertAnalysisResultPay
   engineId: AnalysisEngineId,
   engineSlug: Slug,
   engineVersion: SemVer,
-  responseId: S.String,
+  responseId: ResponseId,
   endingResults: S.parseJson(S.Array(EndingResult)),
   metadata: S.optional(S.NullOr(S.parseJson(S.Record({ key: S.String, value: S.Unknown })))),
   analyzedAt: S.DateTimeUtc,
@@ -97,7 +99,7 @@ export class UpsertAnalysisResultPayload extends S.Class<UpsertAnalysisResultPay
 export class AnalyzeResponseRequest extends S.Class<AnalyzeResponseRequest>(
   "AnalyzeResponseRequest",
 )({
-  responseId: S.String,
+  responseId: ResponseId,
   engineId: AnalysisEngineId,
   // Optional: override scoring config for this analysis
   scoringConfigOverride: S.optional(S.Record({ key: S.String, value: S.Unknown })),
@@ -105,13 +107,13 @@ export class AnalyzeResponseRequest extends S.Class<AnalyzeResponseRequest>(
 
 // Request to get analysis results
 export class GetAnalysisRequest extends S.Class<GetAnalysisRequest>("GetAnalysisRequest")({
-  responseId: S.String,
+  responseId: ResponseId,
   engineId: S.optional(AnalysisEngineId), // If not provided, get all analyses for response
 }) {}
 
 // Request to analyze multiple responses in batch
 export class BatchAnalyzeRequest extends S.Class<BatchAnalyzeRequest>("BatchAnalyzeRequest")({
-  responseIds: S.Array(S.String),
+  responseIds: S.Array(ResponseId),
   engineId: AnalysisEngineId,
   // Optional: override scoring config for this batch analysis
   scoringConfigOverride: S.optional(S.Record({ key: S.String, value: S.Unknown })),
@@ -154,13 +156,13 @@ export class AnalysisResultNotFoundError extends S.TaggedError<AnalysisResultNot
   "AnalysisResultNotFoundError",
 )(
   "AnalysisResultNotFoundError",
-  { responseId: S.String },
+  { id: AnalysisResultId },
   HttpApiSchema.annotations({
     status: 404,
   }),
 ) {
   get message() {
-    return `Analysis result for response ${this.responseId} not found`;
+    return `Analysis result with id ${this.id} not found`;
   }
 }
 
@@ -176,6 +178,20 @@ export class AnalysisFailedError extends S.TaggedError<AnalysisFailedError>("Ana
   }
 }
 
+export class AnalysisResultNotFoundForResponseError extends S.TaggedError<AnalysisResultNotFoundForResponseError>(
+  "AnalysisResultNotFoundForResponseError",
+)(
+  "AnalysisResultNotFoundForResponseError",
+  { responseId: ResponseId, engineId: AnalysisEngineId },
+  HttpApiSchema.annotations({
+    status: 404,
+  }),
+) {
+  get message() {
+    return `Analysis result not found for response ${this.responseId} with engine ${this.engineId}`;
+  }
+}
+
 // ============================================================================
 // HTTP API DEFINITION
 // ============================================================================
@@ -186,6 +202,8 @@ export class AnalysisGroup extends HttpApiGroup.make("Analysis")
       .addSuccess(AnalysisResult)
       .addError(AnalysisEngineNotFoundError)
       .addError(AnalysisFailedError)
+      .addError(QuizNotFoundError)
+      .addError(ResponseNotFoundError)
       .setPayload(
         S.Struct({
           engineId: AnalysisEngineId,
@@ -198,6 +216,8 @@ export class AnalysisGroup extends HttpApiGroup.make("Analysis")
       .addSuccess(S.Array(AnalysisResult))
       .addError(AnalysisEngineNotFoundError)
       .addError(AnalysisFailedError)
+      .addError(QuizNotFoundError)
+      .addError(ResponseNotFoundError)
       .setPayload(
         S.Struct({
           engineId: AnalysisEngineId,
@@ -208,16 +228,31 @@ export class AnalysisGroup extends HttpApiGroup.make("Analysis")
   .add(
     HttpApiEndpoint.get("getAnalysis", "/responses/:responseId/analysis")
       .addSuccess(S.Array(AnalysisResult))
-      .addError(AnalysisResultNotFoundError),
+      .addError(AnalysisResultNotFoundError)
+      .setPayload(
+        S.Struct({
+          responseId: ResponseId,
+        }),
+      ),
   )
   .add(
     HttpApiEndpoint.get("getAnalysisSummary", "/:engineId/summary")
       .addSuccess(AnalysisSummary)
-      .addError(AnalysisEngineNotFoundError),
+      .addError(AnalysisEngineNotFoundError)
+      .setPayload(
+        S.Struct({
+          engineId: AnalysisEngineId,
+        }),
+      ),
   )
   .add(
     HttpApiEndpoint.del("deleteAnalysis", "/:id")
       .addSuccess(S.Void)
-      .addError(AnalysisResultNotFoundError),
+      .addError(AnalysisResultNotFoundError)
+      .setPayload(
+        S.Struct({
+          id: AnalysisResultId,
+        }),
+      ),
   )
   .prefix("/Analysis") {}

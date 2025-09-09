@@ -183,24 +183,48 @@ export class AnalysisEngineGroup extends HttpApiGroup.make("AnalysisEngine")
   .add(
     HttpApiEndpoint.get("byId", "/:id")
       .addSuccess(AnalysisEngine)
-      .addError(AnalysisEngineNotFoundError),
+      .addError(AnalysisEngineNotFoundError)
+      .setPayload(
+        S.Struct({
+          id: AnalysisEngineId,
+        }),
+      ),
   )
   .add(
     HttpApiEndpoint.get("bySlug", "/slug/:slug")
       .addSuccess(AnalysisEngine)
-      .addError(AnalysisEngineNotFoundError),
+      .addError(AnalysisEngineNotFoundError)
+      .setPayload(
+        S.Struct({
+          slug: S.String,
+        }),
+      ),
   )
   .add(
     HttpApiEndpoint.get("bySlugAndVersion", "/slug/:slug/version/:version")
       .addSuccess(AnalysisEngine)
-      .addError(AnalysisEngineNotFoundError),
+      .addError(AnalysisEngineNotFoundError)
+      .setPayload(
+        S.Struct({
+          slug: S.String,
+          version: S.String,
+        }),
+      ),
   )
   .add(
     HttpApiEndpoint.put("upsert", "/")
       .addSuccess(AnalysisEngine)
+      .addError(AnalysisEngineNotFoundError)
       .setPayload(UpsertAnalysisEnginePayload),
   )
   .add(
-    HttpApiEndpoint.del("delete", "/:id").addSuccess(S.Void).addError(AnalysisEngineNotFoundError),
+    HttpApiEndpoint.del("delete", "/:id")
+      .addSuccess(S.Void)
+      .addError(AnalysisEngineNotFoundError)
+      .setPayload(
+        S.Struct({
+          id: AnalysisEngineId,
+        }),
+      ),
   )
   .prefix("/AnalysisEngine") {}

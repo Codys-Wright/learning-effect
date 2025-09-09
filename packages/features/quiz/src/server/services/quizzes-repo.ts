@@ -40,6 +40,20 @@ export class QuizzesRepo extends Effect.Service<QuizzesRepo>()("QuizzesRepo", {
       `,
     });
 
+    const findById = SqlSchema.single({
+      Result: Quiz,
+      Request: Schema.Struct({ id: QuizId }),
+      execute: ({ id }) => sql`
+        SELECT
+          *
+        FROM
+          quizzes
+        WHERE
+          id = ${id}
+          AND deleted_at IS NULL
+      `,
+    });
+
     const create = SqlSchema.single({
       Result: Quiz,
       Request: CreateQuizInput,
@@ -127,6 +141,16 @@ export class QuizzesRepo extends Effect.Service<QuizzesRepo>()("QuizzesRepo", {
     return {
       // findAll: If it fails, crash the program (orDie) - this should always work
       findAll: flow(findAll, Effect.orDie),
+
+      // findById: Get a specific quiz by ID
+      findById: (id: QuizId) =>
+        findById({ id }).pipe(
+          Effect.catchTags({
+            NoSuchElementException: () => new QuizNotFoundError({ id }),
+            ParseError: Effect.die,
+            SqlError: Effect.die,
+          }),
+        ),
 
       // del: Soft delete - sets deleted_at timestamp to exclude from queries
       del: (id: QuizId) =>

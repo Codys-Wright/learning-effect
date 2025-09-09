@@ -4,6 +4,8 @@ import {
   AnalysisResult,
   AnalysisResultId,
   AnalysisResultNotFoundError,
+  AnalysisResultNotFoundForResponseError,
+  ResponseId,
 } from "@features/quiz/domain";
 import { PgLive } from "@my-artist-type/database/database";
 import { Effect, flow, Schema } from "effect";
@@ -77,7 +79,7 @@ export class AnalysisRepo extends Effect.Service<AnalysisRepo>()("AnalysisRepo",
 
     const findByResponseId = SqlSchema.findAll({
       Result: AnalysisResult,
-      Request: Schema.Struct({ responseId: Schema.String }),
+      Request: Schema.Struct({ responseId: ResponseId }),
       execute: ({ responseId }) => sql`
         SELECT
           *
@@ -109,7 +111,7 @@ export class AnalysisRepo extends Effect.Service<AnalysisRepo>()("AnalysisRepo",
 
     const findByResponseAndEngine = SqlSchema.single({
       Result: AnalysisResult,
-      Request: Schema.Struct({ engineId: AnalysisEngineId, responseId: Schema.String }),
+      Request: Schema.Struct({ engineId: AnalysisEngineId, responseId: ResponseId }),
       execute: ({ engineId, responseId }) => sql`
         SELECT
           *
@@ -190,14 +192,14 @@ export class AnalysisRepo extends Effect.Service<AnalysisRepo>()("AnalysisRepo",
       findById: (id: AnalysisResultId) =>
         findById({ id }).pipe(
           Effect.catchTags({
-            NoSuchElementException: () => new AnalysisResultNotFoundError({ responseId: id }),
+            NoSuchElementException: () => new AnalysisResultNotFoundError({ id }),
             ParseError: Effect.die,
             SqlError: Effect.die,
           }),
         ),
 
       // findByResponseId: Get all analysis results for a specific response
-      findByResponseId: (responseId: string) =>
+      findByResponseId: (responseId: ResponseId) =>
         findByResponseId({ responseId }).pipe(
           Effect.catchTags({
             ParseError: Effect.die,
@@ -215,10 +217,11 @@ export class AnalysisRepo extends Effect.Service<AnalysisRepo>()("AnalysisRepo",
         ),
 
       // findByResponseAndEngine: Get analysis result for a specific response and engine combination
-      findByResponseAndEngine: (responseId: string, engineId: AnalysisEngineId) =>
+      findByResponseAndEngine: (responseId: ResponseId, engineId: AnalysisEngineId) =>
         findByResponseAndEngine({ responseId, engineId }).pipe(
           Effect.catchTags({
-            NoSuchElementException: () => new AnalysisResultNotFoundError({ responseId }),
+            NoSuchElementException: () =>
+              new AnalysisResultNotFoundForResponseError({ responseId, engineId }),
             ParseError: Effect.die,
             SqlError: Effect.die,
           }),
@@ -229,7 +232,7 @@ export class AnalysisRepo extends Effect.Service<AnalysisRepo>()("AnalysisRepo",
         del({ id }).pipe(
           Effect.asVoid, // We don't need the return value, just success/failure
           Effect.catchTags({
-            NoSuchElementException: () => new AnalysisResultNotFoundError({ responseId: id }), // Record not found or already deleted
+            NoSuchElementException: () => new AnalysisResultNotFoundError({ id }), // Record not found or already deleted
             ParseError: Effect.die, // Schema parsing failed - programmer error
             SqlError: Effect.die, // Database connection/query failed - infrastructure error
           }),
@@ -240,7 +243,7 @@ export class AnalysisRepo extends Effect.Service<AnalysisRepo>()("AnalysisRepo",
         hardDelete({ id }).pipe(
           Effect.asVoid,
           Effect.catchTags({
-            NoSuchElementException: () => new AnalysisResultNotFoundError({ responseId: id }), // Record not found
+            NoSuchElementException: () => new AnalysisResultNotFoundError({ id }), // Record not found
             ParseError: Effect.die, // Schema parsing failed - programmer error
             SqlError: Effect.die, // Database connection/query failed - infrastructure error
           }),
@@ -249,8 +252,7 @@ export class AnalysisRepo extends Effect.Service<AnalysisRepo>()("AnalysisRepo",
       update: (request: UpdateAnalysisResultInput) =>
         update(request).pipe(
           Effect.catchTags({
-            NoSuchElementException: () =>
-              new AnalysisResultNotFoundError({ responseId: request.id }),
+            NoSuchElementException: () => new AnalysisResultNotFoundError({ id: request.id }),
             ParseError: Effect.die,
             SqlError: Effect.die,
           }),
