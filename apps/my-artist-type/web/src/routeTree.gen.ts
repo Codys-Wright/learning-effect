@@ -17,6 +17,7 @@ import { Route as QuizEditorRouteImport } from './routes/quiz-editor'
 import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as ExampleRouteImport } from './routes/example'
+import { Route as EnginesRouteImport } from './routes/engines'
 import { Route as IndexRouteImport } from './routes/index'
 import { ServerRoute as ApiSplatServerRouteImport } from './routes/api/$'
 
@@ -52,6 +53,11 @@ const ExampleRoute = ExampleRouteImport.update({
   path: '/example',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EnginesRoute = EnginesRouteImport.update({
+  id: '/engines',
+  path: '/engines',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -65,6 +71,7 @@ const ApiSplatServerRoute = ApiSplatServerRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/engines': typeof EnginesRoute
   '/example': typeof ExampleRoute
   '/playground': typeof PlaygroundRoute
   '/quiz': typeof QuizRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/engines': typeof EnginesRoute
   '/example': typeof ExampleRoute
   '/playground': typeof PlaygroundRoute
   '/quiz': typeof QuizRoute
@@ -84,6 +92,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/engines': typeof EnginesRoute
   '/example': typeof ExampleRoute
   '/playground': typeof PlaygroundRoute
   '/quiz': typeof QuizRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/engines'
     | '/example'
     | '/playground'
     | '/quiz'
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/engines'
     | '/example'
     | '/playground'
     | '/quiz'
@@ -113,6 +124,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/engines'
     | '/example'
     | '/playground'
     | '/quiz'
@@ -123,6 +135,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  EnginesRoute: typeof EnginesRoute
   ExampleRoute: typeof ExampleRoute
   PlaygroundRoute: typeof PlaygroundRoute
   QuizRoute: typeof QuizRoute
@@ -196,6 +209,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExampleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/engines': {
+      id: '/engines'
+      path: '/engines'
+      fullPath: '/engines'
+      preLoaderRoute: typeof EnginesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -219,6 +239,7 @@ declare module '@tanstack/react-start/server' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  EnginesRoute: EnginesRoute,
   ExampleRoute: ExampleRoute,
   PlaygroundRoute: PlaygroundRoute,
   QuizRoute: QuizRoute,

@@ -17,6 +17,8 @@
     "./domain": "./src/domain/index.ts",
     "./database": "./src/database/index.ts",
     "./package.json": "./package.json",
+    "./domain/quiz/seed/seed-quiz": "./src/domain/quiz/seed/seed-quiz.ts",
+    "./domain/analysis/seed/seed-analysis-engine": "./src/domain/analysis/seed/seed-analysis-engine.ts",
     "./*": "./src/*.ts"
   },
   "scripts": {
