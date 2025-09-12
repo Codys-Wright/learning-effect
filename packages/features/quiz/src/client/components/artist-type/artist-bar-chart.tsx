@@ -9,7 +9,11 @@ import { Bar, BarChart, Cell, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@ui/shadcn";
 
 // Import our artist data utilities
-import { getArtistColor, useNormalizedArtistData, type ArtistData } from "./artist-data-utils.js";
+import {
+  getArtistColorHex,
+  useNormalizedArtistData,
+  type ArtistData,
+} from "./artist-data-utils.js";
 
 // =============================================================================
 // TYPES & INTERFACES
@@ -188,6 +192,15 @@ export const ArtistBarChart = React.memo<ArtistBarChartProps>(
       normalizeFrom: "auto",
     });
 
+    // Detect dark mode for color selection
+    const isDarkMode = React.useMemo(() => {
+      if (typeof window === "undefined") return false;
+      return (
+        document.documentElement.classList.contains("dark") ||
+        window.matchMedia("(prefers-color-scheme: dark)").matches
+      );
+    }, []);
+
     // Use Effect Atom for reactive derived state
     const enrichedData = useAtomValue(enrichedChartDataAtom({ maxItems, normalizedData }));
 
@@ -259,7 +272,8 @@ export const ArtistBarChart = React.memo<ArtistBarChartProps>(
             >
               {enrichedData.map((entry) => {
                 const artistType = entry.artistType;
-                const fillColor = getArtistColor(artistType);
+                // Use hex colors with dark mode support for better chart library compatibility
+                const fillColor = getArtistColorHex(artistType, isDarkMode);
                 return <Cell key={`${artistType}-bar`} fill={fillColor} />;
               })}
             </Bar>

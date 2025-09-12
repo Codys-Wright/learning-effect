@@ -12,6 +12,7 @@ import { createServerRootRoute } from '@tanstack/react-start/server'
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResponsesRouteImport } from './routes/responses'
+import { Route as RadarTestRouteImport } from './routes/radar-test'
 import { Route as QuizTakerRouteImport } from './routes/quiz-taker'
 import { Route as QuizEditorRouteImport } from './routes/quiz-editor'
 import { Route as QuizRouteImport } from './routes/quiz'
@@ -27,6 +28,11 @@ const rootServerRouteImport = createServerRootRoute()
 const ResponsesRoute = ResponsesRouteImport.update({
   id: '/responses',
   path: '/responses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RadarTestRoute = RadarTestRouteImport.update({
+  id: '/radar-test',
+  path: '/radar-test',
   getParentRoute: () => rootRouteImport,
 } as any)
 const QuizTakerRoute = QuizTakerRouteImport.update({
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/quiz': typeof QuizRoute
   '/quiz-editor': typeof QuizEditorRoute
   '/quiz-taker': typeof QuizTakerRoute
+  '/radar-test': typeof RadarTestRoute
   '/responses': typeof ResponsesRoute
 }
 export interface FileRoutesByTo {
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/quiz': typeof QuizRoute
   '/quiz-editor': typeof QuizEditorRoute
   '/quiz-taker': typeof QuizTakerRoute
+  '/radar-test': typeof RadarTestRoute
   '/responses': typeof ResponsesRoute
 }
 export interface FileRoutesById {
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   '/quiz': typeof QuizRoute
   '/quiz-editor': typeof QuizEditorRoute
   '/quiz-taker': typeof QuizTakerRoute
+  '/radar-test': typeof RadarTestRoute
   '/responses': typeof ResponsesRoute
 }
 export interface FileRouteTypes {
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
     | '/quiz'
     | '/quiz-editor'
     | '/quiz-taker'
+    | '/radar-test'
     | '/responses'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/quiz'
     | '/quiz-editor'
     | '/quiz-taker'
+    | '/radar-test'
     | '/responses'
   id:
     | '__root__'
@@ -142,6 +153,7 @@ export interface FileRouteTypes {
     | '/quiz'
     | '/quiz-editor'
     | '/quiz-taker'
+    | '/radar-test'
     | '/responses'
   fileRoutesById: FileRoutesById
 }
@@ -154,6 +166,7 @@ export interface RootRouteChildren {
   QuizRoute: typeof QuizRoute
   QuizEditorRoute: typeof QuizEditorRoute
   QuizTakerRoute: typeof QuizTakerRoute
+  RadarTestRoute: typeof RadarTestRoute
   ResponsesRoute: typeof ResponsesRoute
 }
 export interface FileServerRoutesByFullPath {
@@ -185,6 +198,13 @@ declare module '@tanstack/react-router' {
       path: '/responses'
       fullPath: '/responses'
       preLoaderRoute: typeof ResponsesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/radar-test': {
+      id: '/radar-test'
+      path: '/radar-test'
+      fullPath: '/radar-test'
+      preLoaderRoute: typeof RadarTestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/quiz-taker': {
@@ -266,6 +286,7 @@ const rootRouteChildren: RootRouteChildren = {
   QuizRoute: QuizRoute,
   QuizEditorRoute: QuizEditorRoute,
   QuizTakerRoute: QuizTakerRoute,
+  RadarTestRoute: RadarTestRoute,
   ResponsesRoute: ResponsesRoute,
 }
 export const routeTree = rootRouteImport

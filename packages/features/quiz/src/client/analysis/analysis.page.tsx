@@ -3,6 +3,7 @@ import type { AnalysisEngineId, ResponseId } from "@features/quiz/domain";
 import { Badge, Button, Card, DropdownMenu } from "@ui/shadcn";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import React, { useState } from "react";
+import { ArtistTypeGraphCard } from "../components/artist-type/artist-type-graph-card.js";
 import { enginesAtom } from "../engines/engines-atoms.js";
 import { responsesAtom } from "../responses-atoms.js";
 import {
@@ -11,6 +12,7 @@ import {
   analyzeResponseWithServiceAtom,
   getAnalysisSummaryWithServiceAtom,
 } from "./analysis-atoms.js";
+import { transformAnalysisToArtistData } from "./use-analysis-artist-data.js";
 
 // PageContainer component with padding and layout
 type PageContainerProps = {
@@ -198,67 +200,65 @@ const SuccessView: React.FC = () => {
 
       {/* All Analysis Results */}
       {Result.isSuccess(allAnalysisResult) && allAnalysisResult.value.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <h2 className="text-2xl font-semibold">All Analysis Results</h2>
-          {allAnalysisResult.value.map((analysis) => (
-            <Card key={analysis.id} className="w-full">
-              <Card.Header>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Card.Title className="text-lg">
-                      Analysis {analysis.id.slice(0, 8)}...
-                    </Card.Title>
-                    <Card.Description>
-                      Engine: {analysis.engineId.slice(0, 8)}... | Response:{" "}
-                      {analysis.responseId.slice(0, 8)}...
-                    </Card.Description>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">
-                      {new Date(analysis.analyzedAt.epochMillis).toLocaleString()}
-                    </Badge>
-                    <Badge variant={analysis.deletedAt === null ? "default" : "destructive"}>
-                      {analysis.deletedAt === null ? "Active" : "Deleted"}
-                    </Badge>
-                  </div>
-                </div>
-              </Card.Header>
-              <Card.Content>
-                <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {allAnalysisResult.value.map((analysis) => {
+              const artistData = transformAnalysisToArtistData(analysis);
+              return (
+                <div key={analysis.id} className="space-y-4">
                   {/* Analysis Metadata */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <span className="font-medium">Engine:</span> {analysis.engineSlug} v
-                      {analysis.engineVersion}
-                    </div>
-                    <div>
-                      <span className="font-medium">Endings:</span> {analysis.endingResults.length}
-                    </div>
-                    <div>
-                      <span className="font-medium">Created:</span>{" "}
-                      {new Date(analysis.createdAt.epochMillis).toLocaleString()}
-                    </div>
-                  </div>
+                  <Card>
+                    <Card.Header>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Card.Title className="text-lg">
+                            Analysis {analysis.id.slice(0, 8)}...
+                          </Card.Title>
+                          <Card.Description>
+                            Engine: {analysis.engineSlug} v{analysis.engineVersion}
+                          </Card.Description>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">
+                            {new Date(analysis.analyzedAt.epochMillis).toLocaleString()}
+                          </Badge>
+                          <Badge variant={analysis.deletedAt === null ? "default" : "destructive"}>
+                            {analysis.deletedAt === null ? "Active" : "Deleted"}
+                          </Badge>
+                        </div>
+                      </div>
+                    </Card.Header>
+                    <Card.Content>
+                      <div className="grid grid-cols-1 gap-2 text-sm">
+                        <div>
+                          <span className="font-medium">Response:</span>{" "}
+                          {analysis.responseId.slice(0, 8)}...
+                        </div>
+                        <div>
+                          <span className="font-medium">Endings:</span>{" "}
+                          {analysis.endingResults.length}
+                        </div>
+                        <div>
+                          <span className="font-medium">Created:</span>{" "}
+                          {new Date(analysis.createdAt.epochMillis).toLocaleString()}
+                        </div>
+                      </div>
+                    </Card.Content>
+                  </Card>
 
-                  {/* Ending Results */}
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-sm text-muted-foreground">Ending Results</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {analysis.endingResults.map((ending, index) => (
-                        <Badge
-                          key={ending.endingId}
-                          variant={ending.isWinner ? "default" : "secondary"}
-                          className="text-xs"
-                        >
-                          {ending.endingId}: {ending.points}p ({ending.percentage.toFixed(1)}%)
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Artist Type Graph Card */}
+                  <ArtistTypeGraphCard
+                    data={artistData}
+                    showBarChart={true}
+                    barChartHeight="h-48"
+                    barChartMaxItems={10}
+                    className="w-full"
+                  />
                 </div>
-              </Card.Content>
-            </Card>
-          ))}
+              );
+            })}
+          </div>
         </div>
       )}
 

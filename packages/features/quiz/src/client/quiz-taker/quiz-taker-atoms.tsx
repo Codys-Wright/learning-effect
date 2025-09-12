@@ -10,6 +10,7 @@ import {
 } from "@features/quiz/domain";
 import { DateTime, Effect, Layer, LogLevel, Logger } from "effect";
 import type React from "react";
+import type { AnalysisConfigOverrides } from "./dev-panel.js";
 import { QuizTakerService } from "./quiz-taker.service.js";
 
 // Create a runtime with the QuizTakerService and ApiClient
@@ -209,6 +210,32 @@ export const initializeQuizAtom = quizTakerRuntime.fn(
     registry.set(quizSessionAtom, newState);
   }),
 );
+
+// Dev panel configuration atoms
+const defaultDevConfig: AnalysisConfigOverrides = {
+  primaryWeight: 1.5,
+  nonPrimaryWeight: 0.2,
+  distanceGamma: 1.6,
+  beta: 1.4,
+  scoreMultiplier: 1.0,
+  disableSecondaryPoints: false,
+  overrideBaseWeights: false,
+  overrideCustomWeights: false,
+  overrideDistanceWeight: false,
+  minPercentageThreshold: 0.0,
+  enableQuestionBreakdown: true,
+  maxEndingResults: 10,
+  customPrimaryWeight: 2.0,
+  customNonPrimaryWeight: 0.5,
+  customDistanceGamma: 2.0,
+  customBeta: 1.8,
+  customScoreMultiplier: 1.2,
+};
+
+// Dev panel atoms using simple state management
+export const devConfigAtom = quizTakerRuntime.atom(Effect.sync(() => defaultDevConfig));
+
+export const devPanelVisibleAtom = quizTakerRuntime.atom(Effect.sync(() => false));
 
 // QuizServices component to mount the runtime
 export const QuizServices: React.FC = () => {
