@@ -30,6 +30,7 @@ type ArtistBarChartProps = {
   readonly className?: string;
   readonly maxItems?: number;
   readonly height?: string;
+  readonly beta?: number;
 };
 
 type ChartSizing = {
@@ -185,11 +186,19 @@ const dynamicSizingAtom = Atom.family(
 // =============================================================================
 
 export const ArtistBarChart = React.memo<ArtistBarChartProps>(
-  ({ className = "", data, height: _height = DEFAULT_HEIGHT, maxItems = DEFAULT_MAX_ITEMS }) => {
+  ({
+    beta,
+    className = "",
+    data,
+    height: _height = DEFAULT_HEIGHT,
+    maxItems = DEFAULT_MAX_ITEMS,
+  }) => {
     // Normalize the data using our React hook
     const normalizedData = useNormalizedArtistData(data, {
+      ...(beta !== undefined && { beta }),
       ensureComplete: true,
       normalizeFrom: "auto",
+      preserveBetaEffect: false, // We'll apply beta transformation here instead
     });
 
     // Detect dark mode for color selection
@@ -255,10 +264,15 @@ export const ArtistBarChart = React.memo<ArtistBarChartProps>(
               content={
                 <ChartTooltipContent
                   hideLabel
-                  formatter={(value: unknown, _name: unknown, props: unknown) => {
+                  formatter={(_value: unknown, _name: unknown, props: unknown) => {
                     const item = (props as { payload: EnrichedChartData }).payload;
-                    const numValue = typeof value === "number" ? value : 0;
-                    return [`${numValue}% (${item.points} pts)`, item.fullName];
+                    // Use original percentage for tooltip (not beta-transformed)
+                    const tooltipPercentage = item.originalPercentage ?? item.percentage;
+                    const formattedPoints = item.points.toFixed(2);
+                    return [
+                      `${tooltipPercentage.toFixed(1)}% (${formattedPoints} pts)`,
+                      item.fullName,
+                    ];
                   }}
                 />
               }

@@ -11,6 +11,10 @@ export class ArtistDataSchema extends S.Class<ArtistDataSchema>("ArtistDataSchem
   points: S.Number,
   fullName: S.String,
   databaseId: S.String,
+  // Optional field for beta-transformed values used for visual scaling
+  betaTransformedPoints: S.optional(S.Number),
+  // Original percentage before beta transformation (for tooltips)
+  originalPercentage: S.optional(S.Number),
 }) {}
 
 export type ArtistData = S.Schema.Type<typeof ArtistDataSchema>;
@@ -220,8 +224,10 @@ const DEFAULT_ARTIST_DATA: ReadonlyArray<ArtistData> = [
 // =============================================================================
 
 export type UseNormalizedArtistDataOptions = {
+  readonly beta?: number;
   readonly ensureComplete?: boolean;
   readonly normalizeFrom?: "points" | "percentage" | "auto";
+  readonly preserveBetaEffect?: boolean;
 };
 
 /**
@@ -245,7 +251,12 @@ const useDeepMemoData = <T>(data: T): T => {
  */
 export const useNormalizedArtistData = (
   data?: ReadonlyArray<ArtistData>,
-  { ensureComplete = true, normalizeFrom = "auto" }: UseNormalizedArtistDataOptions = {},
+  {
+    beta,
+    ensureComplete = true,
+    normalizeFrom = "auto",
+    preserveBetaEffect = false,
+  }: UseNormalizedArtistDataOptions = {},
 ): ReadonlyArray<ArtistData> => {
   // Deep memo the input data to prevent unnecessary recalculations
   const memoizedData = useDeepMemoData(data);
@@ -265,17 +276,53 @@ export const useNormalizedArtistData = (
 
     let scaled = complete;
 
+    // Calculate original percentage before beta transformation
+    const originalPercentage =
+      totalPoints > 0
+        ? complete.map((d) => ({
+            ...d,
+            originalPercentage: (d.points / totalPoints) * 100,
+          }))
+        : complete;
+
+    // Apply beta transformation to points if beta is provided
+    if (beta !== undefined && beta !== 1.0 && totalPoints > 0) {
+      scaled = originalPercentage.map((d) => ({
+        ...d,
+        // Keep original points for tooltips, add beta-transformed points for visual scaling
+        betaTransformedPoints: Math.pow(d.points, beta),
+      }));
+    } else {
+      scaled = originalPercentage;
+    }
+
     // Normalize from points or percentages based on the option
     if (normalizeFrom === "points" || (normalizeFrom === "auto" && totalPoints > 0)) {
-      scaled = complete.map((d) => ({
+      // Use beta-transformed points for percentage calculation if they exist, otherwise use original points
+      const transformedTotalPoints = scaled.reduce(
+        (sum, d) => sum + (d.betaTransformedPoints ?? d.points),
+        0,
+      );
+      scaled = scaled.map((d) => ({
         ...d,
-        percentage: totalPoints > 0 ? (d.points / totalPoints) * 100 : 0,
+        percentage:
+          transformedTotalPoints > 0
+            ? ((d.betaTransformedPoints ?? d.points) / transformedTotalPoints) * 100
+            : 0,
       }));
     } else {
       // Scale existing percentages to sum to 100 if needed
-      scaled = complete.map((d) => ({
+      scaled = scaled.map((d) => ({
         ...d,
         percentage: totalPercent > 0 ? (d.percentage / totalPercent) * 100 : 0,
+      }));
+    }
+
+    // If preserving beta effect, don't re-normalize to 100%
+    if (preserveBetaEffect) {
+      return scaled.map((d) => ({
+        ...d,
+        percentage: Math.max(0, d.percentage), // Only clamp to 0, don't normalize
       }));
     }
 

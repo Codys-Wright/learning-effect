@@ -7,7 +7,7 @@ import { QuestionCard } from "../components/question-card.js";
 import { QuizProgressBar } from "../components/quiz-progress-bar.js";
 import { enginesAtom } from "../engines/engines-atoms.js";
 import { quizzesAtom } from "../quizzes-atoms.js";
-import { DevPanel } from "./dev-panel.js";
+import { DevPanel, type AnalysisConfigOverrides } from "./dev-panel.js";
 import { useLocalAnalysis } from "./local-analysis.js";
 import {
   currentQuestionAtom,
@@ -47,25 +47,7 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
   const initializeQuiz = useAtomSet(initializeQuizAtom);
 
   // Dev panel state management using React useState
-  const [devConfig, setDevConfig] = React.useState({
-    primaryWeight: 1.5,
-    nonPrimaryWeight: 0.2,
-    distanceGamma: 1.6,
-    beta: 1.4,
-    scoreMultiplier: 1.0,
-    disableSecondaryPoints: false,
-    overrideBaseWeights: false,
-    overrideCustomWeights: false,
-    overrideDistanceWeight: false,
-    minPercentageThreshold: 0.0,
-    enableQuestionBreakdown: true,
-    maxEndingResults: 10,
-    customPrimaryWeight: 2.0,
-    customNonPrimaryWeight: 0.5,
-    customDistanceGamma: 2.0,
-    customBeta: 1.8,
-    customScoreMultiplier: 1.2,
-  });
+  const [devConfig, setDevConfig] = React.useState<Partial<AnalysisConfigOverrides>>({});
   const [devPanelVisible, setDevPanelVisible] = React.useState(false);
 
   // Add keyboard shortcut to toggle dev panel (Ctrl/Cmd + D)
@@ -244,13 +226,6 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
         {/* Real-time Analysis Preview */}
         <div className="w-80 flex-shrink-0">
           <div className="sticky top-8">
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold">Live Analysis</h3>
-              <p className="text-sm text-muted-foreground">
-                Your artist type as you answer questions
-              </p>
-            </div>
-
             {localAnalysisData.length > 0 ? (
               <ArtistTypeGraphCard
                 data={localAnalysisData}
@@ -258,26 +233,11 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
                 barChartHeight="h-48"
                 barChartMaxItems={10}
                 className="w-full"
+                {...(devConfig.beta !== undefined && { beta: devConfig.beta })}
               />
             ) : (
-              <div className="flex items-center justify-center h-64 border-2 border-dashed border-muted-foreground/25 rounded-lg">
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground">Start answering questions</p>
-                  <p className="text-xs text-muted-foreground mt-1">to see your analysis</p>
-                </div>
-              </div>
+              <div className="flex items-center justify-center h-64 border-2 border-dashed border-muted-foreground/25 rounded-lg"></div>
             )}
-
-            <div className="mt-4 text-xs text-muted-foreground">
-              <p>• Analysis updates in real-time</p>
-              <p>• Final results may vary slightly</p>
-              <p>• Based on {Object.keys(quizSession.responses).length} answered questions</p>
-              {defaultEngine !== undefined && (
-                <p>
-                  • Using engine: {defaultEngine.name} v{defaultEngine.version}
-                </p>
-              )}
-            </div>
           </div>
         </div>
       </div>

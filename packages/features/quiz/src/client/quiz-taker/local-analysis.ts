@@ -1,11 +1,5 @@
-import type {
-  AnalysisConfig,
-  AnalysisEngine,
-  Question,
-  Quiz,
-  QuizResponse,
-} from "@features/quiz/domain";
-import { AnalysisService } from "@features/quiz/domain";
+import type { AnalysisEngine, Question, Quiz, QuizResponse } from "@features/quiz/domain";
+import { AnalysisConfig, AnalysisService } from "@features/quiz/domain";
 import { Config, DateTime, Effect } from "effect";
 import { endingNameToArtistType } from "../components/artist-type/artist-data-utils.js";
 import type { ArtistData } from "../components/artist-type/artist-type-graph-card.js";
@@ -166,25 +160,41 @@ const transformLocalAnalysisToArtistData = (
 };
 
 // Create a custom config from dev overrides
-const createCustomConfig = (overrides: AnalysisConfigOverrides): typeof AnalysisConfig => {
+const createCustomConfig = (overrides: Partial<AnalysisConfigOverrides>): typeof AnalysisConfig => {
+  // Only override the values that are provided, otherwise use the default config
   return Config.all({
-    primaryWeight: Config.succeed(overrides.primaryWeight),
-    nonPrimaryWeight: Config.succeed(overrides.nonPrimaryWeight),
-    distanceGamma: Config.succeed(overrides.distanceGamma),
-    beta: Config.succeed(overrides.beta),
-    scoreMultiplier: Config.succeed(overrides.scoreMultiplier),
-    disableSecondaryPoints: Config.succeed(overrides.disableSecondaryPoints),
-    overrideBaseWeights: Config.succeed(overrides.overrideBaseWeights),
-    overrideCustomWeights: Config.succeed(overrides.overrideCustomWeights),
-    overrideDistanceWeight: Config.succeed(overrides.overrideDistanceWeight),
-    minPercentageThreshold: Config.succeed(overrides.minPercentageThreshold),
-    enableQuestionBreakdown: Config.succeed(overrides.enableQuestionBreakdown),
-    maxEndingResults: Config.succeed(overrides.maxEndingResults),
-    customPrimaryWeight: Config.succeed(overrides.customPrimaryWeight),
-    customNonPrimaryWeight: Config.succeed(overrides.customNonPrimaryWeight),
-    customDistanceGamma: Config.succeed(overrides.customDistanceGamma),
-    customBeta: Config.succeed(overrides.customBeta),
-    customScoreMultiplier: Config.succeed(overrides.customScoreMultiplier),
+    primaryPointValue:
+      overrides.primaryPointValue !== undefined
+        ? Config.succeed(overrides.primaryPointValue)
+        : AnalysisConfig.pipe(Config.map((c) => c.primaryPointValue)),
+    secondaryPointValue:
+      overrides.secondaryPointValue !== undefined
+        ? Config.succeed(overrides.secondaryPointValue)
+        : AnalysisConfig.pipe(Config.map((c) => c.secondaryPointValue)),
+    primaryPointWeight:
+      overrides.primaryPointWeight !== undefined
+        ? Config.succeed(overrides.primaryPointWeight)
+        : AnalysisConfig.pipe(Config.map((c) => c.primaryPointWeight)),
+    secondaryPointWeight:
+      overrides.secondaryPointWeight !== undefined
+        ? Config.succeed(overrides.secondaryPointWeight)
+        : AnalysisConfig.pipe(Config.map((c) => c.secondaryPointWeight)),
+    primaryDistanceFalloff:
+      overrides.primaryDistanceFalloff !== undefined
+        ? Config.succeed(overrides.primaryDistanceFalloff)
+        : AnalysisConfig.pipe(Config.map((c) => c.primaryDistanceFalloff)),
+    secondaryDistanceFalloff:
+      overrides.secondaryDistanceFalloff !== undefined
+        ? Config.succeed(overrides.secondaryDistanceFalloff)
+        : AnalysisConfig.pipe(Config.map((c) => c.secondaryDistanceFalloff)),
+    beta:
+      overrides.beta !== undefined
+        ? Config.succeed(overrides.beta)
+        : AnalysisConfig.pipe(Config.map((c) => c.beta)),
+    disableSecondaryPoints: Config.succeed(false),
+    minPercentageThreshold: Config.succeed(0.0),
+    enableQuestionBreakdown: Config.succeed(true),
+    maxEndingResults: Config.succeed(10),
   });
 };
 
@@ -193,7 +203,7 @@ export const performLocalAnalysis = (
   responses: Record<string, number>,
   quiz: Quiz,
   engine?: AnalysisEngine,
-  configOverrides?: AnalysisConfigOverrides,
+  configOverrides?: Partial<AnalysisConfigOverrides>,
 ): Array<ArtistData> => {
   // Convert responses to the format expected by the analysis service
   const serviceResponses = convertResponsesToServiceFormat(responses, [...(quiz.questions ?? [])]);
@@ -246,7 +256,7 @@ export const useLocalAnalysis = (
   responses: Record<string, number>,
   quiz: Quiz | undefined,
   engine?: AnalysisEngine,
-  configOverrides?: AnalysisConfigOverrides,
+  configOverrides?: Partial<AnalysisConfigOverrides>,
 ): Array<ArtistData> => {
   if (quiz === undefined) return [];
 

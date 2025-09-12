@@ -22,6 +22,7 @@ export type ArtistTypeGraphCardProps = {
   contentClassName?: string;
   transparent?: boolean;
   fill?: boolean;
+  beta?: number;
 };
 
 // =============================================================================
@@ -31,6 +32,7 @@ export type ArtistTypeGraphCardProps = {
 export const ArtistTypeGraphCard = ({
   barChartHeight = "h-56",
   barChartMaxItems = 10,
+  beta,
   className = "",
   contentClassName = "",
   data,
@@ -49,12 +51,16 @@ export const ArtistTypeGraphCard = ({
       <Card.Content
         className={cn(fill ? "h-full w-full p-0" : "aspect-square p-4", contentClassName)}
       >
-        <ArtistRadarChart {...(data !== undefined && { data })} />
+        <ArtistRadarChart
+          {...(data !== undefined && { data })}
+          {...(beta !== undefined && { beta })}
+        />
       </Card.Content>
       {showBarChart && (
         <Card.Footer className="flex-col">
           <ArtistBarChart
             {...(data !== undefined && { data })}
+            {...(beta !== undefined && { beta })}
             height={barChartHeight}
             maxItems={barChartMaxItems}
             className="text-left"

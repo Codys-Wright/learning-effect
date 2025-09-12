@@ -22,6 +22,7 @@ export type ArtistRadarChartProps = {
   size?: "sm" | "md" | "lg";
   showIcons?: boolean;
   iconSize?: number;
+  beta?: number;
 };
 
 type IconPosition = {
@@ -320,6 +321,7 @@ const LoadingState: React.FC<LoadingStateProps> = ({ className }) => (
 const EmptyTick = () => <g />;
 
 export const ArtistRadarChart: React.FC<ArtistRadarChartProps> = ({
+  beta,
   className,
   data,
   iconSize,
@@ -330,8 +332,10 @@ export const ArtistRadarChart: React.FC<ArtistRadarChartProps> = ({
 
   // Normalize and memoize the chart data
   const chartData = useNormalizedArtistData(data, {
+    ...(beta !== undefined && { beta }),
     ensureComplete: true,
     normalizeFrom: "auto",
+    preserveBetaEffect: false, // We'll apply beta transformation here instead
   });
 
   // Calculate blended color for the radar fill

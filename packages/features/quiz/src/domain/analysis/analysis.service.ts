@@ -25,24 +25,31 @@ import {
 
 // Runtime configuration for analysis behavior using Effect Config
 export const AnalysisConfig = Config.all({
-  // Scoring configuration overrides
-  primaryWeight: Config.number("ANALYSIS_PRIMARY_WEIGHT").pipe(Config.withDefault(1.5)),
-  nonPrimaryWeight: Config.number("ANALYSIS_NON_PRIMARY_WEIGHT").pipe(Config.withDefault(0.2)),
-  distanceGamma: Config.number("ANALYSIS_DISTANCE_GAMMA").pipe(Config.withDefault(1.6)),
-  beta: Config.number("ANALYSIS_BETA").pipe(Config.withDefault(1.4)),
-  scoreMultiplier: Config.number("ANALYSIS_SCORE_MULTIPLIER").pipe(Config.withDefault(1.0)),
+  // Point values for ideal answers
+  primaryPointValue: Config.number("ANALYSIS_PRIMARY_POINT_VALUE").pipe(Config.withDefault(10.0)),
+  secondaryPointValue: Config.number("ANALYSIS_SECONDARY_POINT_VALUE").pipe(
+    Config.withDefault(5.0),
+  ),
+
+  // Point weight multipliers
+  primaryPointWeight: Config.number("ANALYSIS_PRIMARY_POINT_WEIGHT").pipe(Config.withDefault(1.0)),
+  secondaryPointWeight: Config.number("ANALYSIS_SECONDARY_POINT_WEIGHT").pipe(
+    Config.withDefault(1.0),
+  ),
+
+  // Distance falloff for each type
+  primaryDistanceFalloff: Config.number("ANALYSIS_PRIMARY_DISTANCE_FALLOFF").pipe(
+    Config.withDefault(1),
+  ),
+  secondaryDistanceFalloff: Config.number("ANALYSIS_SECONDARY_DISTANCE_FALLOFF").pipe(
+    Config.withDefault(1),
+  ),
+
+  // Beta for visual separation
+  beta: Config.number("ANALYSIS_BETA").pipe(Config.withDefault(1.0)),
 
   // Analysis behavior flags
   disableSecondaryPoints: Config.boolean("ANALYSIS_DISABLE_SECONDARY_POINTS").pipe(
-    Config.withDefault(false),
-  ),
-  overrideBaseWeights: Config.boolean("ANALYSIS_OVERRIDE_BASE_WEIGHTS").pipe(
-    Config.withDefault(false),
-  ),
-  overrideCustomWeights: Config.boolean("ANALYSIS_OVERRIDE_CUSTOM_WEIGHTS").pipe(
-    Config.withDefault(false),
-  ),
-  overrideDistanceWeight: Config.boolean("ANALYSIS_OVERRIDE_DISTANCE_WEIGHT").pipe(
     Config.withDefault(false),
   ),
 
@@ -54,21 +61,6 @@ export const AnalysisConfig = Config.all({
     Config.withDefault(true),
   ),
   maxEndingResults: Config.number("ANALYSIS_MAX_ENDING_RESULTS").pipe(Config.withDefault(10)),
-
-  // Custom weight overrides (when override flags are enabled)
-  customPrimaryWeight: Config.number("ANALYSIS_CUSTOM_PRIMARY_WEIGHT").pipe(
-    Config.withDefault(2.0),
-  ),
-  customNonPrimaryWeight: Config.number("ANALYSIS_CUSTOM_NON_PRIMARY_WEIGHT").pipe(
-    Config.withDefault(0.5),
-  ),
-  customDistanceGamma: Config.number("ANALYSIS_CUSTOM_DISTANCE_GAMMA").pipe(
-    Config.withDefault(2.0),
-  ),
-  customBeta: Config.number("ANALYSIS_CUSTOM_BETA").pipe(Config.withDefault(1.8)),
-  customScoreMultiplier: Config.number("ANALYSIS_CUSTOM_SCORE_MULTIPLIER").pipe(
-    Config.withDefault(1.2),
-  ),
 });
 
 // Type is automatically inferred from AnalysisConfig - no need for manual type definition
@@ -100,12 +92,12 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
         responses: ReadonlyArray<QuestionResponse>,
         questionIndexById: Record<string, string>,
         ending: EndingDefinition,
-        scoringConfig: ScoringConfig = defaultScoringConfig,
+        _scoringConfig: ScoringConfig = defaultScoringConfig,
         analysisConfig?: typeof AnalysisConfig,
       ) =>
         Effect.gen(function* () {
-          const config = ending.customScoringConfig ?? scoringConfig;
-          const runtimeConfig = analysisConfig ? yield* analysisConfig : yield* AnalysisConfig;
+          const runtimeConfig =
+            analysisConfig !== undefined ? yield* analysisConfig : yield* AnalysisConfig;
           let totalPoints = 0;
           const questionBreakdown: Array<{
             questionId: string;
@@ -133,43 +125,32 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
               continue;
             }
 
-            // Calculate points based on distance from ideal answers (not exact match)
-            let baseWeight = rule.isPrimary ? config.primaryWeight : config.nonPrimaryWeight;
-            let customWeight = rule.weightMultiplier ?? 1.0;
-
-            // Apply runtime configuration overrides
-            if (runtimeConfig.overrideBaseWeights) {
-              baseWeight = rule.isPrimary
-                ? runtimeConfig.customPrimaryWeight
-                : runtimeConfig.customNonPrimaryWeight;
-            }
-
-            if (runtimeConfig.overrideCustomWeights) {
-              customWeight = 1.0; // Override custom weights
-            }
-
             // Find the nearest ideal answer
             const nearest = rule.idealAnswers.reduce((best, ideal) => {
               const distance = Math.abs(ideal - (response.value as number));
               return distance < best ? distance : best;
             }, Number.POSITIVE_INFINITY);
 
-            // Calculate distance weighting (like in throwaway reference)
-            let distanceGamma = rule.distanceGamma ?? config.distanceGamma;
-            if (runtimeConfig.overrideDistanceWeight) {
-              distanceGamma = runtimeConfig.customDistanceGamma;
-            }
+            // Get point value and weight based on question type
+            const pointValue = rule.isPrimary
+              ? runtimeConfig.primaryPointValue
+              : runtimeConfig.secondaryPointValue;
+            const pointWeight = rule.isPrimary
+              ? runtimeConfig.primaryPointWeight
+              : runtimeConfig.secondaryPointWeight;
+            const distanceFalloff = rule.isPrimary
+              ? runtimeConfig.primaryDistanceFalloff
+              : runtimeConfig.secondaryDistanceFalloff;
 
+            // Calculate distance weighting
             const distanceWeight = Math.max(
               0,
-              Math.min(1, 1 - Math.pow(nearest / 10, distanceGamma)),
+              Math.min(1, 1 - Math.pow(nearest / 10, distanceFalloff)),
             );
 
-            // Apply runtime score multiplier
-            const scoreMultiplier = runtimeConfig.overrideBaseWeights
-              ? runtimeConfig.customScoreMultiplier
-              : config.scoreMultiplier;
-            const points = scoreMultiplier * baseWeight * customWeight * distanceWeight;
+            // Calculate final points: pointValue * pointWeight * distanceWeight * customWeight
+            const customWeight = rule.weightMultiplier ?? 1.0;
+            const points = pointValue * pointWeight * distanceWeight * customWeight;
             totalPoints += points;
 
             if (runtimeConfig.enableQuestionBreakdown) {
@@ -179,7 +160,7 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
                 idealAnswers: [...rule.idealAnswers],
                 userAnswer: response.value,
                 distance: nearest,
-                weight: baseWeight * customWeight,
+                weight: pointWeight * customWeight,
               });
             }
           }
@@ -195,7 +176,8 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
         analysisConfig?: typeof AnalysisConfig,
       ) =>
         Effect.gen(function* () {
-          const runtimeConfig = analysisConfig ? yield* analysisConfig : yield* AnalysisConfig;
+          const runtimeConfig =
+            analysisConfig !== undefined ? yield* analysisConfig : yield* AnalysisConfig;
           const rawResults: Array<{
             ending: EndingDefinition;
             points: number;
@@ -226,9 +208,8 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
             });
           }
 
-          // Apply nonlinear amplification to sharpen winners
-          const config = engine.scoringConfig;
-          const beta = runtimeConfig.overrideBaseWeights ? runtimeConfig.customBeta : config.beta;
+          // Apply nonlinear amplification to sharpen winners (for visual purposes only)
+          const beta = runtimeConfig.beta;
           const scaled = rawResults.map((r) => Math.pow(r.points, beta));
           const scaledSum = scaled.reduce((sum, value) => sum + value, 0);
 
