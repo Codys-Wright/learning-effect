@@ -330,6 +330,11 @@ export const ArtistRadarChart: React.FC<ArtistRadarChartProps> = ({
 }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
 
+  // Check if we have real data (not just empty/default data)
+  const hasRealData = React.useMemo(() => {
+    return Array.isArray(data) && data.length > 0 && data.some((item) => item.points > 0);
+  }, [data]);
+
   // Normalize and memoize the chart data
   const chartData = useNormalizedArtistData(data, {
     ...(beta !== undefined && { beta }),
@@ -337,6 +342,17 @@ export const ArtistRadarChart: React.FC<ArtistRadarChartProps> = ({
     normalizeFrom: "auto",
     preserveBetaEffect: false, // We'll apply beta transformation here instead
   });
+
+  // If no real data, ensure all percentages are 0
+  const finalChartData = React.useMemo(() => {
+    if (!hasRealData) {
+      return chartData.map((item) => ({
+        ...item,
+        percentage: 0,
+      }));
+    }
+    return chartData;
+  }, [chartData, hasRealData]);
 
   // Calculate blended color for the radar fill
   const blendedColor = useBlendedColor({ data: chartData });
@@ -368,7 +384,7 @@ export const ArtistRadarChart: React.FC<ArtistRadarChartProps> = ({
   );
 
   // Loading state
-  if (!Array.isArray(chartData) || chartData.length === 0) {
+  if (!Array.isArray(finalChartData) || finalChartData.length === 0) {
     return <LoadingState className={className ?? ""} />;
   }
 
@@ -377,7 +393,7 @@ export const ArtistRadarChart: React.FC<ArtistRadarChartProps> = ({
       <div className="relative h-full w-full">
         <ChartContainer config={chartConfig} className="h-full w-full">
           <RadarChart
-            data={chartData}
+            data={finalChartData}
             margin={{
               top: 20,
               right: 20,
