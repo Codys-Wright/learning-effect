@@ -91,7 +91,8 @@ const enrichedChartDataAtom = Atom.family(
         .map(
           (item): EnrichedChartData => ({
             ...item,
-            displayPercentage: item.percentage === 0 ? 0.5 : item.percentage,
+            displayPercentage:
+              item.percentage === 0 ? 0.5 : Math.min(100, Math.max(0, item.percentage)),
             subtitle: null,
             elevatorPitch: null,
           }),
@@ -110,8 +111,8 @@ const chartSizingAtom = Atom.family((itemCount: number) =>
       // Many items - use smallest text and minimal spacing
       return {
         fontSize: "text-xs",
-        tickMargin: 4,
-        yAxisWidth: 85,
+        tickMargin: 2,
+        yAxisWidth: 40,
         maxLabelLength: 10,
         chartFontSize: 11,
         topMargin: 2,
@@ -123,8 +124,8 @@ const chartSizingAtom = Atom.family((itemCount: number) =>
       // Medium number of items
       return {
         fontSize: "text-xs",
-        tickMargin: 6,
-        yAxisWidth: 90,
+        tickMargin: 2,
+        yAxisWidth: 45,
         maxLabelLength: 12,
         chartFontSize: 12,
         topMargin: 3,
@@ -136,8 +137,8 @@ const chartSizingAtom = Atom.family((itemCount: number) =>
       // Few items - can use larger text
       return {
         fontSize: "text-sm",
-        tickMargin: 8,
-        yAxisWidth: 95,
+        tickMargin: 2,
+        yAxisWidth: 50,
         maxLabelLength: 14,
         chartFontSize: 13,
         topMargin: 5,
@@ -148,8 +149,8 @@ const chartSizingAtom = Atom.family((itemCount: number) =>
     // Very few items - largest text
     return {
       fontSize: "text-sm",
-      tickMargin: 10,
-      yAxisWidth: 100,
+      tickMargin: 2,
+      yAxisWidth: 55,
       maxLabelLength: 16,
       chartFontSize: 14,
       topMargin: 8,
@@ -166,13 +167,13 @@ const dynamicSizingAtom = Atom.family(
       const rows = data.length;
       const containerHeightPx = Math.max(MIN_HEIGHT_PX, rows * PER_ROW_PX);
 
-      // Compute dynamic y-axis width for labels
+      // Compute dynamic y-axis width for labels - use minimal space
       const longestLabelChars = data.reduce((len, item) => {
         const label = item.artistType === "" ? "" : item.artistType;
         return Math.max(len, label.length);
       }, 0);
 
-      const dynamicYAxisWidth = Math.max(sizing.yAxisWidth, longestLabelChars * 10 + 44);
+      const dynamicYAxisWidth = Math.max(40, longestLabelChars * 6 + 12);
 
       return {
         containerHeightPx,
@@ -237,27 +238,29 @@ export const ArtistBarChart = React.memo<ArtistBarChartProps>(
 
     return (
       <div className={cn(sizing.fontSize, className)} style={{ height: `${containerHeightPx}px` }}>
-        <ChartContainer config={chartConfig} className="h-full w-full">
+        <ChartContainer config={chartConfig} className="h-full w-full max-w-full overflow-hidden">
           <BarChart
             data={enrichedData}
             layout="vertical"
             margin={{
-              left: 24,
-              right: 20,
+              left: 2,
+              right: 8,
               top: sizing.topMargin,
               bottom: sizing.bottomMargin,
             }}
+            maxBarSize={200}
           >
             <XAxis type="number" dataKey="displayPercentage" hide domain={[0, 100]} />
             <YAxis
               dataKey="artistType"
               type="category"
               tickLine={false}
-              tickMargin={sizing.tickMargin + 2}
+              tickMargin={2}
               axisLine={false}
               tickFormatter={(value: string) => value}
               width={dynamicYAxisWidth}
               fontSize={sizing.chartFontSize}
+              orientation="left"
             />
             <ChartTooltip
               cursor={false}

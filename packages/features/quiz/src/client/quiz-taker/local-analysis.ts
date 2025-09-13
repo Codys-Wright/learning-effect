@@ -30,10 +30,21 @@ const convertResponsesToServiceFormat = (
   }));
 };
 
-// Create a mock analysis engine for local analysis
-const createMockAnalysisEngine = (): AnalysisEngine => {
-  // This should match the actual analysis engine structure
-  // For now, we'll create a simplified version
+// Create a mock analysis engine for local analysis using actual quiz questions
+const createMockAnalysisEngine = (quiz: Quiz): AnalysisEngine => {
+  const questions = quiz.questions ?? [];
+
+  // Create question rules based on the actual quiz questions
+  // For now, we'll create a simple mapping based on question order
+  const createQuestionRules = (
+    questionIndex: number,
+    idealAnswers: Array<number>,
+    isPrimary: boolean,
+  ) => {
+    const question = questions[questionIndex];
+    return question !== undefined ? { questionId: question.id, idealAnswers, isPrimary } : null;
+  };
+
   return {
     id: "local-analysis-engine" as AnalysisEngine["id"],
     slug: "local-analysis" as AnalysisEngine["slug"],
@@ -52,81 +63,81 @@ const createMockAnalysisEngine = (): AnalysisEngine => {
         endingId: "the-visionary-artist",
         name: "The Visionary Artist",
         questionRules: [
-          { questionId: "1", idealAnswers: [9, 10], isPrimary: true },
-          { questionId: "2", idealAnswers: [8, 9, 10], isPrimary: false },
-        ],
+          createQuestionRules(0, [9, 10], true),
+          createQuestionRules(1, [8, 9, 10], false),
+        ].filter((rule): rule is NonNullable<typeof rule> => rule !== null),
       },
       {
         endingId: "the-consummate-artist",
         name: "The Consummate Artist",
         questionRules: [
-          { questionId: "1", idealAnswers: [7, 8, 9], isPrimary: true },
-          { questionId: "2", idealAnswers: [6, 7, 8], isPrimary: false },
-        ],
+          createQuestionRules(0, [7, 8, 9], true),
+          createQuestionRules(1, [6, 7, 8], false),
+        ].filter((rule): rule is NonNullable<typeof rule> => rule !== null),
       },
       {
         endingId: "the-analyzer-artist",
         name: "The Analyzer Artist",
         questionRules: [
-          { questionId: "1", idealAnswers: [6, 7, 8], isPrimary: true },
-          { questionId: "2", idealAnswers: [5, 6, 7], isPrimary: false },
-        ],
+          createQuestionRules(0, [6, 7, 8], true),
+          createQuestionRules(1, [5, 6, 7], false),
+        ].filter((rule): rule is NonNullable<typeof rule> => rule !== null),
       },
       {
         endingId: "the-tech-artist",
         name: "The Tech Artist",
         questionRules: [
-          { questionId: "1", idealAnswers: [7, 8, 9], isPrimary: true },
-          { questionId: "2", idealAnswers: [6, 7, 8], isPrimary: false },
-        ],
+          createQuestionRules(0, [7, 8, 9], true),
+          createQuestionRules(1, [6, 7, 8], false),
+        ].filter((rule): rule is NonNullable<typeof rule> => rule !== null),
       },
       {
         endingId: "the-entertainer-artist",
         name: "The Entertainer Artist",
         questionRules: [
-          { questionId: "1", idealAnswers: [8, 9, 10], isPrimary: true },
-          { questionId: "2", idealAnswers: [7, 8, 9], isPrimary: false },
-        ],
+          createQuestionRules(0, [8, 9, 10], true),
+          createQuestionRules(1, [7, 8, 9], false),
+        ].filter((rule): rule is NonNullable<typeof rule> => rule !== null),
       },
       {
         endingId: "the-maverick-artist",
         name: "The Maverick Artist",
         questionRules: [
-          { questionId: "1", idealAnswers: [9, 10], isPrimary: true },
-          { questionId: "2", idealAnswers: [8, 9, 10], isPrimary: false },
-        ],
+          createQuestionRules(0, [9, 10], true),
+          createQuestionRules(1, [8, 9, 10], false),
+        ].filter((rule): rule is NonNullable<typeof rule> => rule !== null),
       },
       {
         endingId: "the-dreamer-artist",
         name: "The Dreamer Artist",
         questionRules: [
-          { questionId: "1", idealAnswers: [7, 8, 9], isPrimary: true },
-          { questionId: "2", idealAnswers: [6, 7, 8], isPrimary: false },
-        ],
+          createQuestionRules(0, [7, 8, 9], true),
+          createQuestionRules(1, [6, 7, 8], false),
+        ].filter((rule): rule is NonNullable<typeof rule> => rule !== null),
       },
       {
         endingId: "the-feeler-artist",
         name: "The Feeler Artist",
         questionRules: [
-          { questionId: "1", idealAnswers: [6, 7, 8], isPrimary: true },
-          { questionId: "2", idealAnswers: [5, 6, 7], isPrimary: false },
-        ],
+          createQuestionRules(0, [6, 7, 8], true),
+          createQuestionRules(1, [5, 6, 7], false),
+        ].filter((rule): rule is NonNullable<typeof rule> => rule !== null),
       },
       {
         endingId: "the-tortured-artist",
         name: "The Tortured Artist",
         questionRules: [
-          { questionId: "1", idealAnswers: [8, 9, 10], isPrimary: true },
-          { questionId: "2", idealAnswers: [7, 8, 9], isPrimary: false },
-        ],
+          createQuestionRules(0, [8, 9, 10], true),
+          createQuestionRules(1, [7, 8, 9], false),
+        ].filter((rule): rule is NonNullable<typeof rule> => rule !== null),
       },
       {
         endingId: "the-solo-artist",
         name: "The Solo Artist",
         questionRules: [
-          { questionId: "1", idealAnswers: [5, 6, 7], isPrimary: true },
-          { questionId: "2", idealAnswers: [4, 5, 6], isPrimary: false },
-        ],
+          createQuestionRules(0, [5, 6, 7], true),
+          createQuestionRules(1, [4, 5, 6], false),
+        ].filter((rule): rule is NonNullable<typeof rule> => rule !== null),
       },
     ],
     isActive: true,
@@ -191,6 +202,14 @@ const createCustomConfig = (overrides: Partial<AnalysisConfigOverrides>): typeof
       overrides.beta !== undefined
         ? Config.succeed(overrides.beta)
         : AnalysisConfig.pipe(Config.map((c) => c.beta)),
+    primaryMinPoints:
+      overrides.primaryMinPoints !== undefined
+        ? Config.succeed(overrides.primaryMinPoints)
+        : AnalysisConfig.pipe(Config.map((c) => Number(c.primaryMinPoints))),
+    secondaryMinPoints:
+      overrides.secondaryMinPoints !== undefined
+        ? Config.succeed(overrides.secondaryMinPoints)
+        : AnalysisConfig.pipe(Config.map((c) => Number(c.secondaryMinPoints))),
     disableSecondaryPoints: Config.succeed(false),
     minPercentageThreshold: Config.succeed(0.0),
     enableQuestionBreakdown: Config.succeed(true),
@@ -208,6 +227,8 @@ export const performLocalAnalysis = (
   // Convert responses to the format expected by the analysis service
   const serviceResponses = convertResponsesToServiceFormat(responses, [...(quiz.questions ?? [])]);
 
+  // Debug logging removed for production
+
   // Create a mock response object
   const now = Effect.runSync(DateTime.now);
   const mockResponse: QuizResponse = {
@@ -221,7 +242,9 @@ export const performLocalAnalysis = (
   };
 
   // Use provided engine or fall back to mock engine
-  const analysisEngine = engine ?? createMockAnalysisEngine();
+  const analysisEngine = engine ?? createMockAnalysisEngine(quiz);
+
+  // Debug logging removed for production
 
   // Create custom config if overrides are provided
   const customConfig =
@@ -238,6 +261,8 @@ export const performLocalAnalysis = (
       AnalysisService.Default,
     ),
   );
+
+  // Debug logging removed for production
 
   // Transform the analysis result to ArtistData format
   const artistData = transformLocalAnalysisToArtistData(

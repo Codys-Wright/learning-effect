@@ -27,9 +27,13 @@ type QuestionCardProps = {
   canGoBack?: boolean;
   canGoNext?: boolean;
   isLastQuestion?: boolean;
+
+  // Auto-advance setting
+  autoAdvanceEnabled?: boolean;
 };
 
 export const QuestionCard: React.FC<QuestionCardProps> = ({
+  autoAdvanceEnabled = true,
   canGoBack = true,
   canGoNext = true,
   content,
@@ -50,8 +54,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
 
   const handleRatingClick = (rating: number) => {
     onRatingSelect(rating);
-    // Auto-advance after a short delay (like the original)
-    if (canGoNext && !isLastQuestion) {
+    // Auto-advance after a short delay (only if enabled)
+    if (autoAdvanceEnabled && canGoNext && !isLastQuestion) {
       setTimeout(() => onNext?.(), 120);
     }
   };

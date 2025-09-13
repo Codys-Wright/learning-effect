@@ -39,10 +39,10 @@ export const AnalysisConfig = Config.all({
 
   // Distance falloff for each type
   primaryDistanceFalloff: Config.number("ANALYSIS_PRIMARY_DISTANCE_FALLOFF").pipe(
-    Config.withDefault(1),
+    Config.withDefault(0.1),
   ),
   secondaryDistanceFalloff: Config.number("ANALYSIS_SECONDARY_DISTANCE_FALLOFF").pipe(
-    Config.withDefault(1),
+    Config.withDefault(0.8),
   ),
 
   // Beta for visual separation
@@ -52,6 +52,10 @@ export const AnalysisConfig = Config.all({
   disableSecondaryPoints: Config.boolean("ANALYSIS_DISABLE_SECONDARY_POINTS").pipe(
     Config.withDefault(false),
   ),
+
+  // Minimum point values (floor for scoring)
+  primaryMinPoints: Config.number("ANALYSIS_PRIMARY_MIN_POINTS").pipe(Config.withDefault(0.0)),
+  secondaryMinPoints: Config.number("ANALYSIS_SECONDARY_MIN_POINTS").pipe(Config.withDefault(0.0)),
 
   // Additional analysis parameters
   minPercentageThreshold: Config.number("ANALYSIS_MIN_PERCENTAGE_THRESHOLD").pipe(
@@ -142,15 +146,28 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
               ? runtimeConfig.primaryDistanceFalloff
               : runtimeConfig.secondaryDistanceFalloff;
 
-            // Calculate distance weighting
-            const distanceWeight = Math.max(
-              0,
-              Math.min(1, 1 - Math.pow(nearest / 10, distanceFalloff)),
-            );
-
-            // Calculate final points: pointValue * pointWeight * distanceWeight * customWeight
+            // Calculate points based on distance falloff
+            // distanceFalloff represents the percentage of base points (pointValue * pointWeight) taken away per step
+            // e.g., 0.5 = 50% of base points subtracted per step, can go negative
+            // Special case: when distanceFalloff is 0, only exact matches get points
             const customWeight = rule.weightMultiplier ?? 1.0;
-            const points = pointValue * pointWeight * distanceWeight * customWeight;
+            const basePoints = pointValue * pointWeight * customWeight;
+
+            let points: number;
+            if (distanceFalloff === 0) {
+              // Only exact matches get points
+              points = nearest === 0 ? basePoints : 0;
+            } else {
+              // Subtract percentage of base points for each step away
+              const pointsLostPerStep = basePoints * distanceFalloff;
+              points = basePoints - nearest * pointsLostPerStep;
+            }
+
+            // Apply minimum point floor
+            const minPoints = rule.isPrimary
+              ? runtimeConfig.primaryMinPoints
+              : runtimeConfig.secondaryMinPoints;
+            points = Math.max(points, minPoints);
             totalPoints += points;
 
             if (runtimeConfig.enableQuestionBreakdown) {

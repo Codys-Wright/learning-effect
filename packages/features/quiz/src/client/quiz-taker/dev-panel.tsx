@@ -1,4 +1,6 @@
+import { AnalysisConfig } from "@features/quiz/domain";
 import { Badge, Button, Card, Input, Label } from "@ui/shadcn";
+import { ConfigProvider, Effect } from "effect";
 import { RotateCcwIcon, SettingsIcon } from "lucide-react";
 import React from "react";
 
@@ -18,6 +20,35 @@ export type AnalysisConfigOverrides = {
 
   // Beta for visual separation
   beta: number;
+
+  // Minimum point values (floor for scoring)
+  primaryMinPoints: number;
+  secondaryMinPoints: number;
+};
+
+// Get actual defaults from the analysis service
+const getServiceDefaults = (): Partial<AnalysisConfigOverrides> => {
+  try {
+    // Use ConfigProvider.fromMap with empty map to get defaults
+    const mockConfigProvider = ConfigProvider.fromMap(new Map());
+    const resolvedConfig = Effect.runSync(
+      Effect.withConfigProvider(AnalysisConfig, mockConfigProvider),
+    );
+    return {
+      primaryPointValue: Number(resolvedConfig.primaryPointValue),
+      secondaryPointValue: Number(resolvedConfig.secondaryPointValue),
+      primaryPointWeight: Number(resolvedConfig.primaryPointWeight),
+      secondaryPointWeight: Number(resolvedConfig.secondaryPointWeight),
+      primaryDistanceFalloff: Number(resolvedConfig.primaryDistanceFalloff),
+      secondaryDistanceFalloff: Number(resolvedConfig.secondaryDistanceFalloff),
+      beta: Number(resolvedConfig.beta),
+      primaryMinPoints: Number(resolvedConfig.primaryMinPoints),
+      secondaryMinPoints: Number(resolvedConfig.secondaryMinPoints),
+    };
+  } catch {
+    // If we can't get service defaults, return empty object
+    return {};
+  }
 };
 
 // Empty default config - let Effect config handle defaults
@@ -63,6 +94,8 @@ export const DevPanel: React.FC<DevPanelProps> = ({
   onConfigChange,
   onToggleVisibility,
 }) => {
+  const serviceDefaults = getServiceDefaults();
+
   const updateConfig = (updates: Partial<AnalysisConfigOverrides>) => {
     const newConfig = {
       ...config,
@@ -141,7 +174,7 @@ export const DevPanel: React.FC<DevPanelProps> = ({
               updateConfig({ primaryPointValue: value });
             }}
             step={1}
-            value={config.primaryPointValue ?? 10.0}
+            value={config.primaryPointValue ?? serviceDefaults.primaryPointValue ?? 0}
           />
           <NumberInput
             description="Base points awarded for perfect secondary ideal answers"
@@ -152,7 +185,7 @@ export const DevPanel: React.FC<DevPanelProps> = ({
               updateConfig({ secondaryPointValue: value });
             }}
             step={1}
-            value={config.secondaryPointValue ?? 5.0}
+            value={config.secondaryPointValue ?? serviceDefaults.secondaryPointValue ?? 0}
           />
           <NumberInput
             description="Multiplier for primary questions (most important questions)"
@@ -163,7 +196,7 @@ export const DevPanel: React.FC<DevPanelProps> = ({
               updateConfig({ primaryPointWeight: value });
             }}
             step={0.1}
-            value={config.primaryPointWeight ?? 1.0}
+            value={config.primaryPointWeight ?? serviceDefaults.primaryPointWeight ?? 0}
           />
           <NumberInput
             description="Multiplier for secondary questions (supporting questions)"
@@ -174,29 +207,34 @@ export const DevPanel: React.FC<DevPanelProps> = ({
               updateConfig({ secondaryPointWeight: value });
             }}
             step={0.1}
-            value={config.secondaryPointWeight ?? 1.0}
+            value={config.secondaryPointWeight ?? serviceDefaults.secondaryPointWeight ?? 0}
           />
           <NumberInput
-            description="How distance from ideal answers affects primary question scoring"
-            label="Primary Distance Falloff"
-            max={5}
-            min={0.1}
+            description="Percentage of points lost per step away from ideal answers. 0% = only exact matches get points, 100% = lose all points after 1 step"
+            label="Primary Distance Falloff (%)"
+            max={100}
+            min={0}
             onChange={(value) => {
-              updateConfig({ primaryDistanceFalloff: value });
+              updateConfig({ primaryDistanceFalloff: value / 100 });
             }}
-            step={0.1}
-            value={config.primaryDistanceFalloff ?? 1.0}
+            step={5}
+            value={Math.round(
+              (config.primaryDistanceFalloff ?? serviceDefaults.primaryDistanceFalloff ?? 0) * 100,
+            )}
           />
           <NumberInput
-            description="How distance from ideal answers affects secondary question scoring"
-            label="Secondary Distance Falloff"
-            max={5}
-            min={0.1}
+            description="Percentage of points lost per step away from ideal answers. 0% = only exact matches get points, 100% = lose all points after 1 step"
+            label="Secondary Distance Falloff (%)"
+            max={100}
+            min={0}
             onChange={(value) => {
-              updateConfig({ secondaryDistanceFalloff: value });
+              updateConfig({ secondaryDistanceFalloff: value / 100 });
             }}
-            step={0.1}
-            value={config.secondaryDistanceFalloff ?? 1.0}
+            step={5}
+            value={Math.round(
+              (config.secondaryDistanceFalloff ?? serviceDefaults.secondaryDistanceFalloff ?? 0) *
+                100,
+            )}
           />
           <NumberInput
             description="Higher number separates the high percentages from the lower ones on the graph visually to reveal a more distinct winner"
@@ -207,7 +245,29 @@ export const DevPanel: React.FC<DevPanelProps> = ({
               updateConfig({ beta: value });
             }}
             step={0.1}
-            value={config.beta ?? 1.0}
+            value={config.beta ?? serviceDefaults.beta ?? 0}
+          />
+          <NumberInput
+            description="Minimum points that can be awarded for primary questions (floor value, can be negative)"
+            label="Primary Min Points"
+            max={10}
+            min={-10}
+            onChange={(value) => {
+              updateConfig({ primaryMinPoints: value });
+            }}
+            step={0.5}
+            value={config.primaryMinPoints ?? serviceDefaults.primaryMinPoints ?? 0}
+          />
+          <NumberInput
+            description="Minimum points that can be awarded for secondary questions (floor value, can be negative)"
+            label="Secondary Min Points"
+            max={10}
+            min={-10}
+            onChange={(value) => {
+              updateConfig({ secondaryMinPoints: value });
+            }}
+            step={0.5}
+            value={config.secondaryMinPoints ?? serviceDefaults.secondaryMinPoints ?? 0}
           />
         </div>
       </Card.Content>

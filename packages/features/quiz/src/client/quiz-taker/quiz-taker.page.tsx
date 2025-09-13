@@ -1,6 +1,7 @@
 import { Result, useAtomRefresh, useAtomSet, useAtomValue } from "@effect-atom/atom-react";
 import { type Question, type Quiz } from "@features/quiz/domain";
-import { Button } from "@ui/shadcn";
+import { Button, DropdownMenu } from "@ui/shadcn";
+import { SettingsIcon } from "lucide-react";
 import React from "react";
 import { ArtistTypeGraphCard } from "../components/artist-type/artist-type-graph-card.js";
 import { QuestionCard } from "../components/question-card.js";
@@ -49,6 +50,9 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
   // Dev panel state management using React useState
   const [devConfig, setDevConfig] = React.useState<Partial<AnalysisConfigOverrides>>({});
   const [devPanelVisible, setDevPanelVisible] = React.useState(false);
+
+  // Auto-advance setting state
+  const [autoAdvanceEnabled, setAutoAdvanceEnabled] = React.useState(true);
 
   // Add keyboard shortcut to toggle dev panel (Ctrl/Cmd + D)
   React.useEffect(() => {
@@ -174,28 +178,70 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
     return "bg-gradient-to-b from-blue-500/20 to-blue-500/5";
   };
 
+  // Settings Menu Component
+  const SettingsMenu: React.FC = () => (
+    <DropdownMenu>
+      <DropdownMenu.Trigger asChild>
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+          <SettingsIcon className="h-4 w-4" />
+          <span className="sr-only">Open settings</span>
+        </Button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Content align="end" className="w-56">
+        <DropdownMenu.Label>Quiz Settings</DropdownMenu.Label>
+        <DropdownMenu.Separator />
+        <DropdownMenu.CheckboxItem
+          checked={autoAdvanceEnabled}
+          onCheckedChange={setAutoAdvanceEnabled}
+        >
+          Auto-advance to next question
+        </DropdownMenu.CheckboxItem>
+        <DropdownMenu.Separator />
+        <DropdownMenu.Item
+          onClick={() => {
+            setDevPanelVisible(!devPanelVisible);
+          }}
+        >
+          Toggle Dev Panel
+        </DropdownMenu.Item>
+      </DropdownMenu.Content>
+    </DropdownMenu>
+  );
+
   return (
     <PageContainer>
-      <div className="flex gap-8 w-full max-w-7xl mx-auto">
-        {/* Main Quiz Content */}
-        <div className="flex-1 flex flex-col gap-8">
-          {/* Progress indicator */}
-          <div className="flex items-center justify-center gap-4">
-            <span className="text-lg font-medium text-muted-foreground">
-              Question {currentQuestionIndex + 1} of {questions.length}
-            </span>
-          </div>
+      <div className="w-full max-w-7xl mx-auto grid grid-cols-3 gap-8">
+        {/* Left 2/3 - Progress and Question Card */}
+        <div className="col-span-2 flex flex-col gap-8">
+          {/* Top Section with Progress and Settings */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              {/* Progress indicator */}
+              <div className="flex items-center gap-4">
+                <span className="text-lg font-medium text-muted-foreground">
+                  Question {currentQuestionIndex + 1} of {questions.length}
+                </span>
+              </div>
 
-          <div className="flex items-center justify-center">
-            <QuizProgressBar
-              questions={questions.map((q) => ({ id: q.id as unknown as number, category: q.id }))}
-              currentIndex={currentQuestionIndex}
-              onQuestionClick={(index) => {
-                navigateToQuestion(index);
-              }}
-              categoryColorClass={randomCategoryColorClass}
-              colorOn={true}
-            />
+              {/* Settings Menu */}
+              <SettingsMenu />
+            </div>
+
+            {/* Progress Bar */}
+            <div className="flex items-center justify-center">
+              <QuizProgressBar
+                questions={questions.map((q) => ({
+                  id: q.id as unknown as number,
+                  category: q.id,
+                }))}
+                currentIndex={currentQuestionIndex}
+                onQuestionClick={(index) => {
+                  navigateToQuestion(index);
+                }}
+                categoryColorClass={randomCategoryColorClass}
+                colorOn={true}
+              />
+            </div>
           </div>
 
           {/* Question Card */}
@@ -219,12 +265,13 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
               canGoBack={navigationState.canGoBack}
               canGoNext={navigationState.canGoNext}
               isLastQuestion={navigationState.isLast}
+              autoAdvanceEnabled={autoAdvanceEnabled}
             />
           </div>
         </div>
 
-        {/* Real-time Analysis Preview */}
-        <div className="w-80 flex-shrink-0">
+        {/* Right 1/3 - Real-time Analysis Preview */}
+        <div className="col-span-1">
           <div className="sticky top-8">
             {localAnalysisData.length > 0 ? (
               <ArtistTypeGraphCard

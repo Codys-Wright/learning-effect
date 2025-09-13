@@ -57,14 +57,16 @@ export const ArtistTypeGraphCard = ({
         />
       </Card.Content>
       {showBarChart && (
-        <Card.Footer className="flex-col">
-          <ArtistBarChart
-            {...(data !== undefined && { data })}
-            {...(beta !== undefined && { beta })}
-            height={barChartHeight}
-            maxItems={barChartMaxItems}
-            className="text-left"
-          />
+        <Card.Footer className="flex-col overflow-hidden p-2">
+          <div className="w-full max-w-full overflow-hidden">
+            <ArtistBarChart
+              {...(data !== undefined && { data })}
+              {...(beta !== undefined && { beta })}
+              height={barChartHeight}
+              maxItems={barChartMaxItems}
+              className="text-left w-full max-w-full"
+            />
+          </div>
         </Card.Footer>
       )}
     </Card>
