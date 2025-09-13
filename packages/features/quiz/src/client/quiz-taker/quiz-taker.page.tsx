@@ -1,6 +1,6 @@
 import { Result, useAtomRefresh, useAtomSet, useAtomValue } from "@effect-atom/atom-react";
 import { type Question, type Quiz } from "@features/quiz/domain";
-import { Button, DropdownMenu } from "@ui/shadcn";
+import { Button, Card, DropdownMenu } from "@ui/shadcn";
 import { SettingsIcon } from "lucide-react";
 import React from "react";
 import { ArtistTypeGraphCard } from "../components/artist-type/artist-type-graph-card.js";
@@ -237,36 +237,32 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
       <div className="w-full max-w-7xl mx-auto grid grid-cols-3 gap-8">
         {/* Left 2/3 - Progress and Question Card */}
         <div className="col-span-2 flex flex-col gap-8">
-          {/* Top Section with Progress and Settings */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              {/* Progress indicator */}
-              <div className="flex items-center gap-4">
-                <span className="text-lg font-medium text-muted-foreground">
-                  Question {currentQuestionIndex + 1} of {questions.length}
+          {/* Progress Bar Card */}
+          <Card className="p-4">
+            <div className="flex items-center justify-between gap-4">
+              {/* Question number and progress bar */}
+              <div className="flex items-center gap-4 flex-1">
+                <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                  {currentQuestionIndex + 1} of {questions.length}
                 </span>
+                <QuizProgressBar
+                  questions={questions.map((q) => ({
+                    id: q.id as unknown as number,
+                    category: q.id,
+                  }))}
+                  currentIndex={currentQuestionIndex}
+                  onQuestionClick={(index) => {
+                    navigateToQuestion(index);
+                  }}
+                  categoryColorClass={randomCategoryColorClass}
+                  colorOn={true}
+                />
               </div>
 
               {/* Settings Menu */}
               <SettingsMenu />
             </div>
-
-            {/* Progress Bar */}
-            <div className="flex items-center justify-center">
-              <QuizProgressBar
-                questions={questions.map((q) => ({
-                  id: q.id as unknown as number,
-                  category: q.id,
-                }))}
-                currentIndex={currentQuestionIndex}
-                onQuestionClick={(index) => {
-                  navigateToQuestion(index);
-                }}
-                categoryColorClass={randomCategoryColorClass}
-                colorOn={true}
-              />
-            </div>
-          </div>
+          </Card>
 
           {/* Question Card */}
           <div className="flex items-center justify-center min-h-[70vh]">
@@ -297,19 +293,26 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
         </div>
 
         {/* Right 1/3 - Real-time Analysis Preview */}
-        <div className="col-span-1">
-          <div className="sticky top-8">
+        <div className="col-span-1 flex items-center justify-center">
+          <div className="sticky top-4 w-full">
             {localAnalysisData.length > 0 ? (
-              <ArtistTypeGraphCard
-                data={localAnalysisData}
-                showBarChart={true}
-                barChartHeight="h-48"
-                barChartMaxItems={10}
-                className="w-full"
-                {...(devConfig.beta !== undefined && { beta: devConfig.beta })}
-              />
+              <div className="relative w-full h-full min-w-96 rounded-[32px] border border-neutral-200/50 bg-neutral-100 pt-4 px-2 pb-2 backdrop-blur-lg md:pt-6 md:px-4 md:pb-4 dark:border-neutral-700 dark:bg-neutral-800/50 overflow-visible">
+                <ArtistTypeGraphCard
+                  data={localAnalysisData}
+                  showBarChart={true}
+                  barChartHeight="h-48"
+                  barChartMaxItems={10}
+                  className="h-full w-full"
+                  contentClassName="h-full w-full"
+                  transparent
+                  fill
+                  {...(devConfig.beta !== undefined && { beta: devConfig.beta })}
+                />
+              </div>
             ) : (
-              <div className="flex items-center justify-center h-64 border-2 border-dashed border-muted-foreground/25 rounded-lg"></div>
+              <div className="relative w-full h-full min-w-96 rounded-[32px] border border-neutral-200/50 bg-neutral-100 pt-4 px-2 pb-2 backdrop-blur-lg md:pt-6 md:px-4 md:pb-4 dark:border-neutral-700 dark:bg-neutral-800/50 overflow-visible">
+                <div className="flex items-center justify-center h-64 border-2 border-dashed border-muted-foreground/25 rounded-lg"></div>
+              </div>
             )}
           </div>
         </div>

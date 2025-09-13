@@ -389,7 +389,11 @@ export const ArtistRadarChart: React.FC<ArtistRadarChartProps> = ({
   }
 
   return (
-    <div ref={containerRef} className={cn("relative aspect-square h-full w-full", className)}>
+    <div
+      ref={containerRef}
+      className={cn("relative h-full w-full", className)}
+      style={{ aspectRatio: "1 / 1.1" }}
+    >
       <div className="relative h-full w-full">
         <ChartContainer config={chartConfig} className="h-full w-full">
           <RadarChart
