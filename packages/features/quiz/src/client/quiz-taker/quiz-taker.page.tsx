@@ -95,6 +95,30 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
     devConfig,
   );
 
+  // Get ideal answers for the current question
+  const getIdealAnswersForQuestion = React.useCallback(
+    (questionId: string) => {
+      if (defaultEngine === undefined) return [];
+
+      return defaultEngine.endings.flatMap((ending) =>
+        ending.questionRules
+          .filter((rule) => rule.questionId === questionId)
+          .map((rule) => ({
+            endingId: ending.endingId,
+            endingName: ending.name,
+            idealAnswers: [...rule.idealAnswers], // Convert readonly array to mutable array
+            isPrimary: rule.isPrimary,
+          })),
+      );
+    },
+    [defaultEngine],
+  );
+
+  const currentQuestionIdealAnswers = React.useMemo(() => {
+    if (currentQuestion === undefined) return [];
+    return getIdealAnswersForQuestion(currentQuestion.id);
+  }, [currentQuestion, getIdealAnswersForQuestion]);
+
   // Find the specific quiz by slug
   const targetQuiz = quizzes.find((quiz) => quiz.slug === "my-artist-type-quiz");
 
@@ -258,6 +282,8 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
               min={currentQuestion.data.type === "rating" ? currentQuestion.data.minRating : 1}
               max={currentQuestion.data.type === "rating" ? currentQuestion.data.maxRating : 10}
               currentValue={savedResponse}
+              idealAnswers={currentQuestionIdealAnswers}
+              showIdealAnswers={devConfig.idealAnswerOverlay ?? true}
               onRatingSelect={handleRatingSelect}
               onBack={handleBack}
               onNext={handleNext}

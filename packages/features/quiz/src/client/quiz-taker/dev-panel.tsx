@@ -24,6 +24,9 @@ export type AnalysisConfigOverrides = {
   // Minimum point values (floor for scoring)
   primaryMinPoints: number;
   secondaryMinPoints: number;
+
+  // UI toggles
+  idealAnswerOverlay: boolean;
 };
 
 // Get actual defaults from the analysis service
@@ -269,6 +272,30 @@ export const DevPanel: React.FC<DevPanelProps> = ({
             step={0.5}
             value={config.secondaryMinPoints ?? serviceDefaults.secondaryMinPoints ?? 0}
           />
+
+          {/* UI Toggles Section */}
+          <div className="border-t pt-4">
+            <h4 className="text-sm font-medium mb-3">UI Controls</h4>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">Ideal Answer Overlay</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Show ideal answer dots and bars on question cards
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant={(config.idealAnswerOverlay ?? true) ? "default" : "outline"}
+                  onClick={() => {
+                    updateConfig({ idealAnswerOverlay: !(config.idealAnswerOverlay ?? true) });
+                  }}
+                >
+                  {(config.idealAnswerOverlay ?? true) ? "ON" : "OFF"}
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </Card.Content>
     </Card>
