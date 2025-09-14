@@ -11,6 +11,7 @@
 import { createServerRootRoute } from '@tanstack/react-start/server'
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SidebarTestRouteImport } from './routes/sidebar-test'
 import { Route as ResponsesRouteImport } from './routes/responses'
 import { Route as RadarTestRouteImport } from './routes/radar-test'
 import { Route as QuizTakerRouteImport } from './routes/quiz-taker'
@@ -20,11 +21,20 @@ import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as ExampleRouteImport } from './routes/example'
 import { Route as EnginesRouteImport } from './routes/engines'
 import { Route as AnalysisRouteImport } from './routes/analysis'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminResponsesRouteImport } from './routes/admin/responses'
+import { Route as AdminResponsesResponseIdRouteImport } from './routes/admin/responses/$responseId'
+import { Route as AdminResponsesResponseIdAnalysisRouteImport } from './routes/admin/responses/$responseId/analysis'
 import { ServerRoute as ApiSplatServerRouteImport } from './routes/api/$'
 
 const rootServerRouteImport = createServerRootRoute()
 
+const SidebarTestRoute = SidebarTestRouteImport.update({
+  id: '/sidebar-test',
+  path: '/sidebar-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResponsesRoute = ResponsesRouteImport.update({
   id: '/responses',
   path: '/responses',
@@ -70,11 +80,33 @@ const AnalysisRoute = AnalysisRouteImport.update({
   path: '/analysis',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminResponsesRoute = AdminResponsesRouteImport.update({
+  id: '/responses',
+  path: '/responses',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminResponsesResponseIdRoute =
+  AdminResponsesResponseIdRouteImport.update({
+    id: '/$responseId',
+    path: '/$responseId',
+    getParentRoute: () => AdminResponsesRoute,
+  } as any)
+const AdminResponsesResponseIdAnalysisRoute =
+  AdminResponsesResponseIdAnalysisRouteImport.update({
+    id: '/analysis',
+    path: '/analysis',
+    getParentRoute: () => AdminResponsesResponseIdRoute,
+  } as any)
 const ApiSplatServerRoute = ApiSplatServerRouteImport.update({
   id: '/api/$',
   path: '/api/$',
@@ -83,6 +115,7 @@ const ApiSplatServerRoute = ApiSplatServerRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/analysis': typeof AnalysisRoute
   '/engines': typeof EnginesRoute
   '/example': typeof ExampleRoute
@@ -92,9 +125,14 @@ export interface FileRoutesByFullPath {
   '/quiz-taker': typeof QuizTakerRoute
   '/radar-test': typeof RadarTestRoute
   '/responses': typeof ResponsesRoute
+  '/sidebar-test': typeof SidebarTestRoute
+  '/admin/responses': typeof AdminResponsesRouteWithChildren
+  '/admin/responses/$responseId': typeof AdminResponsesResponseIdRouteWithChildren
+  '/admin/responses/$responseId/analysis': typeof AdminResponsesResponseIdAnalysisRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/analysis': typeof AnalysisRoute
   '/engines': typeof EnginesRoute
   '/example': typeof ExampleRoute
@@ -104,10 +142,15 @@ export interface FileRoutesByTo {
   '/quiz-taker': typeof QuizTakerRoute
   '/radar-test': typeof RadarTestRoute
   '/responses': typeof ResponsesRoute
+  '/sidebar-test': typeof SidebarTestRoute
+  '/admin/responses': typeof AdminResponsesRouteWithChildren
+  '/admin/responses/$responseId': typeof AdminResponsesResponseIdRouteWithChildren
+  '/admin/responses/$responseId/analysis': typeof AdminResponsesResponseIdAnalysisRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/analysis': typeof AnalysisRoute
   '/engines': typeof EnginesRoute
   '/example': typeof ExampleRoute
@@ -117,11 +160,16 @@ export interface FileRoutesById {
   '/quiz-taker': typeof QuizTakerRoute
   '/radar-test': typeof RadarTestRoute
   '/responses': typeof ResponsesRoute
+  '/sidebar-test': typeof SidebarTestRoute
+  '/admin/responses': typeof AdminResponsesRouteWithChildren
+  '/admin/responses/$responseId': typeof AdminResponsesResponseIdRouteWithChildren
+  '/admin/responses/$responseId/analysis': typeof AdminResponsesResponseIdAnalysisRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/analysis'
     | '/engines'
     | '/example'
@@ -131,9 +179,14 @@ export interface FileRouteTypes {
     | '/quiz-taker'
     | '/radar-test'
     | '/responses'
+    | '/sidebar-test'
+    | '/admin/responses'
+    | '/admin/responses/$responseId'
+    | '/admin/responses/$responseId/analysis'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/analysis'
     | '/engines'
     | '/example'
@@ -143,9 +196,14 @@ export interface FileRouteTypes {
     | '/quiz-taker'
     | '/radar-test'
     | '/responses'
+    | '/sidebar-test'
+    | '/admin/responses'
+    | '/admin/responses/$responseId'
+    | '/admin/responses/$responseId/analysis'
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/analysis'
     | '/engines'
     | '/example'
@@ -155,10 +213,15 @@ export interface FileRouteTypes {
     | '/quiz-taker'
     | '/radar-test'
     | '/responses'
+    | '/sidebar-test'
+    | '/admin/responses'
+    | '/admin/responses/$responseId'
+    | '/admin/responses/$responseId/analysis'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AnalysisRoute: typeof AnalysisRoute
   EnginesRoute: typeof EnginesRoute
   ExampleRoute: typeof ExampleRoute
@@ -168,6 +231,7 @@ export interface RootRouteChildren {
   QuizTakerRoute: typeof QuizTakerRoute
   RadarTestRoute: typeof RadarTestRoute
   ResponsesRoute: typeof ResponsesRoute
+  SidebarTestRoute: typeof SidebarTestRoute
 }
 export interface FileServerRoutesByFullPath {
   '/api/$': typeof ApiSplatServerRoute
@@ -193,6 +257,13 @@ export interface RootServerRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sidebar-test': {
+      id: '/sidebar-test'
+      path: '/sidebar-test'
+      fullPath: '/sidebar-test'
+      preLoaderRoute: typeof SidebarTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/responses': {
       id: '/responses'
       path: '/responses'
@@ -256,12 +327,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AnalysisRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/responses': {
+      id: '/admin/responses'
+      path: '/responses'
+      fullPath: '/admin/responses'
+      preLoaderRoute: typeof AdminResponsesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/responses/$responseId': {
+      id: '/admin/responses/$responseId'
+      path: '/$responseId'
+      fullPath: '/admin/responses/$responseId'
+      preLoaderRoute: typeof AdminResponsesResponseIdRouteImport
+      parentRoute: typeof AdminResponsesRoute
+    }
+    '/admin/responses/$responseId/analysis': {
+      id: '/admin/responses/$responseId/analysis'
+      path: '/analysis'
+      fullPath: '/admin/responses/$responseId/analysis'
+      preLoaderRoute: typeof AdminResponsesResponseIdAnalysisRouteImport
+      parentRoute: typeof AdminResponsesResponseIdRoute
     }
   }
 }
@@ -277,8 +376,46 @@ declare module '@tanstack/react-start/server' {
   }
 }
 
+interface AdminResponsesResponseIdRouteChildren {
+  AdminResponsesResponseIdAnalysisRoute: typeof AdminResponsesResponseIdAnalysisRoute
+}
+
+const AdminResponsesResponseIdRouteChildren: AdminResponsesResponseIdRouteChildren =
+  {
+    AdminResponsesResponseIdAnalysisRoute:
+      AdminResponsesResponseIdAnalysisRoute,
+  }
+
+const AdminResponsesResponseIdRouteWithChildren =
+  AdminResponsesResponseIdRoute._addFileChildren(
+    AdminResponsesResponseIdRouteChildren,
+  )
+
+interface AdminResponsesRouteChildren {
+  AdminResponsesResponseIdRoute: typeof AdminResponsesResponseIdRouteWithChildren
+}
+
+const AdminResponsesRouteChildren: AdminResponsesRouteChildren = {
+  AdminResponsesResponseIdRoute: AdminResponsesResponseIdRouteWithChildren,
+}
+
+const AdminResponsesRouteWithChildren = AdminResponsesRoute._addFileChildren(
+  AdminResponsesRouteChildren,
+)
+
+interface AdminRouteChildren {
+  AdminResponsesRoute: typeof AdminResponsesRouteWithChildren
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminResponsesRoute: AdminResponsesRouteWithChildren,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
   AnalysisRoute: AnalysisRoute,
   EnginesRoute: EnginesRoute,
   ExampleRoute: ExampleRoute,
@@ -288,6 +425,7 @@ const rootRouteChildren: RootRouteChildren = {
   QuizTakerRoute: QuizTakerRoute,
   RadarTestRoute: RadarTestRoute,
   ResponsesRoute: ResponsesRoute,
+  SidebarTestRoute: SidebarTestRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

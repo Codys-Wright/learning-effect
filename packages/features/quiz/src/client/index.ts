@@ -1,3 +1,4 @@
+export * from "./admin/index.js";
 export * from "./analysis/index.js";
 export * from "./components/artist-type/index.js";
 export * from "./components/quiz-progress-bar.js";

@@ -1,7 +1,7 @@
 import { ThemeProvider, useTheme } from "@/components/providers/theme-provider";
 import { KaServices } from "@core/client";
 import { RegistryProvider } from "@effect-atom/atom-react";
-import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
+import { HeadContent, Outlet, Scripts, createRootRoute, useLocation } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Toaster } from "@ui/shadcn";
 import { NavbarHome } from "../features/landing/navbar";
@@ -9,14 +9,27 @@ import appCss from "../styles/app.css?url";
 
 const RootComponent = () => {
   const { theme } = useTheme();
+  const location = useLocation();
+
+  // Check if we're on an admin or sidebar test route
+  const isAdminRoute =
+    location.pathname.startsWith("/admin") ||
+    location.pathname.startsWith("/sidebar-test") ||
+    location.pathname.startsWith("/sidebar-minimal-test") ||
+    location.pathname.startsWith("/sidebar-simple-test");
+
   return (
     <RootDocument>
       <RegistryProvider>
         <ThemeProvider>
           <Toaster theme={theme} />
-          <NavbarHome>
+          {isAdminRoute ? (
             <Outlet />
-          </NavbarHome>
+          ) : (
+            <NavbarHome>
+              <Outlet />
+            </NavbarHome>
+          )}
         </ThemeProvider>
         <KaServices />
       </RegistryProvider>

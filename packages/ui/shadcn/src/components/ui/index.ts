@@ -17,6 +17,7 @@ export * from "./scroll-area.js";
 export * from "./select.js";
 export * from "./separator.js";
 export * from "./sheet.js";
+export * from "./sidebar/index.js";
 export * from "./skeleton.js";
 export * from "./table.js";
 export * from "./tabs.js";
