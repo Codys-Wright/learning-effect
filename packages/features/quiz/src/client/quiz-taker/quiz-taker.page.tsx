@@ -196,10 +196,57 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
     );
   };
 
-  // Get random color class using the service
-  const randomCategoryColorClass = (_category?: string, _colorOn?: boolean): string => {
-    // For now, return a simple color class - we can enhance this later
-    return "bg-gradient-to-b from-blue-500/20 to-blue-500/5";
+  // Get color class using CSS variables for artist types based on question order
+  const artistTypeColorClass = (
+    _category?: string,
+    colorOn?: boolean,
+    questionIndex?: number,
+  ): string => {
+    if (colorOn !== true) return "bg-white dark:bg-black";
+
+    // Map question index to artist type (0-based index)
+    const artistTypes = [
+      "visionary",
+      "consummate",
+      "analyzer",
+      "tech",
+      "entertainer",
+      "maverick",
+      "dreamer",
+      "feeler",
+      "tortured",
+      "solo",
+    ];
+
+    // Use question index to determine artist type, cycling through if there are more than 10 questions
+    const artistTypeIndex = (questionIndex ?? 0) % artistTypes.length;
+    const artistType = artistTypes[artistTypeIndex];
+
+    // Use CSS variables for artist type colors with subtle background tinting
+    switch (artistType) {
+      case "visionary":
+        return "bg-[var(--artist-visionary)]/5";
+      case "consummate":
+        return "bg-[var(--artist-consummate)]/5";
+      case "analyzer":
+        return "bg-[var(--artist-analyzer)]/5";
+      case "tech":
+        return "bg-[var(--artist-tech)]/5";
+      case "entertainer":
+        return "bg-[var(--artist-entertainer)]/5";
+      case "maverick":
+        return "bg-[var(--artist-maverick)]/5";
+      case "dreamer":
+        return "bg-[var(--artist-dreamer)]/5";
+      case "feeler":
+        return "bg-[var(--artist-feeler)]/5";
+      case "tortured":
+        return "bg-[var(--artist-tortured)]/5";
+      case "solo":
+        return "bg-[var(--artist-solo)]/5";
+      default:
+        return "bg-white dark:bg-black";
+    }
   };
 
   // Settings Menu Component
@@ -242,7 +289,7 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
             <div className="flex items-center justify-between gap-4">
               {/* Question number and progress bar */}
               <div className="flex items-center gap-4 flex-1">
-                <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                <span className="text-sm font-medium text-muted-foreground whitespace-nowrap w-16 text-right">
                   {currentQuestionIndex + 1} of {questions.length}
                 </span>
                 <QuizProgressBar
@@ -254,8 +301,8 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
                   onQuestionClick={(index) => {
                     navigateToQuestion(index);
                   }}
-                  categoryColorClass={randomCategoryColorClass}
-                  colorOn={true}
+                  categoryColorClass={artistTypeColorClass}
+                  colorOn={devConfig.progressBarColors ?? true}
                 />
               </div>
 

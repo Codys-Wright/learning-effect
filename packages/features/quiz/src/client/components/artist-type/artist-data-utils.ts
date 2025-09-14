@@ -64,6 +64,11 @@ export const artistColors = {
  */
 export const cssVarToHex = (cssVar: string, fallback = "#6366f1"): string => {
   try {
+    // Return fallback during SSR
+    if (typeof window === "undefined" || typeof document === "undefined") {
+      return fallback;
+    }
+
     // If it's already a hex color, return it
     if (cssVar.startsWith("#")) {
       return cssVar;

@@ -29,7 +29,7 @@ type QuizProgressBarProps = {
   onQuestionClick: (index: number) => void;
 
   // Configuration
-  categoryColorClass?: (category?: string, colorOn?: boolean) => string;
+  categoryColorClass?: (category?: string, colorOn?: boolean, questionIndex?: number) => string;
   colorOn?: boolean;
 };
 
@@ -41,38 +41,71 @@ export const QuizProgressBar: React.FC<QuizProgressBarProps> = ({
   questions,
 }) => {
   // Default category color class function (for artist types)
-  const defaultCategoryColorClass = (category?: string, colorOnParam?: boolean): string => {
+  const defaultCategoryColorClass = (
+    _category?: string,
+    colorOnParam?: boolean,
+    questionIndex?: number,
+  ): string => {
     const isColorOn = colorOnParam ?? colorOn;
-    if (!isColorOn) return "bg-muted";
-    const key = (category ?? "").toLowerCase();
-    if (key.includes("visionary")) return "bg-gradient-to-b from-violet-500/20 to-violet-500/5";
-    if (key.includes("consummate")) return "bg-gradient-to-b from-indigo-500/20 to-indigo-500/5";
-    if (key.includes("analyzer")) return "bg-gradient-to-b from-rose-500/20 to-rose-500/5";
-    if (key.includes("tech")) return "bg-gradient-to-b from-cyan-500/20 to-cyan-500/5";
-    if (key.includes("entertainer")) return "bg-gradient-to-b from-orange-500/20 to-orange-500/5";
-    if (key.includes("maverick")) return "bg-gradient-to-b from-fuchsia-500/20 to-fuchsia-500/5";
-    if (key.includes("dreamer")) return "bg-gradient-to-b from-sky-500/20 to-sky-500/5";
-    if (key.includes("feeler")) return "bg-gradient-to-b from-pink-500/20 to-pink-500/5";
-    if (key.includes("tortured")) return "bg-gradient-to-b from-red-500/20 to-red-500/5";
-    if (key.includes("solo")) return "bg-gradient-to-b from-stone-500/20 to-stone-500/5";
-    return "bg-muted";
+    if (!isColorOn) return "bg-white dark:bg-black";
+
+    // Map question index to artist type (0-based index)
+    const artistTypes = [
+      "visionary",
+      "consummate",
+      "analyzer",
+      "tech",
+      "entertainer",
+      "maverick",
+      "dreamer",
+      "feeler",
+      "tortured",
+      "solo",
+    ];
+
+    // Use question index to determine artist type, cycling through if there are more than 10 questions
+    const artistTypeIndex = (questionIndex ?? 0) % artistTypes.length;
+    const artistType = artistTypes[artistTypeIndex];
+
+    // Use CSS variables for artist type colors with subtle background tinting
+    switch (artistType) {
+      case "visionary":
+        return "bg-[var(--artist-visionary)]/5";
+      case "consummate":
+        return "bg-[var(--artist-consummate)]/5";
+      case "analyzer":
+        return "bg-[var(--artist-analyzer)]/5";
+      case "tech":
+        return "bg-[var(--artist-tech)]/5";
+      case "entertainer":
+        return "bg-[var(--artist-entertainer)]/5";
+      case "maverick":
+        return "bg-[var(--artist-maverick)]/5";
+      case "dreamer":
+        return "bg-[var(--artist-dreamer)]/5";
+      case "feeler":
+        return "bg-[var(--artist-feeler)]/5";
+      case "tortured":
+        return "bg-[var(--artist-tortured)]/5";
+      case "solo":
+        return "bg-[var(--artist-solo)]/5";
+      default:
+        return "bg-white dark:bg-black";
+    }
   };
 
   // Use provided function or default
   const categoryColorClass = providedCategoryColorClass ?? defaultCategoryColorClass;
 
-  const lightenClassForIndex = (idx: number): string => {
-    const step = idx % 5;
-    // more subtle steps
-    return (
-      ["opacity-90", "opacity-85", "opacity-80", "opacity-75", "opacity-70"][step] ?? "opacity-85"
-    );
+  // Remove opacity effects for clean, solid appearance
+  const lightenClassForIndex = (_idx: number): string => {
+    return "";
   };
 
   return (
     <div className="relative w-full">
       <div
-        className="grid gap-0 overflow-hidden rounded-md border"
+        className="grid gap-0 overflow-hidden rounded-sm"
         style={{
           gridTemplateColumns: `repeat(${questions.length}, minmax(0, 1fr))`,
         }}
@@ -87,20 +120,33 @@ export const QuizProgressBar: React.FC<QuizProgressBarProps> = ({
             }}
             className={cn(
               "h-3 focus:outline-none transition-[filter,background-color,opacity] duration-150 hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring/40",
-              categoryColorClass(q.category, colorOn),
+              categoryColorClass(q.category, colorOn, idx),
               lightenClassForIndex(idx),
             )}
           />
         ))}
       </div>
-      {/* Progress overlay */}
+      {/* Progress overlay - snaps to sections */}
       <div className="pointer-events-none absolute inset-0">
         <div
-          className="h-full bg-primary/10 rounded-md transition-all duration-200"
+          className="grid gap-0 h-full"
           style={{
-            width: `${((currentIndex + 1) / questions.length) * 100}%`,
+            gridTemplateColumns: `repeat(${questions.length}, minmax(0, 1fr))`,
           }}
-        />
+        >
+          {questions.map((_, idx) => (
+            <div
+              key={idx}
+              className={cn(
+                "h-full transition-all duration-200",
+                idx <= currentIndex ? "bg-foreground/20" : "bg-transparent",
+                // Round left side of first section, round right side of last completed section
+                idx === 0 && currentIndex >= 0 ? "rounded-l-sm" : "",
+                idx === currentIndex && currentIndex >= 0 ? "rounded-r-sm" : "",
+              )}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

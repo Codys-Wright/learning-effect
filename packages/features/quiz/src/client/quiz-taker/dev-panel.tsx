@@ -1,5 +1,6 @@
 import { AnalysisConfig } from "@features/quiz/domain";
-import { Badge, Button, Card, Input, Label } from "@ui/shadcn";
+import { Badge, Button, Card, Input, Label, Tabs } from "@ui/shadcn";
+import { formatHex, parse } from "culori";
 import { ConfigProvider, Effect } from "effect";
 import { RotateCcwIcon, SettingsIcon } from "lucide-react";
 import React from "react";
@@ -27,6 +28,21 @@ export type AnalysisConfigOverrides = {
 
   // UI toggles
   idealAnswerOverlay: boolean;
+  progressBarColors: boolean;
+
+  // Artist type colors (CSS variable values)
+  artistColors?: {
+    visionary?: string;
+    consummate?: string;
+    analyzer?: string;
+    tech?: string;
+    entertainer?: string;
+    maverick?: string;
+    dreamer?: string;
+    feeler?: string;
+    tortured?: string;
+    solo?: string;
+  };
 };
 
 // Get actual defaults from the analysis service
@@ -56,6 +72,64 @@ const getServiceDefaults = (): Partial<AnalysisConfigOverrides> => {
 
 // Empty default config - let Effect config handle defaults
 const defaultConfig: Partial<AnalysisConfigOverrides> = {};
+
+// Artist type names in order
+const artistTypes = [
+  "visionary",
+  "consummate",
+  "analyzer",
+  "tech",
+  "entertainer",
+  "maverick",
+  "dreamer",
+  "feeler",
+  "tortured",
+  "solo",
+] as const;
+
+// Function to convert oklch to hex
+const oklchToHex = (oklchValue: string): string => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+    const color = parse(oklchValue);
+    if (color !== null) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+      const hex = formatHex(color);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return hex ?? "#000000";
+    }
+    return "#000000";
+  } catch {
+    return "#000000";
+  }
+};
+
+// Function to get current CSS variable values
+const getCurrentArtistColors = () => {
+  // Return empty object during SSR
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return {};
+  }
+
+  const colors: Record<string, string> = {};
+  artistTypes.forEach((type) => {
+    const cssVar = `--artist-${type}`;
+    const value = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
+    if (value !== "") {
+      colors[type] = oklchToHex(value);
+    }
+  });
+  return colors;
+};
+
+// Function to update CSS variable values
+const updateArtistColor = (type: string, value: string) => {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return;
+  }
+  const cssVar = `--artist-${type}`;
+  document.documentElement.style.setProperty(cssVar, value);
+};
 
 type DevPanelProps = {
   config: Partial<AnalysisConfigOverrides>;
@@ -91,6 +165,68 @@ const NumberInput: React.FC<{
   </div>
 );
 
+const ArtistColorPicker: React.FC<{
+  onChange: (value: string) => void;
+  type: string;
+  value: string;
+}> = ({ onChange, type, value }) => {
+  const displayName = type.charAt(0).toUpperCase() + type.slice(1);
+  const [localValue, setLocalValue] = React.useState(value);
+  const debounceRef = React.useRef<NodeJS.Timeout | undefined>(undefined);
+
+  // Update local value when prop value changes
+  React.useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
+  // Debounced onChange function
+  const debouncedOnChange = React.useCallback(
+    (newValue: string) => {
+      setLocalValue(newValue);
+
+      // Clear existing timeout
+      if (debounceRef.current !== undefined) {
+        clearTimeout(debounceRef.current);
+      }
+
+      // Set new timeout
+      debounceRef.current = setTimeout(() => {
+        onChange(newValue);
+      }, 300); // 300ms delay
+    },
+    [onChange],
+  );
+
+  // Cleanup timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (debounceRef.current !== undefined) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <div className="space-y-2">
+      <Label className="text-sm font-medium">{displayName}</Label>
+      <div className="flex items-center gap-2">
+        <div
+          className="w-8 h-8 rounded border border-border"
+          style={{ backgroundColor: localValue }}
+        />
+        <input
+          type="color"
+          value={localValue}
+          onChange={(e) => {
+            debouncedOnChange(e.target.value);
+          }}
+          className="w-12 h-8 rounded border border-border cursor-pointer"
+        />
+      </div>
+    </div>
+  );
+};
+
 export const DevPanel: React.FC<DevPanelProps> = ({
   config,
   isVisible,
@@ -98,6 +234,12 @@ export const DevPanel: React.FC<DevPanelProps> = ({
   onToggleVisibility,
 }) => {
   const serviceDefaults = getServiceDefaults();
+  const [currentColors, setCurrentColors] = React.useState<Record<string, string>>({});
+
+  // Load colors after hydration
+  React.useEffect(() => {
+    setCurrentColors(getCurrentArtistColors());
+  }, []);
 
   const updateConfig = (updates: Partial<AnalysisConfigOverrides>) => {
     const newConfig = {
@@ -109,6 +251,17 @@ export const DevPanel: React.FC<DevPanelProps> = ({
 
   const resetToDefaults = () => {
     onConfigChange(defaultConfig);
+  };
+
+  const handleColorChange = (type: string, value: string) => {
+    updateArtistColor(type, value);
+    setCurrentColors((prev) => ({ ...prev, [type]: value }));
+    updateConfig({
+      artistColors: {
+        ...config.artistColors,
+        [type]: value,
+      },
+    });
   };
 
   if (!isVisible) {
@@ -166,137 +319,186 @@ export const DevPanel: React.FC<DevPanelProps> = ({
           </Badge>
         </div>
       </Card.Header>
-      <Card.Content className="pt-0 max-h-[60vh] overflow-y-auto">
-        <div className="space-y-4">
-          <NumberInput
-            description="Base points awarded for perfect primary ideal answers"
-            label="Primary Point Value"
-            max={50}
-            min={1}
-            onChange={(value) => {
-              updateConfig({ primaryPointValue: value });
-            }}
-            step={1}
-            value={config.primaryPointValue ?? serviceDefaults.primaryPointValue ?? 0}
-          />
-          <NumberInput
-            description="Base points awarded for perfect secondary ideal answers"
-            label="Secondary Point Value"
-            max={50}
-            min={1}
-            onChange={(value) => {
-              updateConfig({ secondaryPointValue: value });
-            }}
-            step={1}
-            value={config.secondaryPointValue ?? serviceDefaults.secondaryPointValue ?? 0}
-          />
-          <NumberInput
-            description="Multiplier for primary questions (most important questions)"
-            label="Primary Point Weight"
-            max={3}
-            min={0.1}
-            onChange={(value) => {
-              updateConfig({ primaryPointWeight: value });
-            }}
-            step={0.1}
-            value={config.primaryPointWeight ?? serviceDefaults.primaryPointWeight ?? 0}
-          />
-          <NumberInput
-            description="Multiplier for secondary questions (supporting questions)"
-            label="Secondary Point Weight"
-            max={3}
-            min={0.1}
-            onChange={(value) => {
-              updateConfig({ secondaryPointWeight: value });
-            }}
-            step={0.1}
-            value={config.secondaryPointWeight ?? serviceDefaults.secondaryPointWeight ?? 0}
-          />
-          <NumberInput
-            description="Percentage of points lost per step away from ideal answers. 0% = only exact matches get points, 100% = lose all points after 1 step"
-            label="Primary Distance Falloff (%)"
-            max={100}
-            min={0}
-            onChange={(value) => {
-              updateConfig({ primaryDistanceFalloff: value / 100 });
-            }}
-            step={5}
-            value={Math.round(
-              (config.primaryDistanceFalloff ?? serviceDefaults.primaryDistanceFalloff ?? 0) * 100,
-            )}
-          />
-          <NumberInput
-            description="Percentage of points lost per step away from ideal answers. 0% = only exact matches get points, 100% = lose all points after 1 step"
-            label="Secondary Distance Falloff (%)"
-            max={100}
-            min={0}
-            onChange={(value) => {
-              updateConfig({ secondaryDistanceFalloff: value / 100 });
-            }}
-            step={5}
-            value={Math.round(
-              (config.secondaryDistanceFalloff ?? serviceDefaults.secondaryDistanceFalloff ?? 0) *
-                100,
-            )}
-          />
-          <NumberInput
-            description="Higher number separates the high percentages from the lower ones on the graph visually to reveal a more distinct winner"
-            label="Beta"
-            max={5}
-            min={0.1}
-            onChange={(value) => {
-              updateConfig({ beta: value });
-            }}
-            step={0.1}
-            value={config.beta ?? serviceDefaults.beta ?? 0}
-          />
-          <NumberInput
-            description="Minimum points that can be awarded for primary questions (floor value, can be negative)"
-            label="Primary Min Points"
-            max={10}
-            min={-10}
-            onChange={(value) => {
-              updateConfig({ primaryMinPoints: value });
-            }}
-            step={0.5}
-            value={config.primaryMinPoints ?? serviceDefaults.primaryMinPoints ?? 0}
-          />
-          <NumberInput
-            description="Minimum points that can be awarded for secondary questions (floor value, can be negative)"
-            label="Secondary Min Points"
-            max={10}
-            min={-10}
-            onChange={(value) => {
-              updateConfig({ secondaryMinPoints: value });
-            }}
-            step={0.5}
-            value={config.secondaryMinPoints ?? serviceDefaults.secondaryMinPoints ?? 0}
-          />
+      <Card.Content className="pt-0 max-h-[60vh] overflow-hidden">
+        <Tabs defaultValue="analysis" className="h-full">
+          <Tabs.List className="grid w-full grid-cols-2">
+            <Tabs.Trigger value="analysis">Analysis</Tabs.Trigger>
+            <Tabs.Trigger value="ui">UI</Tabs.Trigger>
+          </Tabs.List>
 
-          {/* UI Toggles Section */}
-          <div className="border-t pt-4">
-            <h4 className="text-sm font-medium mb-3">UI Controls</h4>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium">Ideal Answer Overlay</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Show ideal answer dots and bars on question cards
-                  </p>
+          <Tabs.Content value="analysis" className="mt-4 max-h-[50vh] overflow-y-auto">
+            <div className="space-y-4">
+              <NumberInput
+                description="Base points awarded for perfect primary ideal answers"
+                label="Primary Point Value"
+                max={50}
+                min={1}
+                onChange={(value) => {
+                  updateConfig({ primaryPointValue: value });
+                }}
+                step={1}
+                value={config.primaryPointValue ?? serviceDefaults.primaryPointValue ?? 0}
+              />
+              <NumberInput
+                description="Base points awarded for perfect secondary ideal answers"
+                label="Secondary Point Value"
+                max={50}
+                min={1}
+                onChange={(value) => {
+                  updateConfig({ secondaryPointValue: value });
+                }}
+                step={1}
+                value={config.secondaryPointValue ?? serviceDefaults.secondaryPointValue ?? 0}
+              />
+              <NumberInput
+                description="Multiplier for primary questions (most important questions)"
+                label="Primary Point Weight"
+                max={3}
+                min={0.1}
+                onChange={(value) => {
+                  updateConfig({ primaryPointWeight: value });
+                }}
+                step={0.1}
+                value={config.primaryPointWeight ?? serviceDefaults.primaryPointWeight ?? 0}
+              />
+              <NumberInput
+                description="Multiplier for secondary questions (supporting questions)"
+                label="Secondary Point Weight"
+                max={3}
+                min={0.1}
+                onChange={(value) => {
+                  updateConfig({ secondaryPointWeight: value });
+                }}
+                step={0.1}
+                value={config.secondaryPointWeight ?? serviceDefaults.secondaryPointWeight ?? 0}
+              />
+              <NumberInput
+                description="Percentage of points lost per step away from ideal answers. 0% = only exact matches get points, 100% = lose all points after 1 step"
+                label="Primary Distance Falloff (%)"
+                max={100}
+                min={0}
+                onChange={(value) => {
+                  updateConfig({ primaryDistanceFalloff: value / 100 });
+                }}
+                step={5}
+                value={Math.round(
+                  (config.primaryDistanceFalloff ?? serviceDefaults.primaryDistanceFalloff ?? 0) *
+                    100,
+                )}
+              />
+              <NumberInput
+                description="Percentage of points lost per step away from ideal answers. 0% = only exact matches get points, 100% = lose all points after 1 step"
+                label="Secondary Distance Falloff (%)"
+                max={100}
+                min={0}
+                onChange={(value) => {
+                  updateConfig({ secondaryDistanceFalloff: value / 100 });
+                }}
+                step={5}
+                value={Math.round(
+                  (config.secondaryDistanceFalloff ??
+                    serviceDefaults.secondaryDistanceFalloff ??
+                    0) * 100,
+                )}
+              />
+              <NumberInput
+                description="Higher number separates the high percentages from the lower ones on the graph visually to reveal a more distinct winner"
+                label="Beta"
+                max={5}
+                min={0.1}
+                onChange={(value) => {
+                  updateConfig({ beta: value });
+                }}
+                step={0.1}
+                value={config.beta ?? serviceDefaults.beta ?? 0}
+              />
+              <NumberInput
+                description="Minimum points that can be awarded for primary questions (floor value, can be negative)"
+                label="Primary Min Points"
+                max={10}
+                min={-10}
+                onChange={(value) => {
+                  updateConfig({ primaryMinPoints: value });
+                }}
+                step={0.5}
+                value={config.primaryMinPoints ?? serviceDefaults.primaryMinPoints ?? 0}
+              />
+              <NumberInput
+                description="Minimum points that can be awarded for secondary questions (floor value, can be negative)"
+                label="Secondary Min Points"
+                max={10}
+                min={-10}
+                onChange={(value) => {
+                  updateConfig({ secondaryMinPoints: value });
+                }}
+                step={0.5}
+                value={config.secondaryMinPoints ?? serviceDefaults.secondaryMinPoints ?? 0}
+              />
+            </div>
+          </Tabs.Content>
+
+          <Tabs.Content value="ui" className="mt-4 max-h-[50vh] overflow-y-auto">
+            <div className="space-y-4">
+              {/* UI Toggles Section */}
+              <div className="border-b pb-4">
+                <h4 className="text-sm font-medium mb-3">UI Controls</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label className="text-sm font-medium">Ideal Answer Overlay</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Show ideal answer dots and bars on question cards
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={(config.idealAnswerOverlay ?? true) ? "default" : "outline"}
+                      onClick={() => {
+                        updateConfig({ idealAnswerOverlay: !(config.idealAnswerOverlay ?? true) });
+                      }}
+                    >
+                      {(config.idealAnswerOverlay ?? true) ? "ON" : "OFF"}
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label className="text-sm font-medium">Progress Bar Colors</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Color progress bar segments by artist type
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={(config.progressBarColors ?? true) ? "default" : "outline"}
+                      onClick={() => {
+                        updateConfig({ progressBarColors: !(config.progressBarColors ?? true) });
+                      }}
+                    >
+                      {(config.progressBarColors ?? true) ? "ON" : "OFF"}
+                    </Button>
+                  </div>
                 </div>
-                <Button
-                  size="sm"
-                  variant={(config.idealAnswerOverlay ?? true) ? "default" : "outline"}
-                  onClick={() => {
-                    updateConfig({ idealAnswerOverlay: !(config.idealAnswerOverlay ?? true) });
-                  }}
-                >
-                  {(config.idealAnswerOverlay ?? true) ? "ON" : "OFF"}
-                </Button>
+              </div>
+
+              {/* Artist Type Colors Section */}
+              <div>
+                <h4 className="text-sm font-medium mb-3">Artist Type Colors</h4>
+                <div className="space-y-3">
+                  {artistTypes.map((type) => (
+                    <ArtistColorPicker
+                      key={type}
+                      type={type}
+                      value={currentColors[type] ?? "#000000"}
+                      onChange={(value) => {
+                        handleColorChange(type, value);
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          </Tabs.Content>
+        </Tabs>
       </Card.Content>
     </Card>
   );

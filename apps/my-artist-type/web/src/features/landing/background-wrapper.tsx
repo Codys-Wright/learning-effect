@@ -129,11 +129,20 @@ const CollisionMechanism = React.forwardRef<
   }>({ detected: false, coordinates: null });
   const [beamKey, setBeamKey] = React.useState(0);
   const [cycleCollisionDetected, setCycleCollisionDetected] = React.useState(false);
-  const colorChoices = Object.keys(artistColors).map((artistType) => getArtistColorHex(artistType));
+  const [colorChoices, setColorChoices] = React.useState<Array<string>>(["#6366f1"]);
   const pickRandomColor = () => colorChoices[Math.floor(Math.random() * colorChoices.length)];
-  const [currentColorHex, setCurrentColorHex] = React.useState<string>(
-    getArtistColorHex("Visionary"),
-  );
+
+  // Initialize color choices after hydration
+  React.useEffect(() => {
+    const choices = Object.keys(artistColors).map((artistType) => getArtistColorHex(artistType));
+    setColorChoices(choices);
+  }, []);
+  const [currentColorHex, setCurrentColorHex] = React.useState<string>("#6366f1");
+
+  // Initialize color after hydration to avoid SSR mismatch
+  React.useEffect(() => {
+    setCurrentColorHex(getArtistColorHex("Visionary"));
+  }, []);
 
   React.useEffect(() => {
     const checkCollision = () => {
@@ -141,7 +150,7 @@ const CollisionMechanism = React.forwardRef<
       const container = containerRef.current;
       const parent = parentRef.current;
 
-      if (beam && container && parent && !cycleCollisionDetected) {
+      if (beam !== null && container !== null && parent !== null && !cycleCollisionDetected) {
         const beamRect = beam.getBoundingClientRect();
         const containerRect = container.getBoundingClientRect();
         const parentRect = parent.getBoundingClientRect();
@@ -177,13 +186,13 @@ const CollisionMechanism = React.forwardRef<
   }, [cycleCollisionDetected, containerRef]);
 
   React.useEffect(() => {
-    if (collision.detected && collision.coordinates) {
+    if (collision.detected && collision.coordinates !== null) {
       const RESET_MS = 1400; // explosion lifetime, then reset
       const reset = () => {
         setCollision({ detected: false, coordinates: null });
         setCycleCollisionDetected(false);
         const beam = beamRef.current;
-        if (beam) {
+        if (beam !== null) {
           beam.style.opacity = "1";
         }
         setBeamKey((prevKey) => prevKey + 1);
@@ -231,7 +240,7 @@ const CollisionMechanism = React.forwardRef<
         }}
       />
       <AnimatePresence>
-        {collision.detected && collision.coordinates && (
+        {collision.detected && collision.coordinates !== null && (
           <Explosion
             key={`${collision.coordinates.x}-${collision.coordinates.y}`}
             className=""
