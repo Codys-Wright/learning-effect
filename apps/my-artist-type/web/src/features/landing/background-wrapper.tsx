@@ -1,4 +1,4 @@
-import { artistColorsHex } from "@features/quiz/client";
+import { artistColors, getArtistColorHex } from "@features/quiz/client";
 import { cn } from "@ui/shadcn";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useRef } from "react";
@@ -129,9 +129,11 @@ const CollisionMechanism = React.forwardRef<
   }>({ detected: false, coordinates: null });
   const [beamKey, setBeamKey] = React.useState(0);
   const [cycleCollisionDetected, setCycleCollisionDetected] = React.useState(false);
-  const colorChoices = Object.values(artistColorsHex);
+  const colorChoices = Object.keys(artistColors).map((artistType) => getArtistColorHex(artistType));
   const pickRandomColor = () => colorChoices[Math.floor(Math.random() * colorChoices.length)];
-  const [currentColorHex, setCurrentColorHex] = React.useState<string>(artistColorsHex.Visionary);
+  const [currentColorHex, setCurrentColorHex] = React.useState<string>(
+    getArtistColorHex("Visionary"),
+  );
 
   React.useEffect(() => {
     const checkCollision = () => {

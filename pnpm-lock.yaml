@@ -905,6 +905,18 @@ importers:
       "@core/server":
         specifier: workspace:^
         version: link:../../core/server
+      "@dnd-kit/core":
+        specifier: ^6.3.1
+        version: 6.3.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      "@dnd-kit/modifiers":
+        specifier: ^9.0.0
+        version: 9.0.0(@dnd-kit/core@6.3.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react@19.0.0)
+      "@dnd-kit/sortable":
+        specifier: ^10.0.0
+        version: 10.0.0(@dnd-kit/core@6.3.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react@19.0.0)
+      "@dnd-kit/utilities":
+        specifier: ^3.2.2
+        version: 3.2.2(react@19.0.0)
       "@effect-atom/atom-react":
         specifier: 0.1.15
         version: 0.1.15(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)(react@19.0.0)(scheduler@0.25.0)
@@ -971,6 +983,9 @@ importers:
       "@opentelemetry/semantic-conventions":
         specifier: 1.30.0
         version: 1.30.0
+      "@tabler/icons-react":
+        specifier: ^3.34.1
+        version: 3.34.1(react@19.0.0)
       "@tailwindcss/postcss":
         specifier: ^4.1.12
         version: 4.1.12
@@ -993,7 +1008,7 @@ importers:
         specifier: ^0.7.0
         version: 0.7.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       "@tanstack/react-table":
-        specifier: ^8.21.2
+        specifier: ^8.21.3
         version: 8.21.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       "@testcontainers/postgresql":
         specifier: ^10.28.0
@@ -1001,6 +1016,9 @@ importers:
       "@ui/shadcn":
         specifier: workspace:^
         version: link:../../ui/shadcn
+      culori:
+        specifier: ^4.0.2
+        version: 4.0.2
       effect:
         specifier: 3.17.7
         version: 3.17.7
@@ -1031,12 +1049,18 @@ importers:
       slugify:
         specifier: ^1.6.6
         version: 1.6.6
+      sonner:
+        specifier: ^2.0.7
+        version: 2.0.7(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       tailwind-merge:
         specifier: ^3.0.1
         version: 3.3.1
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@4.0.4)
+      zod:
+        specifier: ^4.1.3
+        version: 4.1.3
     devDependencies:
       "@effect/build-utils":
         specifier: ^0.8.3
@@ -1056,6 +1080,9 @@ importers:
       "@testing-library/react":
         specifier: ^16.2.0
         version: 16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@19.1.7(@types/react@19.1.10))(@types/react@19.1.10)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      "@types/culori":
+        specifier: ^4.0.1
+        version: 4.0.1
       "@types/pg":
         specifier: ^8.11.11
         version: 8.15.5
@@ -1336,6 +1363,9 @@ importers:
       cmdk:
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@19.1.7(@types/react@19.1.10))(@types/react@19.1.10)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      color:
+        specifier: ^5.0.2
+        version: 5.0.2
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -1409,6 +1439,9 @@ importers:
       "@testing-library/react":
         specifier: ^16.2.0
         version: 16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@19.1.7(@types/react@19.1.10))(@types/react@19.1.10)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      "@types/color":
+        specifier: ^4.2.0
+        version: 4.2.0
       "@types/react":
         specifier: ^19.0.8
         version: 19.1.10
@@ -1858,6 +1891,49 @@ packages:
         integrity: sha512-Y6+WUMsTFWE5jb20IFP4YGa5IrGY/+a/FbOSjDF/wz9gepU2hwCYSXRHP/vPwBvwcY3SVMASt4yXxbXNXigmZQ==,
       }
     engines: { node: ">=18" }
+
+  "@dnd-kit/accessibility@3.1.1":
+    resolution:
+      {
+        integrity: sha512-2P+YgaXF+gRsIihwwY1gCsQSYnu9Zyj2py8kY5fFvUM1qm2WA2u639R6YNVfU4GWr+ZM5mqEsfHZZLoRONbemw==,
+      }
+    peerDependencies:
+      react: ">=16.8.0"
+
+  "@dnd-kit/core@6.3.1":
+    resolution:
+      {
+        integrity: sha512-xkGBRQQab4RLwgXxoqETICr6S5JlogafbhNsidmrkVv2YRs5MLwpjoF2qpiGjQt8S9AoxtIV603s0GIUpY5eYQ==,
+      }
+    peerDependencies:
+      react: ">=16.8.0"
+      react-dom: ">=16.8.0"
+
+  "@dnd-kit/modifiers@9.0.0":
+    resolution:
+      {
+        integrity: sha512-ybiLc66qRGuZoC20wdSSG6pDXFikui/dCNGthxv4Ndy8ylErY0N3KVxY2bgo7AWwIbxDmXDg3ylAFmnrjcbVvw==,
+      }
+    peerDependencies:
+      "@dnd-kit/core": ^6.3.0
+      react: ">=16.8.0"
+
+  "@dnd-kit/sortable@10.0.0":
+    resolution:
+      {
+        integrity: sha512-+xqhmIIzvAYMGfBYYnbKuNicfSsk4RksY2XdmJhT+HAC01nix6fHCztU68jooFiMUB01Ky3F0FyOvhG/BZrWkg==,
+      }
+    peerDependencies:
+      "@dnd-kit/core": ^6.3.0
+      react: ">=16.8.0"
+
+  "@dnd-kit/utilities@3.2.2":
+    resolution:
+      {
+        integrity: sha512-+MKAJEOfaBe5SmV6t34p80MMKhjvUz0vRrvVJbPT0WElzaOJ/1xs+D+KDv+tD/NE5ujfrChEcshd4fLn0wpiqg==,
+      }
+    peerDependencies:
+      react: ">=16.8.0"
 
   "@dprint/formatter@0.4.1":
     resolution:
@@ -5578,10 +5654,34 @@ packages:
         integrity: sha512-8PvcXf70gTDZBgt9ptxJ8elBeBjcLOAcOtoO/mPJjtji1+CdGbHgm77om1GrsPxsiE+uXIpNSK64UYaIwQXd4Q==,
       }
 
+  "@types/color-convert@2.0.4":
+    resolution:
+      {
+        integrity: sha512-Ub1MmDdyZ7mX//g25uBAoH/mWGd9swVbt8BseymnaE18SU4po/PjmCrHxqIIRjBo3hV/vh1KGr0eMxUhp+t+dQ==,
+      }
+
+  "@types/color-name@1.1.5":
+    resolution:
+      {
+        integrity: sha512-j2K5UJqGTxeesj6oQuGpMgifpT5k9HprgQd8D1Y0lOFqKHl3PJu5GMeS4Y5EgjS55AE6OQxf8mPED9uaGbf4Cg==,
+      }
+
+  "@types/color@4.2.0":
+    resolution:
+      {
+        integrity: sha512-6+xrIRImMtGAL2X3qYkd02Mgs+gFGs+WsK0b7VVMaO4mYRISwyTjcqNrO0mNSmYEoq++rSLDB2F5HDNmqfOe+A==,
+      }
+
   "@types/cookie@0.6.0":
     resolution:
       {
         integrity: sha512-4Kh9a6B2bQciAhf7FSuMRRkUWecJgJu9nPnx3yzpsfXX/c50REIqpHY4C82bXP90qrLtXtkDxTZosYO3UpOwlA==,
+      }
+
+  "@types/culori@4.0.1":
+    resolution:
+      {
+        integrity: sha512-43M51r/22CjhbOXyGT361GZ9vncSVQ39u62x5eJdBQFviI8zWp2X5jzqg7k4M6PVgDQAClpy2bUe2dtwEgEDVQ==,
       }
 
   "@types/d3-array@3.2.1":
@@ -7068,6 +7168,13 @@ packages:
       }
     engines: { node: ">=7.0.0" }
 
+  color-convert@3.1.2:
+    resolution:
+      {
+        integrity: sha512-UNqkvCDXstVck3kdowtOTWROIJQwafjOfXSmddoDrXo4cewMKmusCeF22Q24zvjR8nwWib/3S/dfyzPItPEiJg==,
+      }
+    engines: { node: ">=14.6" }
+
   color-name@1.1.3:
     resolution:
       {
@@ -7080,17 +7187,38 @@ packages:
         integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==,
       }
 
+  color-name@2.0.2:
+    resolution:
+      {
+        integrity: sha512-9vEt7gE16EW7Eu7pvZnR0abW9z6ufzhXxGXZEVU9IqPdlsUiMwJeJfRtq0zePUmnbHGT9zajca7mX8zgoayo4A==,
+      }
+    engines: { node: ">=12.20" }
+
   color-string@1.9.1:
     resolution:
       {
         integrity: sha512-shrVawQFojnZv6xM40anx4CkoDP+fZsw/ZerEMsW/pyzsRbElpsL/DBVW7q3ExxwusdNXI3lXpuhEZkzs8p5Eg==,
       }
 
+  color-string@2.1.2:
+    resolution:
+      {
+        integrity: sha512-RxmjYxbWemV9gKu4zPgiZagUxbH3RQpEIO77XoSSX0ivgABDZ+h8Zuash/EMFLTI4N9QgFPOJ6JQpPZKFxa+dA==,
+      }
+    engines: { node: ">=18" }
+
   color@3.2.1:
     resolution:
       {
         integrity: sha512-aBl7dZI9ENN6fUGC7mWpMTPNHmWUSNan9tuWN6ahh5ZLNk9baLJOnSMlrQkHcrfFgz2/RigjUVAjdx36VcemKA==,
       }
+
+  color@5.0.2:
+    resolution:
+      {
+        integrity: sha512-e2hz5BzbUPcYlIRHo8ieAhYgoajrJr+hWoceg6E345TPsATMUKqDgzt8fSXZJJbxfpiPzkWyphz8yn8At7q3fA==,
+      }
+    engines: { node: ">=18" }
 
   colorette@2.0.20:
     resolution:
@@ -7363,6 +7491,13 @@ packages:
       {
         integrity: sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==,
       }
+
+  culori@4.0.2:
+    resolution:
+      {
+        integrity: sha512-1+BhOB8ahCn4O0cep0Sh2l9KCOfOdY+BXJnKMHFFzDEouSr/el18QwXEMRlOj9UY5nCeA8UN3a/82rUWRBeyBw==,
+      }
+    engines: { node: ^12.20.0 || ^14.13.1 || >=16.0.0 }
 
   d3-array@3.2.4:
     resolution:
@@ -14484,6 +14619,38 @@ snapshots:
       gonzales-pe: 4.3.0
       node-source-walk: 7.0.1
 
+  "@dnd-kit/accessibility@3.1.1(react@19.0.0)":
+    dependencies:
+      react: 19.0.0
+      tslib: 2.8.1
+
+  "@dnd-kit/core@6.3.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)":
+    dependencies:
+      "@dnd-kit/accessibility": 3.1.1(react@19.0.0)
+      "@dnd-kit/utilities": 3.2.2(react@19.0.0)
+      react: 19.0.0
+      react-dom: 19.0.0(react@19.0.0)
+      tslib: 2.8.1
+
+  "@dnd-kit/modifiers@9.0.0(@dnd-kit/core@6.3.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react@19.0.0)":
+    dependencies:
+      "@dnd-kit/core": 6.3.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      "@dnd-kit/utilities": 3.2.2(react@19.0.0)
+      react: 19.0.0
+      tslib: 2.8.1
+
+  "@dnd-kit/sortable@10.0.0(@dnd-kit/core@6.3.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react@19.0.0)":
+    dependencies:
+      "@dnd-kit/core": 6.3.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      "@dnd-kit/utilities": 3.2.2(react@19.0.0)
+      react: 19.0.0
+      tslib: 2.8.1
+
+  "@dnd-kit/utilities@3.2.2(react@19.0.0)":
+    dependencies:
+      react: 19.0.0
+      tslib: 2.8.1
+
   "@dprint/formatter@0.4.1": {}
 
   "@dprint/typescript@0.91.8": {}
@@ -17007,7 +17174,19 @@ snapshots:
     dependencies:
       "@babel/types": 7.28.2
 
+  "@types/color-convert@2.0.4":
+    dependencies:
+      "@types/color-name": 1.1.5
+
+  "@types/color-name@1.1.5": {}
+
+  "@types/color@4.2.0":
+    dependencies:
+      "@types/color-convert": 2.0.4
+
   "@types/cookie@0.6.0": {}
+
+  "@types/culori@4.0.1": {}
 
   "@types/d3-array@3.2.1": {}
 
@@ -17989,19 +18168,34 @@ snapshots:
     dependencies:
       color-name: 1.1.4
 
+  color-convert@3.1.2:
+    dependencies:
+      color-name: 2.0.2
+
   color-name@1.1.3: {}
 
   color-name@1.1.4: {}
+
+  color-name@2.0.2: {}
 
   color-string@1.9.1:
     dependencies:
       color-name: 1.1.4
       simple-swizzle: 0.2.2
 
+  color-string@2.1.2:
+    dependencies:
+      color-name: 2.0.2
+
   color@3.2.1:
     dependencies:
       color-convert: 1.9.3
       color-string: 1.9.1
+
+  color@5.0.2:
+    dependencies:
+      color-convert: 3.1.2
+      color-string: 2.1.2
 
   colorette@2.0.20: {}
 
@@ -18127,6 +18321,8 @@ snapshots:
       rrweb-cssom: 0.8.0
 
   csstype@3.1.3: {}
+
+  culori@4.0.2: {}
 
   d3-array@3.2.4:
     dependencies:

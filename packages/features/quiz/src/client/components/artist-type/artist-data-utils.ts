@@ -1,3 +1,4 @@
+import { formatHex, parse } from "culori";
 import { Schema as S } from "effect";
 import React from "react";
 
@@ -53,37 +54,47 @@ export const artistColors = {
   Solo: "var(--artist-solo)",
 } as const;
 
-// Light mode hex colors for calculations
-export const artistColorsHex = {
-  Visionary: "#7209b7",
-  Consummate: "#06d6a0",
-  Analyzer: "#4361ee",
-  Tech: "#4cc9f0",
-  Entertainer: "#fb8500",
-  Maverick: "#f72585",
-  Dreamer: "#7678ed",
-  Feeler: "#f77f00",
-  Tortured: "#560bad",
-  Solo: "#6498a6",
-} as const;
-
-// Dark mode hex colors for calculations
-export const artistColorsHexDark = {
-  Visionary: "#a56be6",
-  Consummate: "#35e2bf",
-  Analyzer: "#7a92ff",
-  Tech: "#71dbff",
-  Entertainer: "#ff9f36",
-  Maverick: "#ff64a6",
-  Dreamer: "#9aa0ff",
-  Feeler: "#ffa24a",
-  Tortured: "#7c2cff",
-  Solo: "#8fb5bd",
-} as const;
-
 // =============================================================================
 // UTILITY FUNCTIONS
 // =============================================================================
+
+/**
+ * Convert CSS variable to hex color value
+ * Gets the oklch value from CSS variable and converts to hex using culori
+ */
+export const cssVarToHex = (cssVar: string, fallback = "#6366f1"): string => {
+  try {
+    // If it's already a hex color, return it
+    if (cssVar.startsWith("#")) {
+      return cssVar;
+    }
+
+    // If it's a CSS variable, get the computed value
+    if (cssVar.startsWith("var(")) {
+      const root = document.documentElement;
+      const varName = cssVar.match(/var\((--[^)]+)\)/)?.[1];
+      if (varName !== undefined) {
+        const computedValue = getComputedStyle(root).getPropertyValue(varName).trim();
+        if (computedValue !== "") {
+          return cssVarToHex(computedValue, fallback);
+        }
+      }
+      return fallback;
+    }
+
+    // Parse and convert oklch to hex using culori
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+    const parsed = parse(cssVar);
+    if (parsed !== undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
+      return formatHex(parsed);
+    }
+
+    return fallback;
+  } catch {
+    return fallback;
+  }
+};
 
 /**
  * Get artist color using CSS variables (theme-aware)
@@ -94,12 +105,39 @@ export const getArtistColor = (artistType: string): string => {
 };
 
 /**
- * Get hex color for calculations, with dark mode support
+ * Get hex color for calculations
+ * Dynamically converts CSS variables (oklch) to hex values
  */
-export const getArtistColorHex = (artistType: string, isDark = false): string => {
-  const normalizedType = artistType as keyof typeof artistColorsHex;
-  const colorMap = isDark ? artistColorsHexDark : artistColorsHex;
-  return normalizedType in colorMap ? colorMap[normalizedType] : "#6366f1";
+export const getArtistColorHex = (artistType: string): string => {
+  try {
+    const cssVar = getArtistColor(artistType);
+    return cssVarToHex(cssVar, "#6366f1");
+  } catch {
+    return "#6366f1";
+  }
+};
+
+/**
+ * Test function to verify all artist colors are unique
+ * This can be called during development to ensure color uniqueness
+ */
+export const testArtistColorUniqueness = (): { unique: boolean; duplicates: Array<string> } => {
+  const colors = new Set<string>();
+  const duplicates: Array<string> = [];
+
+  Object.keys(artistColors).forEach((artistType) => {
+    const hex = getArtistColorHex(artistType);
+    if (colors.has(hex)) {
+      duplicates.push(artistType);
+    } else {
+      colors.add(hex);
+    }
+  });
+
+  return {
+    unique: duplicates.length === 0,
+    duplicates,
+  };
 };
 
 // =============================================================================
@@ -133,11 +171,10 @@ export const getColorByEndingName = (endingName: string): string => {
 /**
  * Get hex color by ending name for calculations
  */
-export const getColorByEndingNameHex = (endingName: string, isDark = false): string => {
+export const getColorByEndingNameHex = (endingName: string): string => {
   const artistType = endingNameToArtistType[endingName];
   if (artistType !== undefined) {
-    const colorMap = isDark ? artistColorsHexDark : artistColorsHex;
-    return colorMap[artistType];
+    return getArtistColorHex(artistType);
   }
   return "#6366f1";
 };
@@ -458,10 +495,22 @@ export const getArtistIconPath = (databaseId: string): string | null => {
 
 /**
  * Get fallback color for a specific artist type
+ * Dynamically converts CSS variables to hex values
  */
 export const getArtistIconFallbackColor = (databaseId: string): string | null => {
-  const icon = getArtistIcon(databaseId);
-  return icon?.fallbackColor ?? null;
+  try {
+    // Map database ID to artist type
+    const artistType = databaseId.replace("the-", "").replace("-artist", "");
+    const capitalizedType = artistType.charAt(0).toUpperCase() + artistType.slice(1);
+
+    // Get the CSS variable color
+    const cssVar = getArtistColor(capitalizedType);
+    return cssVarToHex(cssVar, "#6366f1");
+  } catch {
+    // Fallback to hardcoded icon color if dynamic conversion fails
+    const icon = getArtistIcon(databaseId);
+    return icon?.fallbackColor ?? null;
+  }
 };
 
 /**

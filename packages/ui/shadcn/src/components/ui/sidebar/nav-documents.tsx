@@ -3,15 +3,7 @@
 import { IconDots, IconFolder, IconShare3, IconTrash, type Icon } from "@tabler/icons-react";
 
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
-import {
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuAction,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from "./sidebar";
+import { Sidebar, useSidebar } from "./sidebar";
 
 export function NavDocuments({
   items,
@@ -25,23 +17,23 @@ export function NavDocuments({
   const { isMobile } = useSidebar();
 
   return (
-    <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Documents</SidebarGroupLabel>
-      <SidebarMenu>
+    <Sidebar.Group className="group-data-[collapsible=icon]:hidden">
+      <Sidebar.GroupLabel>Documents</Sidebar.GroupLabel>
+      <Sidebar.Menu>
         {items.map((item) => (
-          <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton asChild>
+          <Sidebar.MenuItem key={item.name}>
+            <Sidebar.MenuButton asChild>
               <a href={item.url}>
                 <item.icon />
                 <span>{item.name}</span>
               </a>
-            </SidebarMenuButton>
+            </Sidebar.MenuButton>
             <DropdownMenu>
               <DropdownMenu.Trigger asChild>
-                <SidebarMenuAction showOnHover className="data-[state=open]:bg-accent rounded-sm">
+                <Sidebar.MenuAction showOnHover className="data-[state=open]:bg-accent rounded-sm">
                   <IconDots />
                   <span className="sr-only">More</span>
-                </SidebarMenuAction>
+                </Sidebar.MenuAction>
               </DropdownMenu.Trigger>
               <DropdownMenu.Content
                 className="w-24 rounded-lg"
@@ -63,15 +55,15 @@ export function NavDocuments({
                 </DropdownMenu.Item>
               </DropdownMenu.Content>
             </DropdownMenu>
-          </SidebarMenuItem>
+          </Sidebar.MenuItem>
         ))}
-        <SidebarMenuItem>
-          <SidebarMenuButton className="text-sidebar-foreground/70">
+        <Sidebar.MenuItem>
+          <Sidebar.MenuButton className="text-sidebar-foreground/70">
             <IconDots className="text-sidebar-foreground/70" />
             <span>More</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      </SidebarMenu>
-    </SidebarGroup>
+          </Sidebar.MenuButton>
+        </Sidebar.MenuItem>
+      </Sidebar.Menu>
+    </Sidebar.Group>
   );
 }

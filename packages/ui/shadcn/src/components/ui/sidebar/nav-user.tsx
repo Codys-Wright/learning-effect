@@ -10,7 +10,7 @@ import {
 
 import { Avatar } from "@/components/ui/avatar";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
-import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "./sidebar";
+import { Sidebar, useSidebar } from "./sidebar";
 
 export function NavUser({
   user,
@@ -24,11 +24,11 @@ export function NavUser({
   const { isMobile } = useSidebar();
 
   return (
-    <SidebarMenu>
-      <SidebarMenuItem>
+    <Sidebar.Menu>
+      <Sidebar.MenuItem>
         <DropdownMenu>
           <DropdownMenu.Trigger asChild>
-            <SidebarMenuButton
+            <Sidebar.MenuButton
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
@@ -41,7 +41,7 @@ export function NavUser({
                 <span className="text-muted-foreground truncate text-xs">{user.email}</span>
               </div>
               <IconDotsVertical className="ml-auto size-4" />
-            </SidebarMenuButton>
+            </Sidebar.MenuButton>
           </DropdownMenu.Trigger>
           <DropdownMenu.Content
             className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
@@ -83,7 +83,7 @@ export function NavUser({
             </DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu>
-      </SidebarMenuItem>
-    </SidebarMenu>
+      </Sidebar.MenuItem>
+    </Sidebar.Menu>
   );
 }

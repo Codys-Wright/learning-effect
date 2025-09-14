@@ -660,29 +660,52 @@ function SidebarMenuSubButton({
   );
 }
 
-export {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupAction,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarInput,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuAction,
-  SidebarMenuBadge,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSkeleton,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-  SidebarProvider,
-  SidebarRail,
-  SidebarSeparator,
-  SidebarTrigger,
-  useSidebar,
+// Main Sidebar component with sub-components as properties
+const SidebarComponent = Sidebar as typeof Sidebar & {
+  Content: typeof SidebarContent;
+  Footer: typeof SidebarFooter;
+  Group: typeof SidebarGroup;
+  GroupAction: typeof SidebarGroupAction;
+  GroupContent: typeof SidebarGroupContent;
+  GroupLabel: typeof SidebarGroupLabel;
+  Header: typeof SidebarHeader;
+  Input: typeof SidebarInput;
+  Menu: typeof SidebarMenu;
+  MenuAction: typeof SidebarMenuAction;
+  MenuBadge: typeof SidebarMenuBadge;
+  MenuButton: typeof SidebarMenuButton;
+  MenuItem: typeof SidebarMenuItem;
+  MenuSkeleton: typeof SidebarMenuSkeleton;
+  MenuSub: typeof SidebarMenuSub;
+  MenuSubButton: typeof SidebarMenuSubButton;
+  MenuSubItem: typeof SidebarMenuSubItem;
+  Provider: typeof SidebarProvider;
+  Rail: typeof SidebarRail;
+  Separator: typeof SidebarSeparator;
+  Trigger: typeof SidebarTrigger;
 };
+
+// Assign sub-components
+SidebarComponent.Content = SidebarContent;
+SidebarComponent.Footer = SidebarFooter;
+SidebarComponent.Group = SidebarGroup;
+SidebarComponent.GroupAction = SidebarGroupAction;
+SidebarComponent.GroupContent = SidebarGroupContent;
+SidebarComponent.GroupLabel = SidebarGroupLabel;
+SidebarComponent.Header = SidebarHeader;
+SidebarComponent.Input = SidebarInput;
+SidebarComponent.Menu = SidebarMenu;
+SidebarComponent.MenuAction = SidebarMenuAction;
+SidebarComponent.MenuBadge = SidebarMenuBadge;
+SidebarComponent.MenuButton = SidebarMenuButton;
+SidebarComponent.MenuItem = SidebarMenuItem;
+SidebarComponent.MenuSkeleton = SidebarMenuSkeleton;
+SidebarComponent.MenuSub = SidebarMenuSub;
+SidebarComponent.MenuSubButton = SidebarMenuSubButton;
+SidebarComponent.MenuSubItem = SidebarMenuSubItem;
+SidebarComponent.Provider = SidebarProvider;
+SidebarComponent.Rail = SidebarRail;
+SidebarComponent.Separator = SidebarSeparator;
+SidebarComponent.Trigger = SidebarTrigger;
+
+export { SidebarComponent as Sidebar, SidebarInset, SidebarProvider, useSidebar };

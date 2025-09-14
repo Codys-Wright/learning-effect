@@ -3,13 +3,7 @@
 import { type Icon } from "@tabler/icons-react";
 import * as React from "react";
 
-import {
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "./sidebar";
+import { Sidebar } from "./sidebar";
 
 export function NavSecondary({
   items,
@@ -20,23 +14,23 @@ export function NavSecondary({
     url: string;
     icon: Icon;
   }[];
-} & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
+} & React.ComponentPropsWithoutRef<typeof Sidebar.Group>) {
   return (
-    <SidebarGroup {...props}>
-      <SidebarGroupContent>
-        <SidebarMenu>
+    <Sidebar.Group {...props}>
+      <Sidebar.GroupContent>
+        <Sidebar.Menu>
           {items.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild>
+            <Sidebar.MenuItem key={item.title}>
+              <Sidebar.MenuButton asChild>
                 <a href={item.url}>
                   <item.icon />
                   <span>{item.title}</span>
                 </a>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+              </Sidebar.MenuButton>
+            </Sidebar.MenuItem>
           ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
+        </Sidebar.Menu>
+      </Sidebar.GroupContent>
+    </Sidebar.Group>
   );
 }

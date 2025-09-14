@@ -92,16 +92,16 @@
   --sidebar-ring: oklch(0.708 0 0);
 
   /* Artist type CSS variables used by charts */
-  --artist-visionary: #7209b7;
-  --artist-consummate: #06d6a0;
-  --artist-analyzer: #4361ee;
-  --artist-tech: #4cc9f0;
-  --artist-entertainer: #fb8500;
-  --artist-maverick: #f72585;
-  --artist-dreamer: #7678ed;
-  --artist-feeler: #f77f00;
-  --artist-tortured: #560bad;
-  --artist-solo: #6498a6;
+  --artist-visionary: oklch(0.637 0.237 25.331);
+  --artist-consummate: oklch(0.705 0.213 47.604);
+  --artist-analyzer: oklch(0.723 0.219 149.579);
+  --artist-tech: oklch(0.623 0.214 259.815);
+  --artist-entertainer: oklch(0.795 0.184 86.047);
+  --artist-maverick: oklch(0.606 0.25 292.717);
+  --artist-dreamer: oklch(0.55 0.2 180);
+  --artist-feeler: oklch(0.65 0.22 320);
+  --artist-tortured: oklch(0.7 0.18 60);
+  --artist-solo: oklch(0.58 0.24 200);
 }
 
 .dark {
@@ -139,16 +139,16 @@
   --sidebar-ring: oklch(0.62 0 0);
 
   /* Ensure artist vars are defined in dark mode too (same hues) */
-  --artist-visionary: #a56be6;
-  --artist-consummate: #35e2bf;
-  --artist-analyzer: #7a92ff;
-  --artist-tech: #71dbff;
-  --artist-entertainer: #ff9f36;
-  --artist-maverick: #ff64a6;
-  --artist-dreamer: #9aa0ff;
-  --artist-feeler: #ffa24a;
-  --artist-tortured: #7c2cff;
-  --artist-solo: #8fb5bd;
+  --artist-visionary: oklch(0.7 0.2 25.331);
+  --artist-consummate: oklch(0.75 0.18 47.604);
+  --artist-analyzer: oklch(0.78 0.19 149.579);
+  --artist-tech: oklch(0.68 0.18 259.815);
+  --artist-entertainer: oklch(0.85 0.15 86.047);
+  --artist-maverick: oklch(0.66 0.22 292.717);
+  --artist-dreamer: oklch(0.6 0.17 180);
+  --artist-feeler: oklch(0.7 0.19 320);
+  --artist-tortured: oklch(0.75 0.15 60);
+  --artist-solo: oklch(0.63 0.21 200);
 }
 
 @theme inline {

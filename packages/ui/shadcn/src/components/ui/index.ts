@@ -23,4 +23,5 @@ export * from "./table.js";
 export * from "./tabs.js";
 export * from "./textarea.js";
 export * from "./toaster.js";
+export * from "./toggle-group.js";
 export * from "./tooltip.js";

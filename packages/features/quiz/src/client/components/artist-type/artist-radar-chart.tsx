@@ -249,25 +249,8 @@ const useBlendedColor = ({ data }: UseBlendedColorOptions): string => {
       // Get computed CSS color value with dark mode support
       const getComputedArtistColor = (artistType: string): string => {
         try {
-          const root = document.documentElement;
-          const cssVarName = `--artist-${artistType.toLowerCase()}`;
-          const computedValue = getComputedStyle(root).getPropertyValue(cssVarName).trim();
-
-          if (computedValue !== "") {
-            if (computedValue.startsWith("var(")) {
-              const nestedVar = computedValue.match(/var\((--[^)]+)\)/)?.[1];
-              if (nestedVar !== undefined) {
-                const nestedValue = getComputedStyle(root).getPropertyValue(nestedVar).trim();
-                return nestedValue !== "" ? nestedValue : getArtistColorHex(artistType);
-              }
-            }
-            return computedValue;
-          }
-
-          const isDark =
-            root.classList.contains("dark") ||
-            window.matchMedia("(prefers-color-scheme: dark)").matches;
-          return getArtistColorHex(artistType, isDark);
+          // Use the new dynamic conversion function
+          return getArtistColorHex(artistType);
         } catch {
           return getArtistColorHex(artistType);
         }
