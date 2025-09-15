@@ -1,15 +1,5 @@
 "use client";
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-import * as DndCore from "@dnd-kit/core";
-import * as DndModifiers from "@dnd-kit/modifiers";
-import * as DndSortable from "@dnd-kit/sortable";
-import * as DndUtilities from "@dnd-kit/utilities";
 import {
   IconChevronDown,
   IconChevronLeft,
@@ -18,11 +8,9 @@ import {
   IconChevronsRight,
   IconCircleCheckFilled,
   IconDotsVertical,
-  IconGripVertical,
   IconLayoutColumns,
   IconLoader,
   IconPlus,
-  IconTrendingUp,
 } from "@tabler/icons-react";
 import {
   flexRender,
@@ -39,63 +27,189 @@ import {
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
-import {
-  Badge,
-  Button,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  Checkbox,
-  DropdownMenu,
-  Input,
-  Label,
-  Select,
-  Separator,
-  Sheet,
-  Table,
-  Tabs,
-  toast,
-  type ChartConfig,
-} from "@ui/shadcn";
+import { Badge, Button, Checkbox, DropdownMenu, Label, Select, Table, Tabs } from "@ui/shadcn";
 import * as React from "react";
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 
-type TableRow = {
-  id: number;
-  header: string;
-  type: string;
-  status: string;
-  target: string;
-  limit: string;
-  reviewer: string;
-};
+import {
+  getArtistColorHex,
+  getArtistIconPath,
+} from "@features/quiz/client/components/artist-type/artist-data-utils";
+import type { AnalysisResult, QuizResponse } from "@features/quiz/domain";
 
-// Create a separate component for the drag handle
-function DragHandle({ id }: { id: number }) {
-  const { attributes, listeners } = DndSortable.useSortable({
-    id,
-  });
+// Helper component for artist type badge with icon and color
+const ArtistTypeBadge: React.FC<{
+  artistType: string;
+  variant?: "default" | "secondary";
+}> = ({ artistType, variant = "default" }) => {
+  // Map artist type name to database ID
+  const databaseId = artistType.toLowerCase().replace(/\s+/g, "-");
+  const iconPath = getArtistIconPath(databaseId);
+  const color = getArtistColorHex(artistType);
 
   return (
-    <Button
-      {...attributes}
-      {...listeners}
-      variant="ghost"
-      size="icon"
-      className="text-muted-foreground size-7 hover:bg-transparent"
+    <Badge
+      variant={variant}
+      className="px-2 flex items-center gap-1.5"
+      style={{
+        backgroundColor: `${color}20`,
+        borderColor: color,
+        color,
+      }}
     >
-      <IconGripVertical className="text-muted-foreground size-3" />
-      <span className="sr-only">Drag to reorder</span>
-    </Button>
+      {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+      {iconPath !== null && iconPath !== undefined && iconPath !== "" && (
+        <img
+          src={iconPath}
+          alt={`${artistType} icon`}
+          className="w-4 h-4 rounded-full"
+          style={{ filter: `brightness(0) invert(1)` }}
+        />
+      )}
+      {artistType}
+    </Badge>
   );
+};
+
+type TableRow = QuizResponse & {
+  analysisResult?: AnalysisResult;
+  primaryArtistType?: string;
+  secondaryArtistType?: string;
+  userInfo?: {
+    name?: string;
+    email?: string;
+    profilePicture?: string;
+  };
+  isTypeform?: boolean;
+};
+
+// Helper function to extract user information from response metadata
+function extractUserInfo(response: QuizResponse): {
+  name?: string;
+  email?: string;
+  profilePicture?: string;
+} {
+  // Check session metadata custom fields first
+  const sessionCustomFields = response.sessionMetadata.customFields;
+  if (sessionCustomFields !== undefined) {
+    const name = sessionCustomFields.name as string | undefined;
+    const email = sessionCustomFields.email as string | undefined;
+    const profilePicture = sessionCustomFields.profilePicture as string | undefined;
+
+    if (
+      (name !== undefined && name !== "") ||
+      (email !== undefined && email !== "") ||
+      (profilePicture !== undefined && profilePicture !== "")
+    ) {
+      const result: { name?: string; email?: string; profilePicture?: string } = {};
+      if (name !== undefined && name !== "") result.name = name;
+      if (email !== undefined && email !== "") result.email = email;
+      if (profilePicture !== undefined && profilePicture !== "")
+        result.profilePicture = profilePicture;
+      return result;
+    }
+  }
+
+  // Check response metadata custom fields
+  const responseCustomFields = response.metadata?.customFields;
+  if (responseCustomFields !== undefined) {
+    const name = responseCustomFields.name as string | undefined;
+    const email = responseCustomFields.email as string | undefined;
+    const profilePicture = responseCustomFields.profilePicture as string | undefined;
+
+    if (
+      (name !== undefined && name !== "") ||
+      (email !== undefined && email !== "") ||
+      (profilePicture !== undefined && profilePicture !== "")
+    ) {
+      const result: { name?: string; email?: string; profilePicture?: string } = {};
+      if (name !== undefined && name !== "") result.name = name;
+      if (email !== undefined && email !== "") result.email = email;
+      if (profilePicture !== undefined && profilePicture !== "")
+        result.profilePicture = profilePicture;
+      return result;
+    }
+  }
+
+  return {};
+}
+
+// Helper function to detect if response is from Typeform
+function isTypeformResponse(response: QuizResponse): boolean {
+  // Check session metadata custom fields
+  const sessionCustomFields = response.sessionMetadata.customFields;
+  if (sessionCustomFields?.source === "typeform" || sessionCustomFields?.typeform === true) {
+    return true;
+  }
+
+  // Check response metadata
+  const responseCustomFields = response.metadata?.customFields;
+  if (responseCustomFields?.source === "typeform" || responseCustomFields?.typeform === true) {
+    return true;
+  }
+
+  // Check if metadata has typeform flag
+  if (response.metadata?.customFields?.typeform === true) {
+    return true;
+  }
+
+  return false;
+}
+
+// Helper function to extract artist types from analysis results
+function extractArtistTypes(analysisResult?: AnalysisResult): {
+  primary?: string;
+  secondary?: string;
+} {
+  if (analysisResult === undefined) {
+    return {};
+  }
+
+  const endingResults = analysisResult.endingResults;
+  if (endingResults.length === 0) {
+    return {};
+  }
+
+  // Sort by percentage (descending) to get top results
+  const sortedResults = [...endingResults].sort((a, b) => b.percentage - a.percentage);
+
+  const primary = sortedResults[0]?.endingId;
+  const secondary = sortedResults[1]?.endingId;
+
+  const result: { primary?: string; secondary?: string } = {};
+  if (primary !== undefined) {
+    result.primary = primary;
+  }
+  if (secondary !== undefined) {
+    result.secondary = secondary;
+  }
+  return result;
+}
+
+// Helper function to combine response data with analysis data
+export function combineResponseWithAnalysis(
+  responses: ReadonlyArray<QuizResponse>,
+  analysisResults: ReadonlyArray<AnalysisResult>,
+): ReadonlyArray<TableRow> {
+  const analysisMap = new Map(analysisResults.map((ar) => [ar.responseId, ar]));
+
+  return responses.map((response) => {
+    const analysisResult = analysisMap.get(response.id);
+    const { primary, secondary } = extractArtistTypes(analysisResult);
+    const userInfo = extractUserInfo(response);
+    const isTypeform = isTypeformResponse(response);
+
+    return {
+      ...response,
+      analysisResult: analysisResult ?? undefined,
+      primaryArtistType: primary ?? undefined,
+      secondaryArtistType: secondary ?? undefined,
+      userInfo: Object.keys(userInfo).length > 0 ? userInfo : undefined,
+      isTypeform,
+    } as TableRow;
+  });
 }
 
 const columns: Array<ColumnDef<TableRow>> = [
-  {
-    id: "drag",
-    header: () => null,
-    cell: ({ row }) => <DragHandle id={row.original.id} />,
-  },
   {
     id: "select",
     header: ({ table }) => (
@@ -127,117 +241,130 @@ const columns: Array<ColumnDef<TableRow>> = [
     enableHiding: false,
   },
   {
-    accessorKey: "header",
-    header: "Header",
+    accessorKey: "userInfo",
+    header: "User",
     cell: ({ row }) => {
-      return <TableCellViewer item={row.original} />;
+      const userInfo = row.original.userInfo;
+      if (userInfo === undefined) {
+        return <div className="text-sm text-muted-foreground">Anonymous</div>;
+      }
+
+      return (
+        <div className="flex items-center gap-2">
+          {userInfo.profilePicture !== undefined && userInfo.profilePicture !== "" && (
+            <img src={userInfo.profilePicture} alt="Profile" className="w-6 h-6 rounded-full" />
+          )}
+          <div className="flex flex-col">
+            {userInfo.name !== undefined && userInfo.name !== "" && (
+              <div className="text-sm font-medium">{userInfo.name}</div>
+            )}
+            {userInfo.email !== undefined && userInfo.email !== "" && (
+              <div className="text-xs text-muted-foreground">{userInfo.email}</div>
+            )}
+            {(userInfo.name === undefined || userInfo.name === "") &&
+              (userInfo.email === undefined || userInfo.email === "") && (
+                <div className="text-sm text-muted-foreground">Anonymous</div>
+              )}
+          </div>
+        </div>
+      );
     },
     enableHiding: false,
   },
   {
-    accessorKey: "type",
-    header: "Section Type",
+    accessorKey: "createdAt",
+    header: "Created",
     cell: ({ row }) => (
-      <div className="w-32">
-        <Badge variant="outline" className="text-muted-foreground px-1.5">
-          {row.original.type}
-        </Badge>
+      <div className="text-sm">
+        {new Date(row.original.createdAt.epochMillis).toLocaleDateString()}
       </div>
     ),
   },
   {
-    accessorKey: "status",
-    header: "Status",
+    accessorKey: "answers",
+    header: "Answers",
     cell: ({ row }) => (
       <Badge variant="outline" className="text-muted-foreground px-1.5">
-        {row.original.status === "Done" ? (
-          <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
-        ) : (
-          <IconLoader />
-        )}
-        {row.original.status}
+        {row.original.answers?.length ?? 0} answers
       </Badge>
     ),
   },
   {
-    accessorKey: "target",
-    header: () => <div className="w-full text-right">Target</div>,
-    cell: ({ row }) => (
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          toast.promise(new Promise((resolve) => setTimeout(resolve, 1000)), {
-            loading: `Saving ${row.original.header}`,
-            success: "Done",
-            error: "Error",
-          });
-        }}
-      >
-        <Label htmlFor={`${row.original.id}-target`} className="sr-only">
-          Target
-        </Label>
-        <Input
-          className="hover:bg-input/30 focus-visible:bg-background dark:hover:bg-input/30 dark:focus-visible:bg-input/30 h-8 w-16 border-transparent bg-transparent text-right shadow-none focus-visible:border dark:bg-transparent"
-          defaultValue={row.original.target}
-          id={`${row.original.id}-target`}
-        />
-      </form>
-    ),
-  },
-  {
-    accessorKey: "limit",
-    header: () => <div className="w-full text-right">Limit</div>,
-    cell: ({ row }) => (
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          toast.promise(new Promise((resolve) => setTimeout(resolve, 1000)), {
-            loading: `Saving ${row.original.header}`,
-            success: "Done",
-            error: "Error",
-          });
-        }}
-      >
-        <Label htmlFor={`${row.original.id}-limit`} className="sr-only">
-          Limit
-        </Label>
-        <Input
-          className="hover:bg-input/30 focus-visible:bg-background dark:hover:bg-input/30 dark:focus-visible:bg-input/30 h-8 w-16 border-transparent bg-transparent text-right shadow-none focus-visible:border dark:bg-transparent"
-          defaultValue={row.original.limit}
-          id={`${row.original.id}-limit`}
-        />
-      </form>
-    ),
-  },
-  {
-    accessorKey: "reviewer",
-    header: "Reviewer",
+    accessorKey: "sessionMetadata",
+    header: "Duration",
     cell: ({ row }) => {
-      const isAssigned = row.original.reviewer !== "Assign reviewer";
-
-      if (isAssigned) {
-        return row.original.reviewer;
-      }
-
-      return (
-        <>
-          <Label htmlFor={`${row.original.id}-reviewer`} className="sr-only">
-            Reviewer
-          </Label>
-          <Select>
-            <Select.Trigger
-              className="w-38 **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate"
-              size="sm"
-              id={`${row.original.id}-reviewer`}
-            >
-              <Select.Value placeholder="Assign reviewer" />
-            </Select.Trigger>
-            <Select.Content align="end">
-              <Select.Item value="Eddie Lake">Eddie Lake</Select.Item>
-              <Select.Item value="Jamik Tashpulatov">Jamik Tashpulatov</Select.Item>
-            </Select.Content>
-          </Select>
-        </>
+      const duration = row.original.sessionMetadata.totalDurationMs;
+      return duration !== undefined && duration > 0 ? (
+        <div className="text-sm">{Math.round(duration / 1000)}s</div>
+      ) : (
+        <div className="text-sm text-muted-foreground">-</div>
+      );
+    },
+  },
+  {
+    accessorKey: "interactionLogs",
+    header: "Interactions",
+    cell: ({ row }) => (
+      <Badge variant="outline" className="text-muted-foreground px-1.5">
+        {row.original.interactionLogs?.length ?? 0} logs
+      </Badge>
+    ),
+  },
+  {
+    accessorKey: "sessionMetadata.completedAt",
+    header: "Status",
+    cell: ({ row }) => {
+      const completedAt = row.original.sessionMetadata.completedAt;
+      return completedAt !== undefined ? (
+        <Badge variant="outline" className="text-green-600 px-1.5">
+          <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400 mr-1" />
+          Completed
+        </Badge>
+      ) : (
+        <Badge variant="outline" className="text-yellow-600 px-1.5">
+          <IconLoader className="mr-1" />
+          In Progress
+        </Badge>
+      );
+    },
+  },
+  {
+    accessorKey: "isTypeform",
+    header: "Source",
+    cell: ({ row }) => {
+      const isTypeform = row.original.isTypeform;
+      return isTypeform === true ? (
+        <Badge variant="outline" className="text-blue-600 px-1.5">
+          Typeform
+        </Badge>
+      ) : (
+        <Badge variant="outline" className="text-gray-600 px-1.5">
+          Web App
+        </Badge>
+      );
+    },
+  },
+  {
+    accessorKey: "primaryArtistType",
+    header: "Primary Type",
+    cell: ({ row }) => {
+      const primaryType = row.original.primaryArtistType;
+      return primaryType !== undefined && primaryType !== "" ? (
+        <ArtistTypeBadge artistType={primaryType} variant="default" />
+      ) : (
+        <div className="text-sm text-muted-foreground">-</div>
+      );
+    },
+  },
+  {
+    accessorKey: "secondaryArtistType",
+    header: "Secondary Type",
+    cell: ({ row }) => {
+      const secondaryType = row.original.secondaryArtistType;
+      return secondaryType !== undefined && secondaryType !== "" ? (
+        <ArtistTypeBadge artistType={secondaryType} variant="secondary" />
+      ) : (
+        <div className="text-sm text-muted-foreground">-</div>
       );
     },
   },
@@ -256,9 +383,8 @@ const columns: Array<ColumnDef<TableRow>> = [
           </Button>
         </DropdownMenu.Trigger>
         <DropdownMenu.Content align="end" className="w-32">
-          <DropdownMenu.Item>Edit</DropdownMenu.Item>
-          <DropdownMenu.Item>Make a copy</DropdownMenu.Item>
-          <DropdownMenu.Item>Favorite</DropdownMenu.Item>
+          <DropdownMenu.Item>View Details</DropdownMenu.Item>
+          <DropdownMenu.Item>Export</DropdownMenu.Item>
           <DropdownMenu.Separator />
           <DropdownMenu.Item variant="destructive">Delete</DropdownMenu.Item>
         </DropdownMenu.Content>
@@ -267,22 +393,9 @@ const columns: Array<ColumnDef<TableRow>> = [
   },
 ];
 
-function DraggableRow({ row }: { row: Row<TableRow> }) {
-  const { isDragging, setNodeRef, transform, transition } = DndSortable.useSortable({
-    id: row.original.id,
-  });
-
+function ResponseRow({ row }: { row: Row<TableRow> }) {
   return (
-    <Table.Row
-      ref={setNodeRef}
-      data-state={row.getIsSelected() && "selected"}
-      data-dragging={isDragging}
-      className="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80"
-      style={{
-        transform: DndUtilities.CSS.Transform.toString(transform),
-        transition,
-      }}
-    >
+    <Table.Row data-state={row.getIsSelected() && "selected"}>
       {row.getVisibleCells().map((cell) => (
         <Table.Cell key={cell.id}>
           {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -292,8 +405,7 @@ function DraggableRow({ row }: { row: Row<TableRow> }) {
   );
 }
 
-export function ResponsesTable({ data: initialData }: { data: Array<TableRow> }) {
-  const [data, setData] = React.useState(() => initialData);
+export function ResponsesTable({ data }: { data: ReadonlyArray<TableRow> }) {
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -302,20 +414,22 @@ export function ResponsesTable({ data: initialData }: { data: Array<TableRow> })
     pageIndex: 0,
     pageSize: 10,
   });
-  const sortableId = React.useId();
-  const sensors = DndCore.useSensors(
-    DndCore.useSensor(DndCore.MouseSensor, {}),
-    DndCore.useSensor(DndCore.TouchSensor, {}),
-    DndCore.useSensor(DndCore.KeyboardSensor, {}),
-  );
+  const [activeTab, setActiveTab] = React.useState("responses");
 
-  const dataIds = React.useMemo<Array<DndCore.UniqueIdentifier>>(
-    () => data.map(({ id }) => id),
-    [data],
-  );
+  // Filter data based on active tab
+  const filteredData = React.useMemo(() => {
+    switch (activeTab) {
+      case "completed":
+        return data.filter((response) => response.sessionMetadata.completedAt !== undefined);
+      case "in-progress":
+        return data.filter((response) => response.sessionMetadata.completedAt === undefined);
+      default:
+        return data;
+    }
+  }, [data, activeTab]);
 
   const table = useReactTable({
-    data,
+    data: filteredData as Array<TableRow>,
     columns,
     state: {
       sorting,
@@ -339,43 +453,53 @@ export function ResponsesTable({ data: initialData }: { data: Array<TableRow> })
     getFacetedUniqueValues: getFacetedUniqueValues(),
   });
 
-  function handleDragEnd(event: DndCore.DragEndEvent) {
-    const { active, over } = event;
-    if (active.id !== over?.id) {
-      setData((prevData) => {
-        const oldIndex = dataIds.indexOf(active.id);
-        const newIndex = dataIds.indexOf(over?.id ?? "");
-        return DndSortable.arrayMove(prevData, oldIndex, newIndex);
-      });
-    }
-  }
-
   return (
-    <Tabs defaultValue="outline" className="w-full flex-col justify-start gap-6">
+    <Tabs defaultValue="responses" className="w-full flex-col justify-start gap-6">
       <div className="flex items-center justify-between px-4 lg:px-6">
         <Label htmlFor="view-selector" className="sr-only">
           View
         </Label>
-        <Select defaultValue="outline">
+        <Select value={activeTab} onValueChange={setActiveTab}>
           <Select.Trigger className="flex w-fit @4xl/main:hidden" size="sm" id="view-selector">
             <Select.Value placeholder="Select a view" />
           </Select.Trigger>
           <Select.Content>
-            <Select.Item value="outline">Outline</Select.Item>
-            <Select.Item value="past-performance">Past Performance</Select.Item>
-            <Select.Item value="key-personnel">Key Personnel</Select.Item>
-            <Select.Item value="focus-documents">Focus Documents</Select.Item>
+            <Select.Item value="responses">All Responses</Select.Item>
+            <Select.Item value="completed">Completed</Select.Item>
+            <Select.Item value="in-progress">In Progress</Select.Item>
           </Select.Content>
         </Select>
         <Tabs.List className="**:data-[slot=badge]:bg-muted-foreground/30 hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:px-1 @4xl/main:flex">
-          <Tabs.Trigger value="outline">Outline</Tabs.Trigger>
-          <Tabs.Trigger value="past-performance">
-            Past Performance <Badge variant="secondary">3</Badge>
+          <Tabs.Trigger
+            value="responses"
+            onClick={() => {
+              setActiveTab("responses");
+            }}
+          >
+            All Responses
           </Tabs.Trigger>
-          <Tabs.Trigger value="key-personnel">
-            Key Personnel <Badge variant="secondary">2</Badge>
+          <Tabs.Trigger
+            value="completed"
+            onClick={() => {
+              setActiveTab("completed");
+            }}
+          >
+            Completed{" "}
+            <Badge variant="secondary">
+              {data.filter((r) => r.sessionMetadata.completedAt !== undefined).length}
+            </Badge>
           </Tabs.Trigger>
-          <Tabs.Trigger value="focus-documents">Focus Documents</Tabs.Trigger>
+          <Tabs.Trigger
+            value="in-progress"
+            onClick={() => {
+              setActiveTab("in-progress");
+            }}
+          >
+            In Progress{" "}
+            <Badge variant="secondary">
+              {data.filter((r) => r.sessionMetadata.completedAt === undefined).length}
+            </Badge>
+          </Tabs.Trigger>
         </Tabs.List>
         <div className="flex items-center gap-2">
           <DropdownMenu>
@@ -409,58 +533,43 @@ export function ResponsesTable({ data: initialData }: { data: Array<TableRow> })
           </DropdownMenu>
           <Button variant="outline" size="sm">
             <IconPlus />
-            <span className="hidden lg:inline">Add Section</span>
+            <span className="hidden lg:inline">Export Data</span>
           </Button>
         </div>
       </div>
       <Tabs.Content
-        value="outline"
+        value={activeTab}
         className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6"
       >
         <div className="overflow-hidden rounded-lg border">
-          <DndCore.DndContext
-            collisionDetection={DndCore.closestCenter}
-            modifiers={[DndModifiers.restrictToVerticalAxis]}
-            onDragEnd={handleDragEnd}
-            sensors={sensors}
-            id={sortableId}
-          >
-            <Table>
-              <Table.Header className="bg-muted sticky top-0 z-10">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <Table.Row key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => {
-                      return (
-                        <Table.Head key={header.id} colSpan={header.colSpan}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(header.column.columnDef.header, header.getContext())}
-                        </Table.Head>
-                      );
-                    })}
-                  </Table.Row>
-                ))}
-              </Table.Header>
-              <Table.Body className="**:data-[slot=table-cell]:first:w-8">
-                {table.getRowModel().rows.length > 0 ? (
-                  <DndSortable.SortableContext
-                    items={dataIds}
-                    strategy={DndSortable.verticalListSortingStrategy}
-                  >
-                    {table.getRowModel().rows.map((row) => (
-                      <DraggableRow key={row.id} row={row} />
-                    ))}
-                  </DndSortable.SortableContext>
-                ) : (
-                  <Table.Row>
-                    <Table.Cell colSpan={columns.length} className="h-24 text-center">
-                      No results.
-                    </Table.Cell>
-                  </Table.Row>
-                )}
-              </Table.Body>
-            </Table>
-          </DndCore.DndContext>
+          <Table>
+            <Table.Header className="bg-muted sticky top-0 z-10">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <Table.Row key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <Table.Head key={header.id} colSpan={header.colSpan}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
+                      </Table.Head>
+                    );
+                  })}
+                </Table.Row>
+              ))}
+            </Table.Header>
+            <Table.Body>
+              {table.getRowModel().rows.length > 0 ? (
+                table.getRowModel().rows.map((row) => <ResponseRow key={row.id} row={row} />)
+              ) : (
+                <Table.Row>
+                  <Table.Cell colSpan={columns.length} className="h-24 text-center">
+                    No responses found.
+                  </Table.Cell>
+                </Table.Row>
+              )}
+            </Table.Body>
+          </Table>
         </div>
         <div className="flex items-center justify-between px-4">
           <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
@@ -545,190 +654,6 @@ export function ResponsesTable({ data: initialData }: { data: Array<TableRow> })
           </div>
         </div>
       </Tabs.Content>
-      <Tabs.Content value="past-performance" className="flex flex-col px-4 lg:px-6">
-        <div className="aspect-video w-full flex-1 rounded-lg border border-dashed"></div>
-      </Tabs.Content>
-      <Tabs.Content value="key-personnel" className="flex flex-col px-4 lg:px-6">
-        <div className="aspect-video w-full flex-1 rounded-lg border border-dashed"></div>
-      </Tabs.Content>
-      <Tabs.Content value="focus-documents" className="flex flex-col px-4 lg:px-6">
-        <div className="aspect-video w-full flex-1 rounded-lg border border-dashed"></div>
-      </Tabs.Content>
     </Tabs>
-  );
-}
-
-const chartData = [
-  { month: "January", desktop: 186, mobile: 80 },
-  { month: "February", desktop: 305, mobile: 200 },
-  { month: "March", desktop: 237, mobile: 120 },
-  { month: "April", desktop: 73, mobile: 190 },
-  { month: "May", desktop: 209, mobile: 130 },
-  { month: "June", desktop: 214, mobile: 140 },
-];
-
-const chartConfig = {
-  desktop: {
-    label: "Desktop",
-    color: "var(--primary)",
-  },
-  mobile: {
-    label: "Mobile",
-    color: "var(--primary)",
-  },
-} satisfies ChartConfig;
-
-function TableCellViewer({ item }: { item: TableRow }) {
-  const [isMobile, setIsMobile] = React.useState(false);
-
-  React.useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => {
-      window.removeEventListener("resize", checkMobile);
-    };
-  }, []);
-
-  return (
-    <Sheet>
-      <Sheet.Trigger asChild>
-        <Button variant="link" className="text-foreground w-fit px-0 text-left">
-          {item.header}
-        </Button>
-      </Sheet.Trigger>
-      <Sheet.Content>
-        <Sheet.Header className="gap-1">
-          <Sheet.Title>{item.header}</Sheet.Title>
-          <Sheet.Description>Showing total visitors for the last 6 months</Sheet.Description>
-        </Sheet.Header>
-        <div className="flex flex-col gap-4 overflow-y-auto px-4 text-sm">
-          {!isMobile && (
-            <>
-              <ChartContainer config={chartConfig}>
-                <AreaChart
-                  accessibilityLayer
-                  data={chartData}
-                  margin={{
-                    left: 0,
-                    right: 10,
-                  }}
-                >
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    tickFormatter={(value) => {
-                      return String(value).slice(0, 3);
-                    }}
-                    hide
-                  />
-                  <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                  <Area
-                    dataKey="mobile"
-                    type="natural"
-                    fill="var(--color-mobile)"
-                    fillOpacity={0.6}
-                    stroke="var(--color-mobile)"
-                    stackId="a"
-                  />
-                  <Area
-                    dataKey="desktop"
-                    type="natural"
-                    fill="var(--color-desktop)"
-                    fillOpacity={0.4}
-                    stroke="var(--color-desktop)"
-                    stackId="a"
-                  />
-                </AreaChart>
-              </ChartContainer>
-              <Separator />
-              <div className="grid gap-2">
-                <div className="flex gap-2 leading-none font-medium">
-                  Trending up by 5.2% this month <IconTrendingUp className="size-4" />
-                </div>
-                <div className="text-muted-foreground">
-                  Showing total visitors for the last 6 months. This is just some random text to
-                  test the layout. It spans multiple lines and should wrap around.
-                </div>
-              </div>
-              <Separator />
-            </>
-          )}
-          <form className="flex flex-col gap-4">
-            <div className="flex flex-col gap-3">
-              <Label htmlFor="header">Header</Label>
-              <Input id="header" defaultValue={item.header} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="type">Type</Label>
-                <Select defaultValue={item.type}>
-                  <Select.Trigger id="type" className="w-full">
-                    <Select.Value placeholder="Select a type" />
-                  </Select.Trigger>
-                  <Select.Content>
-                    <Select.Item value="Table of Contents">Table of Contents</Select.Item>
-                    <Select.Item value="Executive Summary">Executive Summary</Select.Item>
-                    <Select.Item value="Technical Approach">Technical Approach</Select.Item>
-                    <Select.Item value="Design">Design</Select.Item>
-                    <Select.Item value="Capabilities">Capabilities</Select.Item>
-                    <Select.Item value="Focus Documents">Focus Documents</Select.Item>
-                    <Select.Item value="Narrative">Narrative</Select.Item>
-                    <Select.Item value="Cover Page">Cover Page</Select.Item>
-                  </Select.Content>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="status">Status</Label>
-                <Select defaultValue={item.status}>
-                  <Select.Trigger id="status" className="w-full">
-                    <Select.Value placeholder="Select a status" />
-                  </Select.Trigger>
-                  <Select.Content>
-                    <Select.Item value="Done">Done</Select.Item>
-                    <Select.Item value="In Progress">In Progress</Select.Item>
-                    <Select.Item value="Not Started">Not Started</Select.Item>
-                  </Select.Content>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="target">Target</Label>
-                <Input id="target" defaultValue={item.target} />
-              </div>
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="limit">Limit</Label>
-                <Input id="limit" defaultValue={item.limit} />
-              </div>
-            </div>
-            <div className="flex flex-col gap-3">
-              <Label htmlFor="reviewer">Reviewer</Label>
-              <Select defaultValue={item.reviewer}>
-                <Select.Trigger id="reviewer" className="w-full">
-                  <Select.Value placeholder="Select a reviewer" />
-                </Select.Trigger>
-                <Select.Content>
-                  <Select.Item value="Eddie Lake">Eddie Lake</Select.Item>
-                  <Select.Item value="Jamik Tashpulatov">Jamik Tashpulatov</Select.Item>
-                  <Select.Item value="Emily Whalen">Emily Whalen</Select.Item>
-                </Select.Content>
-              </Select>
-            </div>
-          </form>
-        </div>
-        <Sheet.Footer>
-          <Button>Submit</Button>
-          <Sheet.Close asChild>
-            <Button variant="outline">Done</Button>
-          </Sheet.Close>
-        </Sheet.Footer>
-      </Sheet.Content>
-    </Sheet>
   );
 }

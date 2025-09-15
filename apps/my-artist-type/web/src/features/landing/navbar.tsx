@@ -11,7 +11,7 @@ import {
   NavBody,
   NavItems,
 } from "@ui/aceternity";
-import { ModeToggle } from "@ui/shadcn";
+import { ModeToggle, Tooltip } from "@ui/shadcn";
 import { useState, type ReactNode } from "react";
 
 export function NavbarHome({ children }: { children?: ReactNode }) {
@@ -41,7 +41,18 @@ export function NavbarHome({ children }: { children?: ReactNode }) {
           <NavbarLogo />
           <NavItems items={navItems} />
           <div className="flex items-center gap-4">
-            <NavbarButton variant="secondary">Login</NavbarButton>
+            <Tooltip>
+              <Tooltip.Trigger asChild>
+                <NavbarButton
+                  variant="secondary"
+                  disabled
+                  className="opacity-50 cursor-not-allowed"
+                >
+                  Login
+                </NavbarButton>
+              </Tooltip.Trigger>
+              <Tooltip.Content>Authentication is disabled right now</Tooltip.Content>
+            </Tooltip>
             <NavbarButton variant="primary">Take the Quiz!</NavbarButton>
             <div className="relative z-[70]">
               <ModeToggle theme={theme} setTheme={setTheme} />
@@ -80,15 +91,21 @@ export function NavbarHome({ children }: { children?: ReactNode }) {
               </a>
             ))}
             <div className="flex w-full flex-col gap-4">
-              <NavbarButton
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                }}
-                variant="primary"
-                className="w-full"
-              >
-                Login
-              </NavbarButton>
+              <Tooltip>
+                <Tooltip.Trigger asChild>
+                  <NavbarButton
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                    }}
+                    variant="primary"
+                    className="w-full opacity-50 cursor-not-allowed"
+                    disabled
+                  >
+                    Login
+                  </NavbarButton>
+                </Tooltip.Trigger>
+                <Tooltip.Content>Authentication is disabled right now</Tooltip.Content>
+              </Tooltip>
               <NavbarButton
                 onClick={() => {
                   setIsMobileMenuOpen(false);

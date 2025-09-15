@@ -5,7 +5,6 @@ import {
   IconChartBar,
   IconDashboard,
   IconFileText,
-  IconHelp,
   IconSettings,
   IconUsers,
 } from "@tabler/icons-react";
@@ -39,11 +38,15 @@ const adminData = {
       title: "Users",
       url: "/admin/users",
       icon: IconUsers,
+      disabled: true,
+      tooltip: "Authentication is disabled right now",
     },
     {
-      title: "Organizations",
+      title: "Organization",
       url: "/admin/organizations",
       icon: IconBuilding,
+      disabled: true,
+      tooltip: "Authentication is disabled right now",
     },
   ],
   navSecondary: [
@@ -51,11 +54,8 @@ const adminData = {
       title: "Settings",
       url: "/admin/settings",
       icon: IconSettings,
-    },
-    {
-      title: "Help & Support",
-      url: "/admin/help",
-      icon: IconHelp,
+      disabled: true,
+      tooltip: "Authentication is disabled right now",
     },
   ],
 };
@@ -67,9 +67,15 @@ export function AdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>)
         <Sidebar.Menu>
           <Sidebar.MenuItem>
             <Sidebar.MenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
-              <a href="/admin">
-                <IconBuilding className="!size-5" />
-                <span className="text-base font-semibold">Admin Panel</span>
+              <a href="/">
+                <img
+                  src="/svgs/MyArtistTypeLogo.svg"
+                  alt="My Artist Type Logo"
+                  width={24}
+                  height={24}
+                  className="dark:brightness-0 dark:invert"
+                />
+                <span className="text-base font-semibold">My Artist Type</span>
               </a>
             </Sidebar.MenuButton>
           </Sidebar.MenuItem>

@@ -5,7 +5,7 @@ import { BarChart3Icon, CheckCircleIcon, ClockIcon, UsersIcon } from "lucide-rea
 import React from "react";
 
 type ResponseStatsCardsProps = {
-  responsesResult: Result.Result<Array<QuizResponse>, unknown>;
+  responsesResult: Result.Result<ReadonlyArray<QuizResponse>, unknown>;
 };
 
 // Response Statistics Cards Component

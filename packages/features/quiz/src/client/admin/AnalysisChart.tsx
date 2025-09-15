@@ -1,9 +1,15 @@
 "use client";
 
+import { Result, useAtom } from "@effect-atom/atom-react";
 import { TrendingUpIcon } from "lucide-react";
 import * as React from "react";
 import { Label, Pie, PieChart } from "recharts";
 
+import {
+  artistColors,
+  endingNameToArtistType,
+} from "@features/quiz/client/components/artist-type/artist-data-utils";
+import type { AnalysisResult } from "@features/quiz/domain";
 import {
   Card,
   ChartContainer,
@@ -11,19 +17,37 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@ui/shadcn";
+import { allAnalysisAtom } from "../analysis/analysis-atoms.js";
 
-const chartData = [
-  { type: "visionary", count: 45, fill: "var(--chart-1)" },
-  { type: "consummate", count: 38, fill: "var(--chart-2)" },
-  { type: "analyzer", count: 52, fill: "var(--chart-3)" },
-  { type: "tech", count: 29, fill: "var(--chart-4)" },
-  { type: "entertainer", count: 41, fill: "var(--chart-5)" },
-  { type: "maverick", count: 33, fill: "var(--chart-1)" },
-  { type: "dreamer", count: 47, fill: "var(--chart-2)" },
-  { type: "feeler", count: 35, fill: "var(--chart-3)" },
-  { type: "tortured", count: 28, fill: "var(--chart-4)" },
-  { type: "solo", count: 31, fill: "var(--chart-5)" },
-];
+// Create a reverse mapping from endingId to full artist names
+const createEndingIdToFullNameMapping = (): Record<string, string> => {
+  const mapping: Record<string, string> = {};
+
+  // Create the reverse mapping from the existing endingNameToArtistType
+  Object.keys(endingNameToArtistType).forEach((fullName) => {
+    // Convert "The Visionary Artist" to "the-visionary-artist"
+    const endingId = fullName.toLowerCase().replace(/\s+/g, "-");
+    mapping[endingId] = fullName;
+  });
+
+  return mapping;
+};
+
+// Helper function to get the primary artist type from analysis results
+const getPrimaryArtistType = (
+  endingResults: ReadonlyArray<{ endingId: string; points: number; percentage: number }>,
+) => {
+  if (endingResults.length === 0) return null;
+
+  // Find the result with the highest points
+  const primaryResult = endingResults.reduce((prev, current) =>
+    current.points > prev.points ? current : prev,
+  );
+
+  // Map endingId to full name
+  const endingIdToFullName = createEndingIdToFullNameMapping();
+  return endingIdToFullName[primaryResult.endingId] ?? primaryResult.endingId;
+};
 
 const chartConfig = {
   count: {
@@ -31,50 +55,94 @@ const chartConfig = {
   },
   visionary: {
     label: "Visionary",
-    color: "var(--chart-1)",
+    color: "var(--artist-visionary)",
   },
   consummate: {
     label: "Consummate",
-    color: "var(--chart-2)",
+    color: "var(--artist-consummate)",
   },
   analyzer: {
     label: "Analyzer",
-    color: "var(--chart-3)",
+    color: "var(--artist-analyzer)",
   },
   tech: {
     label: "Tech",
-    color: "var(--chart-4)",
+    color: "var(--artist-tech)",
   },
   entertainer: {
     label: "Entertainer",
-    color: "var(--chart-5)",
+    color: "var(--artist-entertainer)",
   },
   maverick: {
     label: "Maverick",
-    color: "var(--chart-1)",
+    color: "var(--artist-maverick)",
   },
   dreamer: {
     label: "Dreamer",
-    color: "var(--chart-2)",
+    color: "var(--artist-dreamer)",
   },
   feeler: {
     label: "Feeler",
-    color: "var(--chart-3)",
+    color: "var(--artist-feeler)",
   },
   tortured: {
     label: "Tortured",
-    color: "var(--chart-4)",
+    color: "var(--artist-tortured)",
   },
   solo: {
     label: "Solo",
-    color: "var(--chart-5)",
+    color: "var(--artist-solo)",
   },
 } satisfies ChartConfig;
 
 export function AnalysisChart() {
+  const [analysisResult] = useAtom(allAnalysisAtom);
+
+  const chartData = React.useMemo(() => {
+    if (!Result.isSuccess(analysisResult)) {
+      return [];
+    }
+
+    const analyses = analysisResult.value;
+
+    // Count artist types from the most recent analysis for each response
+    const artistTypeCounts: Record<string, number> = {};
+
+    analyses.forEach((analysis: AnalysisResult) => {
+      const primaryArtistType = getPrimaryArtistType(analysis.endingResults);
+      if (primaryArtistType !== null) {
+        const artistType = endingNameToArtistType[primaryArtistType];
+        if (artistType !== undefined) {
+          artistTypeCounts[artistType] = (artistTypeCounts[artistType] ?? 0) + 1;
+        }
+      }
+    });
+
+    // Convert to chart data format
+    return Object.entries(artistTypeCounts).map(([artistType, count]) => ({
+      type: artistType.toLowerCase(),
+      count,
+      fill: artistColors[artistType as keyof typeof artistColors],
+    }));
+  }, [analysisResult]);
+
   const totalAnalyses = React.useMemo(() => {
     return chartData.reduce((acc, curr) => acc + curr.count, 0);
-  }, []);
+  }, [chartData]);
+
+  if (!Result.isSuccess(analysisResult)) {
+    return (
+      <Card className="flex flex-col w-full h-full">
+        <Card.Header className="items-center pb-0">
+          <Card.Title>Artist Type Analysis</Card.Title>
+          <Card.Description>Loading analysis data...</Card.Description>
+        </Card.Header>
+        <Card.Content className="flex-1 flex items-center justify-center">
+          <div className="text-muted-foreground">Loading...</div>
+        </Card.Content>
+      </Card>
+    );
+  }
 
   return (
     <Card className="flex flex-col w-full h-full">
@@ -92,8 +160,13 @@ export function AnalysisChart() {
             <Pie data={chartData} dataKey="count" nameKey="type" innerRadius={60} strokeWidth={5}>
               <Label
                 content={({ viewBox }) => {
-                  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/no-non-null-assertion
-                  if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                  if (
+                    viewBox &&
+                    typeof viewBox === "object" &&
+                    "cx" in viewBox &&
+                    "cy" in viewBox
+                  ) {
                     return (
                       <text
                         x={viewBox.cx}
@@ -113,7 +186,7 @@ export function AnalysisChart() {
                           y={(viewBox.cy ?? 0) + 24}
                           className="fill-muted-foreground"
                         >
-                          Analyses
+                          Responses
                         </tspan>
                       </text>
                     );
@@ -127,10 +200,10 @@ export function AnalysisChart() {
       </Card.Content>
       <Card.Footer className="flex-col gap-2 text-sm">
         <div className="flex items-center gap-2 leading-none font-medium">
-          Trending up by 12.3% this month <TrendingUpIcon className="h-4 w-4" />
+          Real-time analysis data <TrendingUpIcon className="h-4 w-4" />
         </div>
         <div className="text-muted-foreground leading-none">
-          Showing analysis distribution across all artist types
+          Showing analysis distribution from {totalAnalyses} responses
         </div>
       </Card.Footer>
     </Card>

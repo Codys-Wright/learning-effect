@@ -6,7 +6,6 @@ import { BackgroundWrapper } from "./background-wrapper";
 
 export function HeroSectionWithBeamsAndGrid() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const parentRef = useRef<HTMLDivElement>(null);
 
   const generateFakeData = (): Array<ArtistData> => {
     const base: Array<Omit<ArtistData, "percentage" | "points">> = [
@@ -109,7 +108,7 @@ export function HeroSectionWithBeamsAndGrid() {
               </div>
             </Balancer>
           </h2>
-          <p className="relative z-50 mt-4 max-w-xl text-center text-base/6 text-gray-600 lg:text-left dark:text-gray-200">
+          <p className="relative z-50 mt-4 max-w-xl text-center text-base/6 text-gray-600 lg:text-left dark:text-gray-200 italic">
             "Knowing yourself is the beginning of all wisdom." - Aristotle
           </p>
           <div className="mb-10 mt-8 flex w-full flex-col items-center justify-center gap-4 sm:flex-row md:mb-20 lg:justify-start">

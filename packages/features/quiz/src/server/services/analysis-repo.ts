@@ -135,6 +135,62 @@ export class AnalysisRepo extends Effect.Service<AnalysisRepo>()("AnalysisRepo",
       `,
     });
 
+    const insert = SqlSchema.single({
+      Result: AnalysisResult,
+      Request: Schema.Struct({
+        id: Schema.optional(AnalysisResultId),
+        engineId: AnalysisEngineId,
+        engineSlug: Schema.String,
+        engineVersion: Schema.String,
+        responseId: ResponseId,
+        endingResults: Schema.parseJson(Schema.Array(Schema.Any)),
+        metadata: Schema.optional(Schema.NullOr(Schema.parseJson(Schema.Any))),
+        analyzedAt: Schema.String,
+        createdAt: Schema.optional(Schema.String),
+      }),
+      execute: (request) => {
+        const { createdAt, ...insertData } = request;
+        if (createdAt) {
+          return sql`
+            INSERT INTO
+              analysis_results (
+                id,
+                engine_id,
+                engine_slug,
+                engine_version,
+                response_id,
+                ending_results,
+                metadata,
+                analyzed_at,
+                created_at,
+                updated_at
+              )
+            VALUES
+              (
+                ${insertData.id ?? null},
+                ${insertData.engineId},
+                ${insertData.engineSlug},
+                ${insertData.engineVersion},
+                ${insertData.responseId},
+                ${insertData.endingResults},
+                ${insertData.metadata ?? null},
+                ${insertData.analyzedAt},
+                ${createdAt},
+                ${createdAt}
+              )
+            RETURNING
+              *
+          `;
+        }
+        return sql`
+          INSERT INTO
+            analysis_results ${sql.insert(insertData)}
+          RETURNING
+            *
+        `;
+      },
+    });
+
     const update = SqlSchema.single({
       Result: AnalysisResult,
       Request: UpdateAnalysisResultInput,
@@ -260,6 +316,9 @@ export class AnalysisRepo extends Effect.Service<AnalysisRepo>()("AnalysisRepo",
 
       // create: If it fails, crash the program - creation should always work with valid input
       create: flow(create, Effect.orDie),
+
+      // insert: Insert with custom createdAt timestamp (for seeding)
+      insert: flow(insert, Effect.orDie),
     } as const;
   }),
 }) {}

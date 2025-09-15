@@ -76,6 +76,56 @@ export class ResponsesRepo extends Effect.Service<ResponsesRepo>()("ResponsesRep
       `,
     });
 
+    const insert = SqlSchema.single({
+      Result: QuizResponse,
+      Request: Schema.Struct({
+        id: Schema.optional(ResponseId),
+        quizId: QuizId,
+        answers: Schema.optional(Schema.parseJson(Schema.Array(Schema.Any))),
+        sessionMetadata: Schema.parseJson(Schema.Any),
+        interactionLogs: Schema.optional(Schema.parseJson(Schema.Array(Schema.Any))),
+        metadata: Schema.optional(Schema.NullOr(Schema.parseJson(Schema.Any))),
+        createdAt: Schema.optional(Schema.String),
+      }),
+      execute: (request) => {
+        const { createdAt, ...insertData } = request;
+        if (createdAt) {
+          return sql`
+            INSERT INTO
+              responses (
+                id,
+                quiz_id,
+                answers,
+                session_metadata,
+                interaction_logs,
+                metadata,
+                created_at,
+                updated_at
+              )
+            VALUES
+              (
+                ${insertData.id ?? null},
+                ${insertData.quizId},
+                ${insertData.answers ?? null},
+                ${insertData.sessionMetadata},
+                ${insertData.interactionLogs ?? null},
+                ${insertData.metadata ?? null},
+                ${createdAt},
+                ${createdAt}
+              )
+            RETURNING
+              *
+          `;
+        }
+        return sql`
+          INSERT INTO
+            responses ${sql.insert(insertData)}
+          RETURNING
+            *
+        `;
+      },
+    });
+
     const update = SqlSchema.single({
       Result: QuizResponse,
       Request: UpdateResponseInput,
@@ -181,6 +231,9 @@ export class ResponsesRepo extends Effect.Service<ResponsesRepo>()("ResponsesRep
 
       // create: If it fails, crash the program - creation should always work with valid input
       create: flow(create, Effect.orDie),
+
+      // insert: Insert with custom createdAt timestamp (for seeding)
+      insert: flow(insert, Effect.orDie),
     } as const;
   }),
 }) {}

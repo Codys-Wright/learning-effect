@@ -1,46 +1,51 @@
 "use client";
 
-import { IconCirclePlusFilled, IconMail, type Icon } from "@tabler/icons-react";
+import { IconCirclePlusFilled, type Icon } from "@tabler/icons-react";
 
-import { Button } from "@/components/ui/button";
 import { Sidebar } from "./sidebar";
 
 export function NavMain({
   items,
 }: {
-  items: {
+  items: Array<{
     title: string;
     url: string;
     icon?: Icon;
-  }[];
+    disabled?: boolean;
+    tooltip?: string;
+  }>;
 }) {
   return (
     <Sidebar.Group>
       <Sidebar.GroupContent className="flex flex-col gap-2">
         <Sidebar.Menu>
-          <Sidebar.MenuItem className="flex items-center gap-2">
+          <Sidebar.MenuItem>
             <Sidebar.MenuButton
-              tooltip="Quick Create"
+              tooltip="Quiz Editor"
               className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground min-w-8 duration-200 ease-linear"
             >
               <IconCirclePlusFilled />
-              <span>Quick Create</span>
+              <span>Quiz Editor</span>
             </Sidebar.MenuButton>
-            <Button
-              size="icon"
-              className="size-8 group-data-[collapsible=icon]:opacity-0"
-              variant="outline"
-            >
-              <IconMail />
-              <span className="sr-only">Inbox</span>
-            </Button>
           </Sidebar.MenuItem>
         </Sidebar.Menu>
         <Sidebar.Menu>
           {items.map((item) => (
             <Sidebar.MenuItem key={item.title}>
-              <Sidebar.MenuButton tooltip={item.title}>
-                {item.icon && <item.icon />}
+              <Sidebar.MenuButton
+                tooltip={item.tooltip ?? item.title}
+                className={
+                  item.disabled === true ? "opacity-50 cursor-not-allowed pointer-events-auto" : ""
+                }
+                onClick={
+                  item.disabled === true
+                    ? (e) => {
+                        e.preventDefault();
+                      }
+                    : undefined
+                }
+              >
+                {item.icon !== undefined && <item.icon />}
                 <span>{item.title}</span>
               </Sidebar.MenuButton>
             </Sidebar.MenuItem>

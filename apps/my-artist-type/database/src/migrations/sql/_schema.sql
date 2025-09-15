@@ -58,7 +58,7 @@ CREATE TABLE public.quizzes (
     version text NOT NULL,
     slug text NOT NULL,
     title text NOT NULL,
-    subtitle text NOT NULL,
+    subtitle text,
     description text,
     questions jsonb DEFAULT '[]'::jsonb NOT NULL,
     metadata jsonb,
@@ -190,10 +190,10 @@ ALTER TABLE ONLY public.analysis_results
 ALTER TABLE ONLY public.responses
     ADD CONSTRAINT responses_quiz_id_fkey FOREIGN KEY (quiz_id) REFERENCES public.quizzes(id);
 
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (1, '2025-08-24 22:20:03.521673+00', 'create-styles_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (2, '2025-08-24 22:20:03.521673+00', 'create-tests_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (3, '2025-08-24 22:20:03.521673+00', 'create-examples_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (4, '2025-08-24 22:20:03.521673+00', 'create-quizzes_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (5, '2025-09-12 20:23:17.291731+00', 'create_responses_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (6, '2025-09-12 20:23:17.291731+00', 'create_analysis_engines_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (7, '2025-09-12 20:23:17.291731+00', 'create_analysis_results_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (1, '2025-09-15 10:58:17.181147+00', 'create-styles_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (2, '2025-09-15 10:58:17.181147+00', 'create-tests_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (3, '2025-09-15 10:58:17.181147+00', 'create-examples_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (4, '2025-09-15 10:58:17.181147+00', 'create-quizzes_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (5, '2025-09-15 10:58:17.181147+00', 'create_responses_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (6, '2025-09-15 10:58:17.181147+00', 'create_analysis_engines_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (7, '2025-09-15 10:58:17.181147+00', 'create_analysis_results_table');

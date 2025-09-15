@@ -1,7 +1,10 @@
-import { Result } from "@effect-atom/atom-react";
+import { useAtomValue } from "@effect-atom/atom-react";
 import {
   AdminSidebar,
+  allAnalysisAtom,
   AnalysisChart,
+  combineResponseWithAnalysis,
+  responsesAtom,
   ResponsesOverTimeChart,
   ResponsesTable,
   ResponseStatsCards,
@@ -10,58 +13,18 @@ import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { SidebarInset, SidebarProvider } from "@ui/shadcn";
 import React from "react";
 
-// Mock data for the responses table
-const mockTableData = [
-  {
-    id: 1,
-    header: "Executive Summary",
-    type: "Executive Summary",
-    status: "Done",
-    target: "500",
-    limit: "1000",
-    reviewer: "Eddie Lake",
-  },
-  {
-    id: 2,
-    header: "Technical Approach",
-    type: "Technical Approach",
-    status: "In Progress",
-    target: "800",
-    limit: "1200",
-    reviewer: "Jamik Tashpulatov",
-  },
-  {
-    id: 3,
-    header: "Design Specifications",
-    type: "Design",
-    status: "Not Started",
-    target: "300",
-    limit: "600",
-    reviewer: "Assign reviewer",
-  },
-  {
-    id: 4,
-    header: "Capabilities Overview",
-    type: "Capabilities",
-    status: "Done",
-    target: "400",
-    limit: "800",
-    reviewer: "Emily Whalen",
-  },
-  {
-    id: 5,
-    header: "Focus Documents",
-    type: "Focus Documents",
-    status: "In Progress",
-    target: "600",
-    limit: "1000",
-    reviewer: "Eddie Lake",
-  },
-];
-
 const AdminLayout: React.FC = () => {
-  // Simple mock data for demonstration - using empty array for now
-  const mockResponsesResult = Result.success([]);
+  // Get actual responses data from the atom
+  const responsesResult = useAtomValue(responsesAtom);
+  const analysisResult = useAtomValue(allAnalysisAtom);
+
+  // Combine response and analysis data
+  const combinedData = React.useMemo(() => {
+    if (responsesResult._tag === "Success" && analysisResult._tag === "Success") {
+      return combineResponseWithAnalysis(responsesResult.value, analysisResult.value);
+    }
+    return [] as const;
+  }, [responsesResult, analysisResult]);
 
   return (
     <SidebarProvider defaultOpen={true}>
@@ -74,10 +37,10 @@ const AdminLayout: React.FC = () => {
                 <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
               </div>
 
-              {/* Demo ResponseStatsCards */}
+              {/* Response Statistics */}
               <div className="px-4 lg:px-6">
                 <h2 className="text-xl font-semibold mb-4">Response Statistics</h2>
-                <ResponseStatsCards responsesResult={mockResponsesResult} />
+                <ResponseStatsCards responsesResult={responsesResult} />
               </div>
 
               {/* Charts Section */}
@@ -98,7 +61,13 @@ const AdminLayout: React.FC = () => {
               {/* Responses Table */}
               <div className="px-4 lg:px-6">
                 <h2 className="text-xl font-semibold mb-4">Recent Responses</h2>
-                <ResponsesTable data={mockTableData} />
+                {responsesResult._tag === "Success" && analysisResult._tag === "Success" ? (
+                  <ResponsesTable data={combinedData} />
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Loading responses and analysis data...
+                  </div>
+                )}
               </div>
 
               <Outlet />

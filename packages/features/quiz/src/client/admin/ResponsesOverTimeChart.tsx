@@ -1,5 +1,6 @@
 "use client";
 
+import { Result, useAtom } from "@effect-atom/atom-react";
 import * as React from "react";
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 
@@ -13,100 +14,14 @@ import {
   ToggleGroupItem,
   type ChartConfig,
 } from "@ui/shadcn";
+import { responsesAtom } from "../responses-atoms.js";
 
-const chartData = [
-  { date: "2024-04-01", completed: 45, inProgress: 12, notStarted: 8 },
-  { date: "2024-04-02", completed: 52, inProgress: 15, notStarted: 6 },
-  { date: "2024-04-03", completed: 48, inProgress: 18, notStarted: 9 },
-  { date: "2024-04-04", completed: 61, inProgress: 14, notStarted: 7 },
-  { date: "2024-04-05", completed: 67, inProgress: 16, notStarted: 5 },
-  { date: "2024-04-06", completed: 73, inProgress: 12, notStarted: 8 },
-  { date: "2024-04-07", completed: 69, inProgress: 19, notStarted: 6 },
-  { date: "2024-04-08", completed: 78, inProgress: 15, notStarted: 4 },
-  { date: "2024-04-09", completed: 82, inProgress: 11, notStarted: 7 },
-  { date: "2024-04-10", completed: 85, inProgress: 13, notStarted: 5 },
-  { date: "2024-04-11", completed: 89, inProgress: 17, notStarted: 6 },
-  { date: "2024-04-12", completed: 92, inProgress: 14, notStarted: 8 },
-  { date: "2024-04-13", completed: 95, inProgress: 16, notStarted: 4 },
-  { date: "2024-04-14", completed: 88, inProgress: 20, notStarted: 7 },
-  { date: "2024-04-15", completed: 91, inProgress: 18, notStarted: 5 },
-  { date: "2024-04-16", completed: 94, inProgress: 15, notStarted: 6 },
-  { date: "2024-04-17", completed: 97, inProgress: 13, notStarted: 8 },
-  { date: "2024-04-18", completed: 101, inProgress: 16, notStarted: 4 },
-  { date: "2024-04-19", completed: 98, inProgress: 19, notStarted: 7 },
-  { date: "2024-04-20", completed: 103, inProgress: 14, notStarted: 5 },
-  { date: "2024-04-21", completed: 106, inProgress: 17, notStarted: 6 },
-  { date: "2024-04-22", completed: 109, inProgress: 15, notStarted: 8 },
-  { date: "2024-04-23", completed: 112, inProgress: 18, notStarted: 4 },
-  { date: "2024-04-24", completed: 115, inProgress: 12, notStarted: 7 },
-  { date: "2024-04-25", completed: 118, inProgress: 16, notStarted: 5 },
-  { date: "2024-04-26", completed: 121, inProgress: 14, notStarted: 6 },
-  { date: "2024-04-27", completed: 124, inProgress: 19, notStarted: 8 },
-  { date: "2024-04-28", completed: 127, inProgress: 13, notStarted: 4 },
-  { date: "2024-04-29", completed: 130, inProgress: 17, notStarted: 7 },
-  { date: "2024-04-30", completed: 133, inProgress: 15, notStarted: 5 },
-  { date: "2024-05-01", completed: 136, inProgress: 18, notStarted: 6 },
-  { date: "2024-05-02", completed: 139, inProgress: 14, notStarted: 8 },
-  { date: "2024-05-03", completed: 142, inProgress: 16, notStarted: 4 },
-  { date: "2024-05-04", completed: 145, inProgress: 20, notStarted: 7 },
-  { date: "2024-05-05", completed: 148, inProgress: 12, notStarted: 5 },
-  { date: "2024-05-06", completed: 151, inProgress: 15, notStarted: 6 },
-  { date: "2024-05-07", completed: 154, inProgress: 19, notStarted: 8 },
-  { date: "2024-05-08", completed: 157, inProgress: 13, notStarted: 4 },
-  { date: "2024-05-09", completed: 160, inProgress: 17, notStarted: 7 },
-  { date: "2024-05-10", completed: 163, inProgress: 14, notStarted: 5 },
-  { date: "2024-05-11", completed: 166, inProgress: 18, notStarted: 6 },
-  { date: "2024-05-12", completed: 169, inProgress: 16, notStarted: 8 },
-  { date: "2024-05-13", completed: 172, inProgress: 12, notStarted: 4 },
-  { date: "2024-05-14", completed: 175, inProgress: 15, notStarted: 7 },
-  { date: "2024-05-15", completed: 178, inProgress: 19, notStarted: 5 },
-  { date: "2024-05-16", completed: 181, inProgress: 13, notStarted: 6 },
-  { date: "2024-05-17", completed: 184, inProgress: 17, notStarted: 8 },
-  { date: "2024-05-18", completed: 187, inProgress: 14, notStarted: 4 },
-  { date: "2024-05-19", completed: 190, inProgress: 18, notStarted: 7 },
-  { date: "2024-05-20", completed: 193, inProgress: 16, notStarted: 5 },
-  { date: "2024-05-21", completed: 196, inProgress: 12, notStarted: 6 },
-  { date: "2024-05-22", completed: 199, inProgress: 15, notStarted: 8 },
-  { date: "2024-05-23", completed: 202, inProgress: 19, notStarted: 4 },
-  { date: "2024-05-24", completed: 205, inProgress: 13, notStarted: 7 },
-  { date: "2024-05-25", completed: 208, inProgress: 17, notStarted: 5 },
-  { date: "2024-05-26", completed: 211, inProgress: 14, notStarted: 6 },
-  { date: "2024-05-27", completed: 214, inProgress: 18, notStarted: 8 },
-  { date: "2024-05-28", completed: 217, inProgress: 16, notStarted: 4 },
-  { date: "2024-05-29", completed: 220, inProgress: 12, notStarted: 7 },
-  { date: "2024-05-30", completed: 223, inProgress: 15, notStarted: 5 },
-  { date: "2024-05-31", completed: 226, inProgress: 19, notStarted: 6 },
-  { date: "2024-06-01", completed: 229, inProgress: 13, notStarted: 8 },
-  { date: "2024-06-02", completed: 232, inProgress: 17, notStarted: 4 },
-  { date: "2024-06-03", completed: 235, inProgress: 14, notStarted: 7 },
-  { date: "2024-06-04", completed: 238, inProgress: 18, notStarted: 5 },
-  { date: "2024-06-05", completed: 241, inProgress: 16, notStarted: 6 },
-  { date: "2024-06-06", completed: 244, inProgress: 12, notStarted: 8 },
-  { date: "2024-06-07", completed: 247, inProgress: 15, notStarted: 4 },
-  { date: "2024-06-08", completed: 250, inProgress: 19, notStarted: 7 },
-  { date: "2024-06-09", completed: 253, inProgress: 13, notStarted: 5 },
-  { date: "2024-06-10", completed: 256, inProgress: 17, notStarted: 6 },
-  { date: "2024-06-11", completed: 259, inProgress: 14, notStarted: 8 },
-  { date: "2024-06-12", completed: 262, inProgress: 18, notStarted: 4 },
-  { date: "2024-06-13", completed: 265, inProgress: 16, notStarted: 7 },
-  { date: "2024-06-14", completed: 268, inProgress: 12, notStarted: 5 },
-  { date: "2024-06-15", completed: 271, inProgress: 15, notStarted: 6 },
-  { date: "2024-06-16", completed: 274, inProgress: 19, notStarted: 8 },
-  { date: "2024-06-17", completed: 277, inProgress: 13, notStarted: 4 },
-  { date: "2024-06-18", completed: 280, inProgress: 17, notStarted: 7 },
-  { date: "2024-06-19", completed: 283, inProgress: 14, notStarted: 5 },
-  { date: "2024-06-20", completed: 286, inProgress: 18, notStarted: 6 },
-  { date: "2024-06-21", completed: 289, inProgress: 16, notStarted: 8 },
-  { date: "2024-06-22", completed: 292, inProgress: 12, notStarted: 4 },
-  { date: "2024-06-23", completed: 295, inProgress: 15, notStarted: 7 },
-  { date: "2024-06-24", completed: 298, inProgress: 19, notStarted: 5 },
-  { date: "2024-06-25", completed: 301, inProgress: 13, notStarted: 6 },
-  { date: "2024-06-26", completed: 304, inProgress: 17, notStarted: 8 },
-  { date: "2024-06-27", completed: 307, inProgress: 14, notStarted: 4 },
-  { date: "2024-06-28", completed: 310, inProgress: 18, notStarted: 7 },
-  { date: "2024-06-29", completed: 313, inProgress: 16, notStarted: 5 },
-  { date: "2024-06-30", completed: 316, inProgress: 12, notStarted: 6 },
-];
+// Helper function to get the response date (now just uses createdAt since we set it properly in the database)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getResponseDate(response: any): Date {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+  return new Date(response.createdAt.epochMillis);
+}
 
 const chartConfig = {
   completed: {
@@ -124,31 +39,105 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function ResponsesOverTimeChart() {
-  const [timeRange, setTimeRange] = React.useState("90d");
+  const [timeRange, setTimeRange] = React.useState("all");
+  const [responsesResult] = useAtom(responsesAtom);
 
-  const filteredData = chartData.filter((item) => {
-    const date = new Date(item.date);
-    const referenceDate = new Date("2024-06-30");
+  const chartData = React.useMemo(() => {
+    if (!Result.isSuccess(responsesResult)) {
+      return [];
+    }
+
+    const responses = responsesResult.value;
+
+    // Group responses by date
+    const dateGroups: Record<
+      string,
+      { completed: number; inProgress: number; notStarted: number }
+    > = {};
+
+    responses.forEach((response) => {
+      const responseDate = getResponseDate(response);
+      const dateKey = responseDate.toISOString().split("T")[0]; // YYYY-MM-DD format
+
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (dateGroups[dateKey] === undefined) {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        dateGroups[dateKey] = { completed: 0, inProgress: 0, notStarted: 0 };
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      const group = dateGroups[dateKey];
+      if (group === undefined) return;
+
+      // Determine status based on session metadata
+      if (response.sessionMetadata.completedAt !== undefined) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        group.completed++;
+      } else if (response.sessionMetadata.startedAt !== undefined) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        group.inProgress++;
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        group.notStarted++;
+      }
+    });
+
+    // Convert to array and sort by date
+    return Object.entries(dateGroups)
+      .map(([date, counts]) => ({ date, ...counts }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [responsesResult]);
+
+  const filteredData = React.useMemo(() => {
+    if (chartData.length === 0) return [];
+
+    if (timeRange === "all") {
+      // Show all data from 2024 onwards
+      const startOf2024 = new Date("2024-01-01");
+      return chartData.filter((item) => {
+        const date = new Date(item.date);
+        return date >= startOf2024;
+      });
+    }
+
+    const now = new Date();
     let daysToSubtract = 90;
     if (timeRange === "30d") {
       daysToSubtract = 30;
     } else if (timeRange === "7d") {
       daysToSubtract = 7;
     }
-    const startDate = new Date(referenceDate);
+
+    const startDate = new Date(now);
     startDate.setDate(startDate.getDate() - daysToSubtract);
-    return date >= startDate;
-  });
+
+    return chartData.filter((item) => {
+      const date = new Date(item.date);
+      return date >= startDate;
+    });
+  }, [chartData, timeRange]);
+
+  if (!Result.isSuccess(responsesResult)) {
+    return (
+      <Card className="@container/card w-full h-full flex flex-col">
+        <Card.Header>
+          <Card.Title>Quiz Responses Over Time</Card.Title>
+          <Card.Description>Loading response data...</Card.Description>
+        </Card.Header>
+        <Card.Content className="flex-1 flex items-center justify-center">
+          <div className="text-muted-foreground">Loading...</div>
+        </Card.Content>
+      </Card>
+    );
+  }
 
   return (
     <Card className="@container/card w-full h-full flex flex-col">
       <Card.Header>
         <Card.Title>Quiz Responses Over Time</Card.Title>
         <Card.Description>
-          <span className="hidden @[540px]/card:block">
-            Response completion trends for the last 3 months
-          </span>
-          <span className="@[540px]/card:hidden">Last 3 months</span>
+          <span className="hidden @[540px]/card:block">Real-time response completion trends</span>
+          <span className="@[540px]/card:hidden">Response trends</span>
         </Card.Description>
         <div className="flex items-center gap-2">
           <ToggleGroup
@@ -158,6 +147,7 @@ export function ResponsesOverTimeChart() {
             variant="outline"
             className="hidden *:data-[slot=toggle-group-item]:!px-4 @[767px]/card:flex"
           >
+            <ToggleGroupItem value="all">All (2024+)</ToggleGroupItem>
             <ToggleGroupItem value="90d">Last 3 months</ToggleGroupItem>
             <ToggleGroupItem value="30d">Last 30 days</ToggleGroupItem>
             <ToggleGroupItem value="7d">Last 7 days</ToggleGroupItem>
@@ -171,6 +161,9 @@ export function ResponsesOverTimeChart() {
               <Select.Value placeholder="Last 3 months" />
             </Select.Trigger>
             <Select.Content className="rounded-xl">
+              <Select.Item value="all" className="rounded-lg">
+                All (2024+)
+              </Select.Item>
               <Select.Item value="90d" className="rounded-lg">
                 Last 3 months
               </Select.Item>
@@ -210,6 +203,19 @@ export function ResponsesOverTimeChart() {
               minTickGap={32}
               tickFormatter={(value) => {
                 const date = new Date(String(value));
+
+                // Show year only at the start of each year when time range spans more than a year
+                if (timeRange === "all") {
+                  const isStartOfYear = date.getMonth() === 0 && date.getDate() <= 7;
+                  if (isStartOfYear) {
+                    return date.getFullYear().toString();
+                  }
+                  return date.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  });
+                }
+
                 return date.toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",
@@ -221,7 +227,18 @@ export function ResponsesOverTimeChart() {
               content={
                 <ChartTooltipContent
                   labelFormatter={(value) => {
-                    return new Date(String(value)).toLocaleDateString("en-US", {
+                    const date = new Date(String(value));
+
+                    // Show year when time range spans more than a year
+                    if (timeRange === "all") {
+                      return date.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "2-digit",
+                      });
+                    }
+
+                    return date.toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
                     });

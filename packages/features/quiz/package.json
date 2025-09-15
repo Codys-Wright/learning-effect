@@ -64,6 +64,7 @@
     "@tanstack/react-table": "^8.21.3",
     "@testcontainers/postgresql": "^10.28.0",
     "@ui/shadcn": "workspace:^",
+    "csv-parse": "^6.1.0",
     "culori": "^4.0.2",
     "effect": "*",
     "lucide-react": "^0.469.0",
