@@ -2,6 +2,7 @@
 
 import { IconCirclePlusFilled, type Icon } from "@tabler/icons-react";
 
+import { Badge } from "../badge";
 import { Sidebar } from "./sidebar";
 
 export function NavMain({
@@ -21,11 +22,14 @@ export function NavMain({
         <Sidebar.Menu>
           <Sidebar.MenuItem>
             <Sidebar.MenuButton
+              asChild
               tooltip="Quiz Editor"
               className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground min-w-8 duration-200 ease-linear"
             >
-              <IconCirclePlusFilled />
-              <span>Quiz Editor</span>
+              <a href="/admin/quiz-editor">
+                <IconCirclePlusFilled />
+                <span>Quiz Editor</span>
+              </a>
             </Sidebar.MenuButton>
           </Sidebar.MenuItem>
         </Sidebar.Menu>
@@ -47,6 +51,11 @@ export function NavMain({
               >
                 {item.icon !== undefined && <item.icon />}
                 <span>{item.title}</span>
+                {item.disabled === true && item.tooltip === "Coming Soon!" && (
+                  <Badge variant="secondary" className="ml-auto text-xs">
+                    Coming Soon!
+                  </Badge>
+                )}
               </Sidebar.MenuButton>
             </Sidebar.MenuItem>
           ))}

@@ -1,7 +1,9 @@
 "use client";
 
-import { Result, useAtom } from "@effect-atom/atom-react";
-import { TrendingUpIcon } from "lucide-react";
+import { ApiClient } from "@core/client";
+import { Result, useAtomSet, useAtomValue } from "@effect-atom/atom-react";
+import { Effect } from "effect";
+import { RefreshCwIcon, TrendingUpIcon } from "lucide-react";
 import * as React from "react";
 import { Label, Pie, PieChart } from "recharts";
 
@@ -11,6 +13,7 @@ import {
 } from "@features/quiz/client/components/artist-type/artist-data-utils";
 import type { AnalysisResult } from "@features/quiz/domain";
 import {
+  Button,
   Card,
   ChartContainer,
   ChartTooltip,
@@ -18,6 +21,7 @@ import {
   type ChartConfig,
 } from "@ui/shadcn";
 import { allAnalysisAtom } from "../analysis/analysis-atoms.js";
+import { responsesAtom } from "../responses-atoms.js";
 
 // Create a reverse mapping from endingId to full artist names
 const createEndingIdToFullNameMapping = (): Record<string, string> => {
@@ -96,7 +100,30 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function AnalysisChart() {
-  const [analysisResult] = useAtom(allAnalysisAtom);
+  const analysisResult = useAtomValue(allAnalysisAtom);
+  const responsesResult = useAtomValue(responsesAtom);
+  const setAllAnalysis = useAtomSet(allAnalysisAtom);
+
+  // Function to refresh the analysis data
+  const refreshAnalysis = React.useCallback(async () => {
+    try {
+      // Fetch fresh data from the API and update the atom
+      const freshData = await Effect.runPromise(
+        Effect.provide(
+          Effect.gen(function* () {
+            const api = yield* ApiClient;
+            return yield* api.http.Analysis.list();
+          }),
+          ApiClient.Default,
+        ),
+      );
+
+      // Update the atom with fresh data
+      setAllAnalysis({ _tag: "BatchUpsert", analyses: freshData });
+    } catch (error) {
+      Effect.logError("Failed to refresh analysis data:", error);
+    }
+  }, [setAllAnalysis]);
 
   const chartData = React.useMemo(() => {
     if (!Result.isSuccess(analysisResult)) {
@@ -127,8 +154,12 @@ export function AnalysisChart() {
   }, [analysisResult]);
 
   const totalAnalyses = React.useMemo(() => {
-    return chartData.reduce((acc, curr) => acc + curr.count, 0);
-  }, [chartData]);
+    if (!Result.isSuccess(analysisResult)) {
+      return 0;
+    }
+    // Use the actual count of analysis results, not the chart data count
+    return analysisResult.value.length;
+  }, [analysisResult, responsesResult]);
 
   if (!Result.isSuccess(analysisResult)) {
     return (
@@ -147,8 +178,15 @@ export function AnalysisChart() {
   return (
     <Card className="flex flex-col w-full h-full">
       <Card.Header className="items-center pb-0">
-        <Card.Title>Artist Type Analysis</Card.Title>
-        <Card.Description>Distribution of quiz responses by artist type</Card.Description>
+        <div className="flex items-center justify-between w-full">
+          <div>
+            <Card.Title>Artist Type Analysis</Card.Title>
+            <Card.Description>Distribution of quiz responses by artist type</Card.Description>
+          </div>
+          <Button variant="outline" size="sm" onClick={refreshAnalysis} className="h-8 w-8 p-0">
+            <RefreshCwIcon className="h-4 w-4" />
+          </Button>
+        </div>
       </Card.Header>
       <Card.Content className="flex-1 pb-0">
         <ChartContainer

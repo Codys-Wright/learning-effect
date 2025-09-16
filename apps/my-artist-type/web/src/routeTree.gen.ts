@@ -24,6 +24,7 @@ import { Route as AnalysisRouteImport } from './routes/analysis'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminResponsesRouteImport } from './routes/admin/responses'
+import { Route as AdminQuizEditorRouteImport } from './routes/admin/quiz-editor'
 import { Route as AdminResponsesResponseIdRouteImport } from './routes/admin/responses/$responseId'
 import { Route as AdminResponsesResponseIdAnalysisRouteImport } from './routes/admin/responses/$responseId/analysis'
 import { ServerRoute as ApiSplatServerRouteImport } from './routes/api/$'
@@ -95,6 +96,11 @@ const AdminResponsesRoute = AdminResponsesRouteImport.update({
   path: '/responses',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminQuizEditorRoute = AdminQuizEditorRouteImport.update({
+  id: '/quiz-editor',
+  path: '/quiz-editor',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminResponsesResponseIdRoute =
   AdminResponsesResponseIdRouteImport.update({
     id: '/$responseId',
@@ -126,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/radar-test': typeof RadarTestRoute
   '/responses': typeof ResponsesRoute
   '/sidebar-test': typeof SidebarTestRoute
+  '/admin/quiz-editor': typeof AdminQuizEditorRoute
   '/admin/responses': typeof AdminResponsesRouteWithChildren
   '/admin/responses/$responseId': typeof AdminResponsesResponseIdRouteWithChildren
   '/admin/responses/$responseId/analysis': typeof AdminResponsesResponseIdAnalysisRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByTo {
   '/radar-test': typeof RadarTestRoute
   '/responses': typeof ResponsesRoute
   '/sidebar-test': typeof SidebarTestRoute
+  '/admin/quiz-editor': typeof AdminQuizEditorRoute
   '/admin/responses': typeof AdminResponsesRouteWithChildren
   '/admin/responses/$responseId': typeof AdminResponsesResponseIdRouteWithChildren
   '/admin/responses/$responseId/analysis': typeof AdminResponsesResponseIdAnalysisRoute
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/radar-test': typeof RadarTestRoute
   '/responses': typeof ResponsesRoute
   '/sidebar-test': typeof SidebarTestRoute
+  '/admin/quiz-editor': typeof AdminQuizEditorRoute
   '/admin/responses': typeof AdminResponsesRouteWithChildren
   '/admin/responses/$responseId': typeof AdminResponsesResponseIdRouteWithChildren
   '/admin/responses/$responseId/analysis': typeof AdminResponsesResponseIdAnalysisRoute
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/radar-test'
     | '/responses'
     | '/sidebar-test'
+    | '/admin/quiz-editor'
     | '/admin/responses'
     | '/admin/responses/$responseId'
     | '/admin/responses/$responseId/analysis'
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
     | '/radar-test'
     | '/responses'
     | '/sidebar-test'
+    | '/admin/quiz-editor'
     | '/admin/responses'
     | '/admin/responses/$responseId'
     | '/admin/responses/$responseId/analysis'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/radar-test'
     | '/responses'
     | '/sidebar-test'
+    | '/admin/quiz-editor'
     | '/admin/responses'
     | '/admin/responses/$responseId'
     | '/admin/responses/$responseId/analysis'
@@ -348,6 +360,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminResponsesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/quiz-editor': {
+      id: '/admin/quiz-editor'
+      path: '/quiz-editor'
+      fullPath: '/admin/quiz-editor'
+      preLoaderRoute: typeof AdminQuizEditorRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/responses/$responseId': {
       id: '/admin/responses/$responseId'
       path: '/$responseId'
@@ -404,10 +423,12 @@ const AdminResponsesRouteWithChildren = AdminResponsesRoute._addFileChildren(
 )
 
 interface AdminRouteChildren {
+  AdminQuizEditorRoute: typeof AdminQuizEditorRoute
   AdminResponsesRoute: typeof AdminResponsesRouteWithChildren
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminQuizEditorRoute: AdminQuizEditorRoute,
   AdminResponsesRoute: AdminResponsesRouteWithChildren,
 }
 

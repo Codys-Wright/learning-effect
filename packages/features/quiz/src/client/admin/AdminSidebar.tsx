@@ -16,7 +16,7 @@ const adminData = {
   user: {
     name: "Admin User",
     email: "admin@example.com",
-    avatar: "/avatars/admin.jpg",
+    avatar: undefined,
   },
   navMain: [
     {
@@ -28,11 +28,15 @@ const adminData = {
       title: "Quiz Responses",
       url: "/admin/responses",
       icon: IconFileText,
+      disabled: true,
+      tooltip: "Coming Soon!",
     },
     {
       title: "Analytics",
       url: "/admin/analytics",
       icon: IconChartBar,
+      disabled: true,
+      tooltip: "Coming Soon!",
     },
     {
       title: "Users",

@@ -184,7 +184,58 @@ export const submitQuizAtom = quizTakerRuntime.fn(
 
     // Save the response to the database
     const api = yield* ApiClient;
-    yield* api.http.Responses.upsert({ payload: responsePayload });
+    const savedResponse = yield* api.http.Responses.upsert({ payload: responsePayload });
+
+    // Automatically analyze the response
+    try {
+      // Get the default analysis engine (first active engine)
+      const engines = yield* api.http.AnalysisEngine.list();
+      const defaultEngine = engines.find((engine) => engine.isActive);
+
+      if (defaultEngine !== undefined) {
+        yield* Effect.log("Auto-analyzing response with engine:", {
+          level: LogLevel.Info,
+          annotations: {
+            responseId: savedResponse.id,
+            engineId: defaultEngine.id,
+            engineName: defaultEngine.name,
+          },
+        });
+
+        // Trigger automatic analysis using the API directly
+        const analysisResult = yield* api.http.Analysis.analyze({
+          payload: {
+            engineId: defaultEngine.id,
+            request: {
+              responseId: savedResponse.id,
+              engineId: defaultEngine.id,
+            },
+          },
+        });
+
+        yield* Effect.log("Auto-analysis completed successfully:", {
+          level: LogLevel.Info,
+          annotations: {
+            analysisId: analysisResult.id,
+            responseId: savedResponse.id,
+            engineId: defaultEngine.id,
+          },
+        });
+      } else {
+        yield* Effect.log("No active analysis engine found - skipping auto-analysis", {
+          level: LogLevel.Warning,
+        });
+      }
+    } catch (error) {
+      yield* Effect.log("Auto-analysis failed:", {
+        level: LogLevel.Error,
+        annotations: {
+          error: error instanceof Error ? error.message : String(error),
+          responseId: savedResponse.id,
+        },
+      });
+      // Don't fail the entire submission if analysis fails
+    }
 
     // Log the final session state after submission
     yield* Effect.log("Quiz submission - Final session state:", {
@@ -213,23 +264,17 @@ export const initializeQuizAtom = quizTakerRuntime.fn(
 
 // Dev panel configuration atoms
 const defaultDevConfig: AnalysisConfigOverrides = {
-  primaryWeight: 1.5,
-  nonPrimaryWeight: 0.2,
-  distanceGamma: 1.6,
+  primaryPointValue: 1.5,
+  secondaryPointValue: 0.2,
+  primaryPointWeight: 1.6,
+  secondaryPointWeight: 1.4,
+  primaryDistanceFalloff: 1.0,
+  secondaryDistanceFalloff: 1.0,
   beta: 1.4,
-  scoreMultiplier: 1.0,
-  disableSecondaryPoints: false,
-  overrideBaseWeights: false,
-  overrideCustomWeights: false,
-  overrideDistanceWeight: false,
-  minPercentageThreshold: 0.0,
-  enableQuestionBreakdown: true,
-  maxEndingResults: 10,
-  customPrimaryWeight: 2.0,
-  customNonPrimaryWeight: 0.5,
-  customDistanceGamma: 2.0,
-  customBeta: 1.8,
-  customScoreMultiplier: 1.2,
+  primaryMinPoints: 0.0,
+  secondaryMinPoints: 0.0,
+  idealAnswerOverlay: false,
+  progressBarColors: false,
 };
 
 // Dev panel atoms using simple state management

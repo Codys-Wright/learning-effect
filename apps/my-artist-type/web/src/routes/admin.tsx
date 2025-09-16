@@ -9,11 +9,16 @@ import {
   ResponsesTable,
   ResponseStatsCards,
 } from "@features/quiz/client";
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import { SidebarInset, SidebarProvider } from "@ui/shadcn";
 import React from "react";
 
 const AdminLayout: React.FC = () => {
+  const location = useLocation();
+
+  // Check if we're on the quiz-editor route
+  const isQuizEditorRoute = location.pathname === "/admin/quiz-editor";
+
   // Get actual responses data from the atom
   const responsesResult = useAtomValue(responsesAtom);
   const analysisResult = useAtomValue(allAnalysisAtom);
@@ -33,42 +38,46 @@ const AdminLayout: React.FC = () => {
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              <div className="px-4 lg:px-6">
-                <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
-              </div>
-
-              {/* Response Statistics */}
-              <div className="px-4 lg:px-6">
-                <h2 className="text-xl font-semibold mb-4">Response Statistics</h2>
-                <ResponseStatsCards responsesResult={responsesResult} />
-              </div>
-
-              {/* Charts Section */}
-              <div className="px-4 lg:px-6">
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                  {/* Analysis Chart */}
-                  <div className="lg:col-span-1">
-                    <AnalysisChart />
+              {!isQuizEditorRoute && (
+                <>
+                  <div className="px-4 lg:px-6">
+                    <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
                   </div>
 
-                  {/* Responses Over Time Chart */}
-                  <div className="lg:col-span-4">
-                    <ResponsesOverTimeChart />
+                  {/* Response Statistics */}
+                  <div className="px-4 lg:px-6">
+                    <h2 className="text-xl font-semibold mb-4">Response Statistics</h2>
+                    <ResponseStatsCards responsesResult={responsesResult} />
                   </div>
-                </div>
-              </div>
 
-              {/* Responses Table */}
-              <div className="px-4 lg:px-6">
-                <h2 className="text-xl font-semibold mb-4">Recent Responses</h2>
-                {responsesResult._tag === "Success" && analysisResult._tag === "Success" ? (
-                  <ResponsesTable data={combinedData} />
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Loading responses and analysis data...
+                  {/* Charts Section */}
+                  <div className="px-4 lg:px-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                      {/* Analysis Chart */}
+                      <div className="lg:col-span-1">
+                        <AnalysisChart />
+                      </div>
+
+                      {/* Responses Over Time Chart */}
+                      <div className="lg:col-span-4">
+                        <ResponsesOverTimeChart />
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
+
+                  {/* Responses Table */}
+                  <div className="px-4 lg:px-6">
+                    <h2 className="text-xl font-semibold mb-4">Recent Responses</h2>
+                    {responsesResult._tag === "Success" && analysisResult._tag === "Success" ? (
+                      <ResponsesTable data={combinedData} />
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        Loading responses and analysis data...
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
 
               <Outlet />
             </div>
