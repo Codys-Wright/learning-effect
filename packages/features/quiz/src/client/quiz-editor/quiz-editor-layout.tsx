@@ -159,22 +159,18 @@ const TopBar: React.FC<{
   onArtistTypeChange: (artistType: string) => void;
   onClearDraft: () => void;
   onDeleteQuiz: () => void;
-  onEngineChange: (engineId: string) => void;
   onQuizChange: (quizId: string) => void;
   quizzes: ReadonlyArray<Quiz>;
   selectedArtistType: string;
   selectedEngineId: string;
   selectedQuizId: string;
 }> = ({
-  engines,
   onArtistTypeChange,
   onClearDraft,
   onDeleteQuiz,
-  onEngineChange,
   onQuizChange,
   quizzes,
   selectedArtistType,
-  selectedEngineId,
   selectedQuizId,
 }) => {
   // Filter to only show "My Artist Type Quiz" versions
@@ -233,11 +229,11 @@ const TopBar: React.FC<{
         </div>
 
         <div className="flex items-center gap-6 flex-1">
-          {/* Version Selection for My Artist Type Quiz */}
+          {/* Combined Version Selection - Quiz + Engine */}
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground">My Artist Type Quiz:</span>
+            <span className="text-sm font-medium text-muted-foreground">Version:</span>
             <Select value={selectedQuizId} onValueChange={onQuizChange}>
-              <Select.Trigger className="w-32">
+              <Select.Trigger className="w-40">
                 <Select.Value placeholder="Select version">
                   {selectedQuiz !== undefined && (
                     <div className="flex items-center gap-1.5">
@@ -289,7 +285,6 @@ const TopBar: React.FC<{
               </Select.Content>
             </Select>
           </div>
-
           {/* Artist Type Selection */}
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-muted-foreground">Artist Type:</span>
@@ -352,53 +347,8 @@ const TopBar: React.FC<{
                 Settings
               </Button>
             </DropdownMenu.Trigger>
-            <DropdownMenu.Content align="end" className="w-64">
-              <DropdownMenu.Label>Quiz Editor Settings</DropdownMenu.Label>
-              <DropdownMenu.Separator />
-
-              <div className="p-2">
-                <div className="flex flex-col gap-2">
-                  <span className="text-sm font-medium">Analysis Engine</span>
-                  <Select value={selectedEngineId} onValueChange={onEngineChange}>
-                    <Select.Trigger className="w-full">
-                      <Select.Value placeholder="Select engine" />
-                    </Select.Trigger>
-                    <Select.Content>
-                      {engines.map((engine) => (
-                        <Select.Item key={engine.id} value={engine.id}>
-                          <div className="flex items-center gap-2">
-                            <span>{engine.name}</span>
-                            {engine.isTemp === true && (
-                              <Badge
-                                variant="outline"
-                                className="text-xs text-orange-600 border-orange-600"
-                              >
-                                Edit
-                              </Badge>
-                            )}
-                            {engine.isPublished === true && engine.isTemp === false && (
-                              <Badge variant="default" className="text-xs">
-                                Live
-                              </Badge>
-                            )}
-                            {engine.isPublished === false && engine.isTemp === false && (
-                              <Badge variant="secondary" className="text-xs">
-                                Draft
-                              </Badge>
-                            )}
-                            {engine.isActive === true && (
-                              <Badge variant="secondary" className="text-xs">
-                                Active
-                              </Badge>
-                            )}
-                          </div>
-                        </Select.Item>
-                      ))}
-                    </Select.Content>
-                  </Select>
-                </div>
-              </div>
-
+            <DropdownMenu.Content align="end" className="w-48">
+              <DropdownMenu.Label>Settings</DropdownMenu.Label>
               <DropdownMenu.Separator />
               <DropdownMenu.Item>
                 <span>Quiz Settings</span>
@@ -801,20 +751,29 @@ export const QuizEditorLayout: React.FC = () => {
   React.useEffect(() => {
     if (Result.isSuccess(quizzesResult) && pendingRating !== null) {
       const quizzes = quizzesResult.value;
-      // Find the newest temp quiz (highest ID or most recent)
-      const tempQuizzes = quizzes.filter((q) => q.isTemp === true);
-      if (tempQuizzes.length > 0) {
-        // Sort by ID descending to get the newest
-        const newestTempQuiz = tempQuizzes.sort((a, b) => b.id.localeCompare(a.id))[0];
-        if (newestTempQuiz !== undefined && newestTempQuiz.id !== selectedQuizId) {
-          // eslint-disable-next-line no-console
-          console.log(
-            "Auto-switching to temp quiz:",
-            newestTempQuiz.title,
-            "id:",
-            newestTempQuiz.id,
-          );
-          setSelectedQuizId(newestTempQuiz.id);
+      // Find temp quizzes that match the current quiz's base pattern
+      const currentQuiz = quizzes.find((q) => q.id === selectedQuizId);
+      if (currentQuiz !== undefined) {
+        const tempQuizzes = quizzes.filter(
+          (q) =>
+            q.isTemp === true &&
+            q.title.includes(currentQuiz.title) &&
+            q.version === currentQuiz.version,
+        );
+
+        if (tempQuizzes.length > 0) {
+          // Get the newest temp quiz
+          const newestTempQuiz = tempQuizzes.sort((a, b) => b.id.localeCompare(a.id))[0];
+          if (newestTempQuiz !== undefined && newestTempQuiz.id !== selectedQuizId) {
+            // eslint-disable-next-line no-console
+            console.log(
+              "Auto-switching to temp quiz:",
+              newestTempQuiz.title,
+              "id:",
+              newestTempQuiz.id,
+            );
+            setSelectedQuizId(newestTempQuiz.id);
+          }
         }
       }
     }
@@ -894,6 +853,8 @@ export const QuizEditorLayout: React.FC = () => {
         setPendingRating(rating);
 
         // 2. Create temp quiz (this will automatically create matching temp engine)
+        // eslint-disable-next-line no-console
+        console.log("Creating temp quiz from:", currentQuiz.title, "id:", currentQuiz.id);
         createTempQuiz({ quiz: currentQuiz });
 
         // The temp quiz creation will update the atoms automatically
@@ -906,7 +867,6 @@ export const QuizEditorLayout: React.FC = () => {
         //    - Switch to the matching temp engine
         //    - Apply the pending rating change
       } catch (error) {
-        console.error("Failed to create temp versions:", error);
         setPendingRating(null); // Clear pending rating on error
       }
     }
@@ -997,10 +957,16 @@ export const QuizEditorLayout: React.FC = () => {
   const findMatchingEngine = (targetQuiz: Quiz): AnalysisEngine | undefined => {
     // For temp quizzes, look for temp engines with the temp slug pattern
     if (targetQuiz.isTemp) {
-      return engines.find(
-        (engine) =>
-          engine.slug === `${targetQuiz.slug}-temp-${targetQuiz.id}` && engine.isTemp === true,
+      const expectedSlug = `${targetQuiz.slug}-temp-${targetQuiz.id}`;
+      // eslint-disable-next-line no-console
+      console.log(`Looking for temp engine with slug: ${expectedSlug}`);
+      // eslint-disable-next-line no-console
+      console.log(
+        `Available engine slugs:`,
+        engines.map((e) => `${e.slug} (isTemp: ${e.isTemp})`),
       );
+
+      return engines.find((engine) => engine.slug === expectedSlug && engine.isTemp === true);
     }
 
     // For regular quizzes, try to find exact match first
@@ -1020,12 +986,6 @@ export const QuizEditorLayout: React.FC = () => {
           engine.isTemp === targetQuiz.isTemp &&
           engine.isPublished === targetQuiz.isPublished,
       );
-
-      if (matchingEngine !== undefined) {
-        console.log(
-          `Using fallback engine: ${matchingEngine.name} v${matchingEngine.version} for quiz v${targetQuiz.version}`,
-        );
-      }
     }
 
     return matchingEngine;
@@ -1194,7 +1154,6 @@ export const QuizEditorLayout: React.FC = () => {
         selectedEngineId={selectedEngineId}
         selectedArtistType={selectedArtistType}
         onQuizChange={setSelectedQuizId}
-        onEngineChange={setSelectedEngineId}
         onArtistTypeChange={setSelectedArtistType}
         onClearDraft={handleClearDraft}
         onDeleteQuiz={handleDeleteQuiz}

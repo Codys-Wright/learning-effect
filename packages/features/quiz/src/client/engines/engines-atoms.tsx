@@ -281,24 +281,14 @@ export const clearTempEnginesAtom = runtime.fn(
 
     // Delete all temp engines
     yield* Effect.forEach(tempEngines, (engine) =>
-      api.http.AnalysisEngine.delete({ id: engine.id }),
+      api.http.AnalysisEngine.delete({ payload: { id: engine.id } }),
     );
 
     // Update the atom to remove deleted engines
-    yield* Effect.forEach(tempEngines, (engine) =>
-      registry.set(enginesAtom, Action.Del({ id: engine.id })),
-    );
+    for (const engine of tempEngines) {
+      registry.set(enginesAtom, Action.Del({ id: engine.id }));
+    }
 
     return tempEngines.length;
-  }),
-  withToast({
-    onSuccess: (count) => ({
-      title: "Draft Cleared",
-      description: `Deleted ${count} temporary analysis engine(s)`,
-    }),
-    onFailure: () => ({
-      title: "Error",
-      description: "Failed to clear analysis engine drafts",
-    }),
   }),
 );

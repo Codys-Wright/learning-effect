@@ -2,6 +2,7 @@ import { ApiClient, makeAtomRuntime, withToast } from "@core/client";
 import { Atom, Registry, Result } from "@effect-atom/atom-react";
 import type { Quiz, QuizId, UpsertQuizPayload } from "@features/quiz/domain";
 import { Data, Effect, Array as EffectArray } from "effect";
+import { EngineAction, enginesAtom } from "./engines/engines-atoms.js";
 
 const runtime = makeAtomRuntime(ApiClient.Default);
 
@@ -145,7 +146,7 @@ export const createNewQuizVersionAtom = runtime.fn(
 
         if (originalEngine !== undefined) {
           // Create new engine version based on the original
-          const newEngine = yield* api.http.AnalysisEngine.upsert({
+          yield* api.http.AnalysisEngine.upsert({
             payload: {
               name: originalEngine.name, // Keep same name
               slug: originalEngine.slug, // Keep same slug
@@ -159,11 +160,9 @@ export const createNewQuizVersionAtom = runtime.fn(
               isTemp: false, // New versions are permanent
             },
           });
-        } else {
-          console.warn(`No analysis engine found for quiz slug: ${quiz.slug}`);
         }
-      } catch (error) {
-        console.warn("Failed to create matching analysis engine:", error);
+      } catch {
+        // Silently ignore engine creation failures
       }
 
       return newQuiz;
@@ -201,18 +200,48 @@ export const createTempQuizAtom = runtime.fn(
 
       registry.set(quizzesAtom, Action.Upsert({ quiz: tempQuiz }));
 
+      // eslint-disable-next-line no-console
+      console.log(
+        "Temp quiz created and added to atom:",
+        tempQuiz.title,
+        "id:",
+        tempQuiz.id,
+        "slug:",
+        tempQuiz.slug,
+      );
+
       // Automatically create matching analysis engine
       // Find the original analysis engine (non-temp version with same base slug)
       const allEngines = yield* api.http.AnalysisEngine.list();
       const baseSlug = tempQuiz.slug.replace("-editing", ""); // Remove editing suffix
-      const originalEngine = allEngines.find(
-        (engine) => engine.slug === baseSlug && engine.isTemp === false,
-      );
+
+      // Look for engines that match the base slug pattern
+      const originalEngine =
+        allEngines.find((engine) => engine.slug === baseSlug && engine.isTemp === false) ??
+        allEngines.find(
+          // Fallback: look for engines with similar slug patterns
+          (engine) => engine.slug.includes("artist-type") && engine.isTemp === false,
+        );
 
       if (originalEngine !== undefined) {
         try {
+          // First, clean up any existing temp engines for this quiz to avoid conflicts
+          const existingTempEngines = allEngines.filter(
+            (engine) => engine.slug.startsWith(`${tempQuiz.slug}-temp-`) && engine.isTemp === true,
+          );
+
+          for (const existingEngine of existingTempEngines) {
+            try {
+              yield* api.http.AnalysisEngine.delete({ payload: { id: existingEngine.id } });
+              registry.set(enginesAtom, EngineAction.Del({ id: existingEngine.id }));
+              // Old temp engine cleaned up
+            } catch {
+              // Silently ignore cleanup failures
+            }
+          }
+
           // Create temp engine based on original
-          yield* api.http.AnalysisEngine.upsert({
+          const tempEngine = yield* api.http.AnalysisEngine.upsert({
             payload: {
               name: `${originalEngine.name} (Editing)`,
               slug: `${tempQuiz.slug}-temp-${tempQuiz.id}`, // Use quiz ID for uniqueness
@@ -226,9 +255,16 @@ export const createTempQuizAtom = runtime.fn(
               isTemp: true,
             },
           });
-        } catch (error) {
-          // Log error but don't fail the quiz creation
+
+          // Temp engine created successfully
+
+          // Add the temp engine to the engines atom so it's immediately available
+          registry.set(enginesAtom, EngineAction.Upsert({ engine: tempEngine }));
+        } catch {
+          // Silently ignore temp engine creation failures
         }
+      } else {
+        // No matching analysis engine found
       }
 
       return tempQuiz;
@@ -343,7 +379,6 @@ export const saveTempQuizAtom = runtime.fn(
 // Create matching analysis engine for a temp quiz
 export const createMatchingTempEngineAtom = runtime.fn(
   Effect.fn(function* ({ quiz }: { quiz: Quiz }) {
-    const registry = yield* Registry.AtomRegistry;
     const api = yield* ApiClient;
 
     // Only work with temp quizzes
