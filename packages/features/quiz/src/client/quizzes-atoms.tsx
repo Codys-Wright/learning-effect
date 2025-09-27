@@ -1,4 +1,5 @@
 import { ApiClient, makeAtomRuntime, withToast } from "@core/client";
+import type { Version } from "@core/domain";
 import { Atom, Registry, Result } from "@effect-atom/atom-react";
 import type { Quiz, QuizId, UpsertQuizPayload } from "@features/quiz/domain";
 import { Data, Effect, Array as EffectArray } from "effect";
@@ -112,7 +113,7 @@ export const createNewQuizVersionAtom = runtime.fn(
   Effect.fn(
     function* (args: {
       quiz: Quiz;
-      newVersion: string;
+      newVersion: Version;
       incrementType: "major" | "minor" | "patch";
     }) {
       const { newVersion, quiz } = args;
@@ -200,9 +201,6 @@ export const createTempQuizAtom = runtime.fn(
 
       registry.set(quizzesAtom, Action.Upsert({ quiz: tempQuiz }));
 
-      // eslint-disable-next-line no-console
-      console.log("Temp quiz created and added to atom:", tempQuiz.title, "id:", tempQuiz.id);
-
       // Automatically create matching analysis engine
       // Find the original analysis engine (linked to the original quiz)
       const allEngines = yield* api.http.AnalysisEngine.list();
@@ -249,6 +247,12 @@ export const createTempQuizAtom = runtime.fn(
 
           // Add the temp engine to the engines atom so it's immediately available
           registry.set(enginesAtom, EngineAction.Upsert({ engine: tempEngine }));
+
+          console.log("🔧 Created temp engine for temp quiz:");
+          console.log("  Temp Quiz ID:", tempQuiz.id);
+          console.log("  Temp Engine ID:", tempEngine.id);
+          console.log("  Engine quizId:", tempEngine.quizId);
+          console.log("  Engine isTemp:", tempEngine.isTemp);
         } catch {
           // Silently ignore temp engine creation failures
         }
@@ -304,7 +308,7 @@ export const saveTempQuizAtom = runtime.fn(
     function* (
       args:
         | { quiz: Quiz; action: "save" }
-        | { quiz: Quiz; action: "saveAsNew"; newVersion: string },
+        | { quiz: Quiz; action: "saveAsNew"; newVersion: Version },
     ) {
       const { action, quiz } = args;
       const registry = yield* Registry.AtomRegistry;
@@ -330,6 +334,40 @@ export const saveTempQuizAtom = runtime.fn(
         });
 
         registry.set(quizzesAtom, Action.Upsert({ quiz: savedQuiz }));
+
+        // Also update the corresponding temp engine to be permanent
+        const allEngines = yield* api.http.AnalysisEngine.list();
+        const tempEngine = allEngines.find(
+          (engine) => engine.quizId === quiz.id && engine.isTemp === true,
+        );
+
+        if (tempEngine !== undefined) {
+          // Update temp engine to be permanent
+          const savedEngine = yield* api.http.AnalysisEngine.upsert({
+            payload: {
+              id: tempEngine.id, // Update existing engine
+              name: tempEngine.name.replace(" (Editing)", ""), // Remove editing suffix
+              quizId: savedQuiz.id, // Link to the saved quiz
+              version: savedQuiz.version, // Use the saved quiz version
+              description: tempEngine.description ?? undefined,
+              scoringConfig: tempEngine.scoringConfig,
+              endings: tempEngine.endings,
+              metadata: tempEngine.metadata ?? undefined,
+              isActive: tempEngine.isActive,
+              isPublished: false, // Keep as draft
+              isTemp: false, // Make it permanent
+            },
+          });
+
+          registry.set(enginesAtom, EngineAction.Upsert({ engine: savedEngine }));
+
+          console.log("🔧 Updated temp engine to permanent:");
+          console.log("  Saved Quiz ID:", savedQuiz.id);
+          console.log("  Saved Engine ID:", savedEngine.id);
+          console.log("  Engine quizId:", savedEngine.quizId);
+          console.log("  Engine isTemp:", savedEngine.isTemp);
+        }
+
         return savedQuiz;
       }
 
@@ -350,6 +388,43 @@ export const saveTempQuizAtom = runtime.fn(
       });
 
       registry.set(quizzesAtom, Action.Upsert({ quiz: newQuiz }));
+
+      // Create matching permanent analysis engine
+      const allEngines = yield* api.http.AnalysisEngine.list();
+      const tempEngine = allEngines.find(
+        (engine) => engine.quizId === quiz.id && engine.isTemp === true,
+      );
+
+      if (tempEngine !== undefined) {
+        // Create permanent engine based on temp engine
+        const newEngine = yield* api.http.AnalysisEngine.upsert({
+          payload: {
+            // Don't include id to create a new engine
+            name: tempEngine.name.replace(" (Editing)", ""), // Remove editing suffix
+            quizId: newQuiz.id, // Link to the new permanent quiz
+            version: args.newVersion, // Use the new version
+            description: tempEngine.description ?? undefined,
+            scoringConfig: tempEngine.scoringConfig,
+            endings: tempEngine.endings,
+            metadata: tempEngine.metadata ?? undefined,
+            isActive: tempEngine.isActive,
+            isPublished: false, // New engines start as drafts
+            isTemp: false, // Make it permanent
+          },
+        });
+
+        registry.set(enginesAtom, EngineAction.Upsert({ engine: newEngine }));
+
+        console.log("🔧 Created permanent engine for new quiz version:");
+        console.log("  New Quiz ID:", newQuiz.id);
+        console.log("  New Engine ID:", newEngine.id);
+        console.log("  Engine quizId:", newEngine.quizId);
+        console.log("  Engine isTemp:", newEngine.isTemp);
+
+        // Delete the temporary engine
+        yield* api.http.AnalysisEngine.delete({ payload: { id: tempEngine.id } });
+        registry.set(enginesAtom, EngineAction.Del({ id: tempEngine.id }));
+      }
 
       // Delete the temporary quiz
       yield* api.http.Quizzes.delete({ payload: { id: quiz.id } });

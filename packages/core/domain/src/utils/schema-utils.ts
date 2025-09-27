@@ -288,6 +288,49 @@ export class SemVer extends Schema.String.pipe(
 ) {}
 
 /**
+ * A schema for version objects that include both semantic version and a descriptive comment.
+ * This allows tracking what changed in each version, similar to commit messages.
+ *
+ * @category schema
+ */
+export class Version extends Schema.Class<Version>("Version")({
+  // The semantic version number
+  semver: SemVer,
+
+  // Optional comment describing what changed in this version
+  comment: Schema.optional(
+    Schema.NullOr(
+      Schema.String.pipe(
+        Schema.maxLength(500, {
+          message: () => "Version comment must be at most 500 characters long",
+        }),
+      ),
+    ),
+  ),
+}) {
+  /**
+   * Creates a Version from just a semver string (for backward compatibility)
+   */
+  static fromSemver(semver: string, comment?: string): Version {
+    return new Version({ semver, comment });
+  }
+
+  /**
+   * Returns the semver string for display purposes
+   */
+  toString(): string {
+    return this.semver;
+  }
+
+  /**
+   * Returns a formatted string with version and comment
+   */
+  toDisplayString(): string {
+    return this.comment ? `${this.semver} - ${this.comment}` : this.semver;
+  }
+}
+
+/**
  * A schema for destructive transformations when you need to infer the type from the result of the transformation callback, without specifying the encoded type.
  *
  * @category schema

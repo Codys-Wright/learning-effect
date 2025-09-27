@@ -1,7 +1,7 @@
 // Analysis Domain Schema
 // This defines the structure for performing analysis and managing analysis results
 
-import { SemVer, Slug } from "@core/domain";
+import { Version } from "@core/domain";
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "@effect/platform";
 import { Schema as S } from "effect";
 import { QuizNotFoundError } from "../quiz/quiz-rpc.js";
@@ -52,7 +52,7 @@ export class AnalysisResult extends S.Class<AnalysisResult>("AnalysisResult")({
 
   // Which engine was used
   engineId: AnalysisEngineId,
-  engineVersion: SemVer,
+  engineVersion: S.parseJson(Version),
 
   // Which response was analyzed
   responseId: ResponseId,
@@ -82,8 +82,7 @@ export class UpsertAnalysisResultPayload extends S.Class<UpsertAnalysisResultPay
 )({
   id: S.optional(AnalysisResultId),
   engineId: AnalysisEngineId,
-  engineSlug: Slug,
-  engineVersion: SemVer,
+  engineVersion: S.parseJson(Version),
   responseId: ResponseId,
   endingResults: S.parseJson(S.Array(EndingResult)),
   metadata: S.optional(S.NullOr(S.parseJson(S.Record({ key: S.String, value: S.Unknown })))),
@@ -126,8 +125,7 @@ export class BatchAnalyzeRequest extends S.Class<BatchAnalyzeRequest>("BatchAnal
 export class AnalysisSummary extends S.Class<AnalysisSummary>("AnalysisSummary")({
   // Which engine was used
   engineId: AnalysisEngineId,
-  engineSlug: Slug,
-  engineVersion: SemVer,
+  engineVersion: S.parseJson(Version),
 
   // Total number of responses analyzed
   totalResponses: S.Number,

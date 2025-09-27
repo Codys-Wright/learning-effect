@@ -1,4 +1,4 @@
-import { Button, Dialog, Label } from "@ui/shadcn";
+import { Button, Dialog, Label, Textarea } from "@ui/shadcn";
 import { ArrowUpIcon, GitBranchIcon } from "lucide-react";
 import React from "react";
 
@@ -35,7 +35,11 @@ type VersionIncrementDialogProps = {
   currentVersion: string;
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (newVersion: string, incrementType: "major" | "minor" | "patch") => void;
+  onConfirm: (
+    newVersion: string,
+    incrementType: "major" | "minor" | "patch",
+    comment?: string,
+  ) => void;
   title?: string;
 };
 
@@ -47,16 +51,22 @@ export const VersionIncrementDialog: React.FC<VersionIncrementDialogProps> = ({
   title = "Create New Version",
 }) => {
   const [selectedType, setSelectedType] = React.useState<"major" | "minor" | "patch">("patch");
+  const [comment, setComment] = React.useState("");
 
   const newVersion = incrementSemver(currentVersion, selectedType);
 
   const handleConfirm = () => {
-    onConfirm(newVersion, selectedType);
+    onConfirm(newVersion, selectedType, comment.trim().length > 0 ? comment.trim() : undefined);
+    onClose();
+  };
+
+  const handleClose = () => {
+    setComment(""); // Reset comment when closing
     onClose();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <Dialog.Content className="sm:max-w-[425px]">
         <Dialog.Header>
           <Dialog.Title className="flex items-center gap-2">
@@ -160,10 +170,29 @@ export const VersionIncrementDialog: React.FC<VersionIncrementDialogProps> = ({
               </div>
             </div>
           </div>
+
+          <div className="grid grid-cols-4 items-start gap-4">
+            <Label htmlFor="comment" className="text-right mt-2">
+              Comment
+            </Label>
+            <div className="col-span-3">
+              <Textarea
+                id="comment"
+                placeholder="Describe what changed in this version (optional)"
+                value={comment}
+                onChange={(e) => {
+                  setComment(e.target.value);
+                }}
+                className="min-h-[80px] resize-none"
+                maxLength={500}
+              />
+              <p className="text-xs text-muted-foreground mt-1">{comment.length}/500 characters</p>
+            </div>
+          </div>
         </div>
 
         <Dialog.Footer>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
           <Button onClick={handleConfirm} className="gap-2">

@@ -1,7 +1,7 @@
 // Analysis Engine Domain Schema
 // This defines the structure for storing and running different analysis engines
 
-import { SemVer } from "@core/domain";
+import { Version } from "@core/domain";
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "@effect/platform";
 import { Schema as S } from "effect";
 import { QuizId } from "../quiz/quiz-rpc.js";
@@ -111,8 +111,8 @@ export class AnalysisEngine extends S.Class<AnalysisEngine>("AnalysisEngine")({
   // Direct reference to the quiz this engine analyzes
   quizId: QuizId,
 
-  // Version using SemVer
-  version: SemVer,
+  // Version using Version object with semver and comment
+  version: S.parseJson(Version),
 
   // Human-readable name
   name: S.String,
@@ -154,7 +154,7 @@ export class UpsertAnalysisEnginePayload extends S.Class<UpsertAnalysisEnginePay
 )({
   id: S.optional(AnalysisEngineId),
   quizId: S.optional(QuizId),
-  version: S.optional(SemVer),
+  version: S.optional(Version),
   name: S.String,
   description: S.optional(S.NullOr(S.String)),
   scoringConfig: S.parseJson(ScoringConfig),

@@ -1,8 +1,8 @@
 "use client";
 
+import { Version } from "@core/domain";
 import { Atom, Result, useAtomSet, useAtomValue } from "@effect-atom/atom-react";
 import { type AnalysisEngine, type Question, type Quiz } from "@features/quiz/domain";
-import { Effect } from "effect";
 // Use the actual Result types from the atoms instead of importing platform types
 import {
   Badge,
@@ -41,6 +41,7 @@ import {
   createTempQuizAtom,
   deleteQuizAtom,
   quizzesAtom,
+  saveTempQuizAtom,
 } from "../quizzes-atoms.js";
 
 // Atoms for dropdown selections - keep alive to persist state
@@ -50,6 +51,74 @@ const selectedArtistTypeAtom = Atom.make("visionary").pipe(Atom.keepAlive);
 const selectedQuestionIndexAtom = Atom.make(0).pipe(Atom.keepAlive);
 const showIdealAnswersAtom = Atom.make(true).pipe(Atom.keepAlive);
 const pendingRatingAtom = Atom.make<number | null>(null).pipe(Atom.keepAlive);
+const expectedNewVersionAtom = Atom.make<string | null>(null).pipe(Atom.keepAlive);
+const expectedTempQuizAtom = Atom.make<{
+  originalQuizId: string;
+  existingTempQuizIds: string[];
+} | null>(null).pipe(Atom.keepAlive);
+
+// Generate consistent random colors for temp/edit badges based on quiz ID
+const getTempBadgeColor = (quizId: string): string => {
+  // Simple hash function to convert string to number (offset by 7 to get different colors than drafts)
+  let hash = 7;
+  for (let i = 0; i < quizId.length; i++) {
+    const char = quizId.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+
+  // Array of vibrant color combinations for temp/edit badges
+  const colors = [
+    "border-orange-500 text-orange-600",
+    "border-red-500 text-red-600",
+    "border-amber-500 text-amber-600",
+    "border-yellow-500 text-yellow-600",
+    "border-lime-500 text-lime-600",
+    "border-emerald-500 text-emerald-600",
+    "border-teal-500 text-teal-600",
+    "border-cyan-500 text-cyan-600",
+    "border-sky-500 text-sky-600",
+    "border-blue-500 text-blue-600",
+    "border-indigo-500 text-indigo-600",
+    "border-violet-500 text-violet-600",
+    "border-purple-500 text-purple-600",
+    "border-fuchsia-500 text-fuchsia-600",
+    "border-pink-500 text-pink-600",
+    "border-rose-500 text-rose-600",
+  ];
+
+  // Use hash to pick a consistent color for this quiz ID
+  const colorIndex = Math.abs(hash) % colors.length;
+  return colors[colorIndex] ?? "border-orange-500 text-orange-600";
+};
+
+// Helper function to get display version for temp vs permanent versions
+const getDisplayVersion = (quiz: Quiz, allQuizzes: ReadonlyArray<Quiz>): string => {
+  if (!quiz.isTemp) {
+    // Permanent version - just show the semver
+    return `v${quiz.version.semver}`;
+  }
+
+  // Temp version - show base version with draft number in parentheses
+  const baseTitle = quiz.title.replace(" (Editing)", "");
+  const baseVersion = quiz.version.semver;
+
+  // Find all temp versions of this same base version
+  const tempVersionsOfSameBase = allQuizzes
+    .filter(
+      (q) =>
+        q.isTemp === true &&
+        q.title.replace(" (Editing)", "") === baseTitle &&
+        q.version.semver === baseVersion,
+    )
+    .sort((a, b) => a.id.localeCompare(b.id)); // Sort by ID for consistent ordering
+
+  // Find the index of this specific temp version
+  const draftIndex = tempVersionsOfSameBase.findIndex((q) => q.id === quiz.id);
+  const draftNumber = draftIndex + 1;
+
+  return `v${baseVersion} (Draft ${draftNumber})`;
+};
 
 // Helper function to get ideal answers for the current selection
 const getIdealAnswersForCurrentSelection = (
@@ -77,27 +146,8 @@ const getIdealAnswersForCurrentSelection = (
   const selectedQuestion = questions[selectedQuestionIndex];
 
   if (selectedQuestion === undefined) {
-    Effect.runSync(
-      Effect.log(
-        `No selected question found at index: ${selectedQuestionIndex}, total questions: ${questions.length}`,
-      ),
-    );
     return [];
   }
-
-  Effect.runSync(
-    Effect.log(`Current question: ${selectedQuestion.title}, id: ${selectedQuestion.id}`),
-  );
-  Effect.runSync(
-    Effect.log(
-      `Selected quiz: ${selectedQuiz.title}, version: ${selectedQuiz.version}, isTemp: ${selectedQuiz.isTemp}`,
-    ),
-  );
-  Effect.runSync(
-    Effect.log(
-      `Selected engine: ${selectedEngine.name}, version: ${selectedEngine.version}, isTemp: ${selectedEngine.isTemp}`,
-    ),
-  );
 
   // Get ideal answers for the current question
   const idealAnswers = selectedEngine.endings.flatMap((ending) =>
@@ -109,10 +159,6 @@ const getIdealAnswersForCurrentSelection = (
         idealAnswers: [...rule.idealAnswers], // Convert readonly array to mutable array
         isPrimary: rule.isPrimary,
       })),
-  );
-
-  Effect.runSync(
-    Effect.log(`Ideal answers for question: ${JSON.stringify(idealAnswers, null, 2)}`),
   );
 
   return idealAnswers;
@@ -158,21 +204,10 @@ const getSelectedValuesForCurrentSelection = (
   const questionRule = ending.questionRules.find((rule) => rule.questionId === selectedQuestion.id);
 
   if (questionRule === undefined) {
-    Effect.runSync(
-      Effect.log(
-        `No question rule found for artist type: ${selectedArtistType}, question id: ${selectedQuestion.id}`,
-      ),
-    );
     return [];
   }
 
   const selectedValues = [...questionRule.idealAnswers]; // Create mutable copy
-
-  Effect.runSync(
-    Effect.log(
-      `Selected values for artist type ${selectedArtistType}: ${JSON.stringify(selectedValues)}`,
-    ),
-  );
 
   return selectedValues;
 };
@@ -286,6 +321,11 @@ const TopBar: React.FC<{
   engines: ReadonlyArray<AnalysisEngine>;
   onArtistTypeChange: (artistType: string) => void;
   onClearDraft: () => void;
+  onCreateNewVersion: (
+    newVersion: string,
+    incrementType: "major" | "minor" | "patch",
+    comment?: string,
+  ) => void;
   onDeleteQuiz: () => void;
   onQuizChange: (quizId: string) => void;
   quizzes: ReadonlyArray<Quiz>;
@@ -295,6 +335,7 @@ const TopBar: React.FC<{
 }> = ({
   onArtistTypeChange,
   onClearDraft,
+  onCreateNewVersion,
   onDeleteQuiz,
   onQuizChange,
   quizzes,
@@ -304,7 +345,7 @@ const TopBar: React.FC<{
   // Filter to only show "My Artist Type Quiz" versions
   const artistTypeQuizVersions = quizzes
     .filter((q) => q.title === "My Artist Type Quiz" || q.title === "My Artist Type Quiz (Editing)")
-    .sort((a, b) => b.version.localeCompare(a.version)); // Sort by version desc
+    .sort((a, b) => b.version.semver.localeCompare(a.version.semver)); // Sort by version desc
 
   const selectedQuiz = quizzes.find((quiz) => quiz.id === selectedQuizId);
 
@@ -322,33 +363,21 @@ const TopBar: React.FC<{
   ];
 
   const [isVersionDialogOpen, setIsVersionDialogOpen] = React.useState(false);
-  const createNewVersion = useAtomSet(createNewQuizVersionAtom);
-
-  const handleCreateNewVersion = (
-    newVersion: string,
-    incrementType: "major" | "minor" | "patch",
-  ) => {
-    if (selectedQuiz === undefined) return;
-
-    // The atom handles the async operation and toast notifications
-    // The new quiz will appear in the dropdown once created
-    createNewVersion({
-      quiz: selectedQuiz,
-      newVersion,
-      incrementType,
-    });
-  };
 
   return (
     <>
       <VersionIncrementDialog
-        currentVersion={selectedQuiz?.version ?? "1.0.0"}
+        currentVersion={selectedQuiz !== undefined ? selectedQuiz.version.semver : "1.0.0"}
         isOpen={isVersionDialogOpen}
         onClose={() => {
           setIsVersionDialogOpen(false);
         }}
-        onConfirm={handleCreateNewVersion}
-        title="Create New Quiz Version"
+        onConfirm={onCreateNewVersion}
+        title={
+          selectedQuiz !== undefined && selectedQuiz.isTemp === true
+            ? "Save Changes as New Version"
+            : "Create New Quiz Version"
+        }
       />
       <div className="flex items-center gap-4 p-4 border-b border-border/50 bg-card/50">
         <div className="flex items-center gap-2">
@@ -365,11 +394,13 @@ const TopBar: React.FC<{
                 <Select.Value placeholder="Select version">
                   {selectedQuiz !== undefined && (
                     <div className="flex items-center gap-1.5">
-                      <span>v{selectedQuiz.version}</span>
+                      <span title={selectedQuiz.version.comment ?? undefined}>
+                        {getDisplayVersion(selectedQuiz, artistTypeQuizVersions)}
+                      </span>
                       {selectedQuiz.isTemp ? (
                         <Badge
                           variant="outline"
-                          className="text-xs border-orange-500 text-orange-600 px-1"
+                          className={`text-xs px-1 ${getTempBadgeColor(selectedQuiz.id)}`}
                         >
                           Edit
                         </Badge>
@@ -377,11 +408,7 @@ const TopBar: React.FC<{
                         <Badge variant="default" className="text-xs px-1">
                           Live
                         </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-xs px-1">
-                          Draft
-                        </Badge>
-                      )}
+                      ) : null}
                     </div>
                   )}
                 </Select.Value>
@@ -390,11 +417,11 @@ const TopBar: React.FC<{
                 {artistTypeQuizVersions.map((quiz) => (
                   <Select.Item key={quiz.id} value={quiz.id}>
                     <div className="flex items-center gap-1.5">
-                      <span>v{quiz.version}</span>
+                      <span>{getDisplayVersion(quiz, artistTypeQuizVersions)}</span>
                       {quiz.isTemp ? (
                         <Badge
                           variant="outline"
-                          className="text-xs border-orange-500 text-orange-600 px-1"
+                          className={`text-xs px-1 ${getTempBadgeColor(quiz.id)}`}
                         >
                           Edit
                         </Badge>
@@ -402,11 +429,7 @@ const TopBar: React.FC<{
                         <Badge variant="default" className="text-xs px-1">
                           Live
                         </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-xs px-1">
-                          Draft
-                        </Badge>
-                      )}
+                      ) : null}
                     </div>
                   </Select.Item>
                 ))}
@@ -445,7 +468,7 @@ const TopBar: React.FC<{
               variant="default"
               size="sm"
               onClick={() => {
-                // TODO: Open save dialog
+                setIsVersionDialogOpen(true);
               }}
               className="gap-2"
             >
@@ -747,6 +770,8 @@ export const QuizEditorLayout: React.FC = () => {
   const selectedQuestionIndex = useAtomValue(selectedQuestionIndexAtom);
   const showIdealAnswers = useAtomValue(showIdealAnswersAtom);
   const pendingRating = useAtomValue(pendingRatingAtom);
+  const expectedNewVersion = useAtomValue(expectedNewVersionAtom);
+  const expectedTempQuiz = useAtomValue(expectedTempQuizAtom);
 
   // Derived values that automatically update based on selections
   const currentQuestionIdealAnswers = getIdealAnswersForCurrentSelection(
@@ -773,8 +798,10 @@ export const QuizEditorLayout: React.FC = () => {
   const setSelectedQuestionIndex = useAtomSet(selectedQuestionIndexAtom);
   const setShowIdealAnswers = useAtomSet(showIdealAnswersAtom);
   const setPendingRating = useAtomSet(pendingRatingAtom);
+  const setExpectedNewVersion = useAtomSet(expectedNewVersionAtom);
+  const setExpectedTempQuiz = useAtomSet(expectedTempQuizAtom);
 
-  // Quiz atoms for creating temp versions
+  // Quiz atoms for creating temp versions - use the atom function directly
   const createTempQuiz = useAtomSet(createTempQuizAtom);
 
   // Engine atoms for modifying ideal answers
@@ -787,8 +814,63 @@ export const QuizEditorLayout: React.FC = () => {
   // Delete atom for dangerous operations
   const deleteQuiz = useAtomSet(deleteQuizAtom);
 
+  // Version creation atom
+  const createNewVersion = useAtomSet(createNewQuizVersionAtom);
+
+  // Save temp quiz atom
+  const saveTempQuiz = useAtomSet(saveTempQuizAtom);
+
   // Registry for optimistic updates
   const setEnginesAtom = useAtomSet(enginesAtom);
+
+  // Handle creating new version with auto-selection
+  const handleCreateNewVersion = (
+    newVersion: string,
+    incrementType: "major" | "minor" | "patch",
+    comment?: string,
+  ) => {
+    const currentQuiz = quizzes.find((q) => q.id === selectedQuizId);
+    if (currentQuiz === undefined) return;
+
+    // Create Version object with semver and comment
+    const versionObject = new Version({
+      semver: newVersion,
+      comment,
+    });
+
+    if (currentQuiz.isTemp) {
+      // Save temp quiz as official version with the new version info
+      console.log(
+        "💾 Saving temp quiz as new version:",
+        versionObject.semver,
+        versionObject.comment,
+      );
+      console.log("💾 Current temp quiz:", currentQuiz.id, currentQuiz.title);
+
+      saveTempQuiz({
+        quiz: currentQuiz,
+        action: "saveAsNew",
+        newVersion: versionObject,
+      });
+
+      // Set expected version to auto-select the new official version
+      setExpectedNewVersion(versionObject.semver);
+      console.log("💾 Set expected new version:", versionObject.semver);
+    } else {
+      // Create new version from existing quiz
+      const expectedVersion = versionObject.semver;
+
+      // The atom handles the async operation and toast notifications
+      createNewVersion({
+        quiz: currentQuiz,
+        newVersion: versionObject,
+        incrementType,
+      });
+
+      // Set expected version to auto-select when it appears
+      setExpectedNewVersion(expectedVersion);
+    }
+  };
 
   // Initialize selections on first load - moved before early returns
   React.useEffect(() => {
@@ -802,7 +884,7 @@ export const QuizEditorLayout: React.FC = () => {
           .filter(
             (q) => q.title === "My Artist Type Quiz" || q.title === "My Artist Type Quiz (Editing)",
           )
-          .sort((a, b) => b.version.localeCompare(a.version));
+          .sort((a, b) => b.version.semver.localeCompare(a.version.semver));
 
         const defaultQuiz =
           artistTypeQuizzes[0] ??
@@ -830,50 +912,21 @@ export const QuizEditorLayout: React.FC = () => {
       const selectedQuiz = quizzes.find((q) => q.id === selectedQuizId);
 
       if (selectedQuiz !== undefined) {
-        // eslint-disable-next-line no-console
-        console.log(
-          "Selected quiz:",
-          selectedQuiz.title,
-          "v" + selectedQuiz.version,
-          "id:",
-          selectedQuiz.id,
-          "isTemp:",
-          selectedQuiz.isTemp,
-          "isPublished:",
-          selectedQuiz.isPublished,
-        );
-
-        const matchingEngine = findMatchingEngine(selectedQuiz);
-
-        // eslint-disable-next-line no-console
-        console.log(
-          "Available engines:",
-          engines.map((e: AnalysisEngine) => ({
-            id: e.id,
-            name: e.name,
-            quizId: e.quizId,
-            version: e.version,
-            isTemp: e.isTemp,
-            isPublished: e.isPublished,
-          })),
-        );
-
-        // eslint-disable-next-line no-console
-        console.log(
-          "Matching engine:",
-          matchingEngine !== undefined
-            ? {
-                name: matchingEngine.name,
-                quizId: matchingEngine.quizId,
-                version: matchingEngine.version,
-                isTemp: matchingEngine.isTemp,
-              }
-            : "NOT FOUND",
-        );
+        const matchingEngine = findMatchingEngine(selectedQuiz, engines);
 
         if (matchingEngine !== undefined && matchingEngine.id !== selectedEngineId) {
-          // eslint-disable-next-line no-console
-          console.log("Auto-selecting engine:", matchingEngine.name);
+          console.log("🔄 Auto-switching engine for quiz change:");
+          console.log(
+            "  Quiz:",
+            getDisplayVersion(selectedQuiz, []),
+            selectedQuiz.isTemp ? "(TEMP)" : "(PERMANENT)",
+          );
+          console.log("  From engine:", selectedEngineId);
+          console.log(
+            "  To engine:",
+            matchingEngine.id,
+            matchingEngine.isTemp ? "(TEMP)" : "(PERMANENT)",
+          );
           setSelectedEngineId(matchingEngine.id);
         }
       }
@@ -893,37 +946,85 @@ export const QuizEditorLayout: React.FC = () => {
     }
   }, [selectedEngineId, pendingRating, enginesResult]);
 
-  // Auto-switch to new temp quiz when one is created
+  // Auto-switch to new version when it's created
   React.useEffect(() => {
-    if (Result.isSuccess(quizzesResult) && pendingRating !== null) {
+    if (Result.isSuccess(quizzesResult) && expectedNewVersion !== null) {
       const quizzes = quizzesResult.value;
-      // Find temp quizzes that match the current quiz's base pattern
       const currentQuiz = quizzes.find((q) => q.id === selectedQuizId);
+
       if (currentQuiz !== undefined) {
-        const tempQuizzes = quizzes.filter(
+        // Handle both regular quizzes and temp quizzes (which have " (Editing)" suffix)
+        const baseTitle = currentQuiz.title.replace(" (Editing)", "");
+
+        const newVersionQuiz = quizzes.find(
           (q) =>
-            q.isTemp === true &&
-            q.title.includes(currentQuiz.title) &&
-            q.version === currentQuiz.version,
+            (q.title === baseTitle || q.title === currentQuiz.title) &&
+            q.version.semver === expectedNewVersion &&
+            q.isTemp === false &&
+            q.isPublished === false &&
+            q.id !== selectedQuizId, // Don't select the same quiz
         );
 
-        if (tempQuizzes.length > 0) {
-          // Get the newest temp quiz
-          const newestTempQuiz = tempQuizzes.sort((a, b) => b.id.localeCompare(a.id))[0];
-          if (newestTempQuiz !== undefined && newestTempQuiz.id !== selectedQuizId) {
-            // eslint-disable-next-line no-console
+        console.log("🔍 Looking for new version with semver:", expectedNewVersion);
+        console.log("🔍 Base title:", baseTitle);
+        console.log("🔍 Current quiz title:", currentQuiz.title);
+        console.log("🔍 Found new version quiz:", newVersionQuiz?.id, newVersionQuiz?.title);
+
+        if (newVersionQuiz !== undefined) {
+          setSelectedQuizId(newVersionQuiz.id);
+          setExpectedNewVersion(null); // Clear the expected version
+        }
+      }
+    }
+  }, [quizzesResult, expectedNewVersion, selectedQuizId]);
+
+  // Auto-switch to new temp quiz when it's created
+  React.useEffect(() => {
+    if (Result.isSuccess(quizzesResult) && expectedTempQuiz !== null) {
+      const quizzes = quizzesResult.value;
+      const originalQuiz = quizzes.find((q) => q.id === expectedTempQuiz.originalQuizId);
+
+      if (originalQuiz !== undefined) {
+        // Find temp quizzes created from this original quiz
+        const allTempQuizzes = quizzes.filter(
+          (q) =>
+            q.isTemp === true &&
+            q.title === `${originalQuiz.title} (Editing)` &&
+            q.version.semver === originalQuiz.version.semver,
+        );
+
+        // Only select temp quizzes that are NEW (not in our existing snapshot)
+        const newTempQuizzes = allTempQuizzes.filter(
+          (q) => !expectedTempQuiz.existingTempQuizIds.includes(q.id),
+        );
+
+        if (newTempQuizzes.length > 0) {
+          // Get the newest temp quiz (most recently created based on ID)
+          const newestTempQuiz = newTempQuizzes.sort((a, b) => b.id.localeCompare(a.id))[0];
+          if (newestTempQuiz !== undefined) {
             console.log(
-              "Auto-switching to temp quiz:",
-              newestTempQuiz.title,
-              "id:",
+              "🎯 Auto-selecting NEWLY CREATED temp quiz:",
               newestTempQuiz.id,
+              newestTempQuiz.title,
             );
             setSelectedQuizId(newestTempQuiz.id);
+            setExpectedTempQuiz(null); // Clear the expectation
+
+            // Also check if we have the matching temp engine available
+            if (Result.isSuccess(enginesResult)) {
+              const engines = enginesResult.value;
+              const matchingEngine = engines.find((e) => e.quizId === newestTempQuiz.id);
+              console.log(
+                "🔧 Temp quiz selected, checking for matching engine:",
+                matchingEngine?.id,
+                matchingEngine?.isTemp ? "(TEMP)" : "(PERMANENT)",
+              );
+            }
           }
         }
       }
     }
-  }, [quizzesResult, pendingRating, selectedQuizId]);
+  }, [quizzesResult, expectedTempQuiz, selectedQuizId]);
 
   // Early returns after all hooks
   if (!Result.isSuccess(quizzesResult) || !Result.isSuccess(enginesResult)) {
@@ -966,11 +1067,17 @@ export const QuizEditorLayout: React.FC = () => {
     if (currentQuiz === undefined || currentEngine === undefined || selectedQuestion === undefined)
       return;
 
-    // Check if we're already working with temp versions
-    const isWorkingWithTempVersions = currentQuiz.isTemp === true && currentEngine.isTemp === true;
+    // Check if we're already working with a temp quiz
+    const isWorkingWithTempQuiz = currentQuiz.isTemp === true;
+    const hasMatchingTempEngine = currentEngine.isTemp === true;
 
-    if (isWorkingWithTempVersions) {
+    if (isWorkingWithTempQuiz && hasMatchingTempEngine) {
       // Already working with temp versions, just update the engine
+      updateEngineIdealAnswerOptimistic(currentEngine, rating);
+    } else if (isWorkingWithTempQuiz && !hasMatchingTempEngine) {
+      // We have a temp quiz but no matching temp engine - this shouldn't happen
+      // but let's handle it by just updating the current engine
+      console.log("⚠️ Temp quiz without temp engine - updating current engine");
       updateEngineIdealAnswerOptimistic(currentEngine, rating);
     } else {
       // Need to create temp versions first
@@ -978,20 +1085,23 @@ export const QuizEditorLayout: React.FC = () => {
         // 1. Set pending rating to apply after engine switches
         setPendingRating(rating);
 
-        // 2. Create temp quiz (this will automatically create matching temp engine)
-        // eslint-disable-next-line no-console
-        console.log("Creating temp quiz from:", currentQuiz.title, "id:", currentQuiz.id);
+        // Get existing temp quizzes for this original quiz BEFORE creating a new one
+        const existingTempQuizIds = quizzes
+          .filter(
+            (q) =>
+              q.isTemp === true &&
+              q.title === `${currentQuiz.title} (Editing)` &&
+              q.version.semver === currentQuiz.version.semver,
+          )
+          .map((q) => q.id);
+
+        setExpectedTempQuiz({
+          originalQuizId: currentQuiz.id,
+          existingTempQuizIds,
+        }); // Track the original quiz ID and existing temp quiz IDs
         createTempQuiz({ quiz: currentQuiz });
 
-        // The temp quiz creation will update the atoms automatically
-        // and the useEffect will handle switching to the new temp versions
-
-        // 4. Force a refresh of the atoms to ensure UI updates
-        // The atoms should automatically reflect the new temp quiz
-
-        // 4. The useEffect will automatically:
-        //    - Switch to the matching temp engine
-        //    - Apply the pending rating change
+        // The pending rating will be applied by the useEffect when the engine switches
       } catch {
         // Clear pending rating on error
         setPendingRating(null);
@@ -1081,31 +1191,34 @@ export const QuizEditorLayout: React.FC = () => {
   };
 
   // Find the matching analysis engine for a given quiz using direct quizId reference
-  const findMatchingEngine = (targetQuiz: Quiz): AnalysisEngine | undefined => {
-    Effect.runSync(
-      Effect.log(
-        `Finding engine for quiz: ${targetQuiz.title} (id: ${targetQuiz.id}, isTemp: ${targetQuiz.isTemp})`,
-      ),
-    );
-
+  const findMatchingEngine = (
+    targetQuiz: Quiz,
+    availableEngines: ReadonlyArray<AnalysisEngine>,
+  ): AnalysisEngine | undefined => {
     // Simple direct lookup by quizId - this is much more reliable!
-    const matchingEngine = engines.find((engine) => engine.quizId === targetQuiz.id);
+    const matchingEngine = availableEngines.find((engine) => engine.quizId === targetQuiz.id);
+
+    console.log("🔍 Finding matching engine:");
+    console.log("  Target Quiz ID:", targetQuiz.id);
+    console.log("  Target Quiz isTemp:", targetQuiz.isTemp);
+    console.log(
+      "  Available engines:",
+      availableEngines.map((e) => ({
+        id: e.id,
+        quizId: e.quizId,
+        isTemp: e.isTemp,
+        matches: e.quizId === targetQuiz.id,
+      })),
+    );
+    console.log(
+      "  Found matching engine:",
+      matchingEngine?.id,
+      matchingEngine?.isTemp ? "(TEMP)" : "(PERMANENT)",
+    );
 
     if (matchingEngine !== undefined) {
-      Effect.runSync(
-        Effect.log(
-          `Found matching engine: ${matchingEngine.name} (quizId: ${matchingEngine.quizId})`,
-        ),
-      );
       return matchingEngine;
     }
-
-    Effect.runSync(Effect.log(`No engine found with quizId: ${targetQuiz.id}`));
-    Effect.runSync(
-      Effect.log(
-        `Available engines: ${engines.map((e) => `${e.name} (quizId: ${e.quizId})`).join(", ")}`,
-      ),
-    );
 
     return undefined;
   };
@@ -1116,8 +1229,6 @@ export const QuizEditorLayout: React.FC = () => {
 
   const handleAddQuestion = () => {
     // TODO: Implement add question functionality
-    // eslint-disable-next-line no-console
-    console.log("Add question clicked");
   };
 
   const handleClearDraft = () => {
@@ -1255,9 +1366,13 @@ export const QuizEditorLayout: React.FC = () => {
         selectedQuizId={selectedQuizId}
         selectedEngineId={selectedEngineId}
         selectedArtistType={selectedArtistType}
-        onQuizChange={setSelectedQuizId}
+        onQuizChange={(quizId) => {
+          const selectedQuiz = quizzes.find((q) => q.id === quizId);
+          setSelectedQuizId(quizId);
+        }}
         onArtistTypeChange={setSelectedArtistType}
         onClearDraft={handleClearDraft}
+        onCreateNewVersion={handleCreateNewVersion}
         onDeleteQuiz={handleDeleteQuiz}
       />
 

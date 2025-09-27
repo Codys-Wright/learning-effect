@@ -1,4 +1,5 @@
 import { ApiClient, makeAtomRuntime, withToast } from "@core/client";
+import type { Version } from "@core/domain";
 import { Atom, Registry, Result } from "@effect-atom/atom-react";
 import type {
   AnalysisEngine,
@@ -139,7 +140,7 @@ export const toggleEnginePublishAtom = runtime.fn(
 // Helper function to create a new engine version
 export const createNewEngineVersionAtom = runtime.fn(
   Effect.fn(
-    function* (args: { engine: AnalysisEngine; newVersion: string }) {
+    function* (args: { engine: AnalysisEngine; newVersion: Version }) {
       const { engine, newVersion } = args;
       const registry = yield* Registry.AtomRegistry;
       const api = yield* ApiClient;

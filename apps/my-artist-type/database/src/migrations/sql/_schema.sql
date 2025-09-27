@@ -1,11 +1,11 @@
 CREATE FUNCTION public.update_active_quizzes_updated_at() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
-      BEGIN
-        NEW.updated_at = NOW();
-        RETURN NEW;
-      END;
-      $$;
+        BEGIN
+          NEW.updated_at = NOW();
+          RETURN NEW;
+        END;
+        $$;
 
 CREATE FUNCTION public.update_updated_at_column() RETURNS trigger
     LANGUAGE plpgsql
@@ -27,7 +27,7 @@ CREATE TABLE public.active_quizzes (
 
 CREATE TABLE public.analysis_engines (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    version character varying(20) NOT NULL,
+    version jsonb NOT NULL,
     name character varying(200) NOT NULL,
     description text,
     scoring_config jsonb NOT NULL,
@@ -39,20 +39,22 @@ CREATE TABLE public.analysis_engines (
     deleted_at timestamp with time zone,
     is_published boolean DEFAULT false NOT NULL,
     is_temp boolean DEFAULT false NOT NULL,
-    quiz_id uuid
+    quiz_id uuid,
+    CONSTRAINT analysis_engines_version_has_semver CHECK (((version ? 'semver'::text) AND ((version ->> 'semver'::text) IS NOT NULL) AND ((version ->> 'semver'::text) <> ''::text)))
 );
 
 CREATE TABLE public.analysis_results (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     engine_id uuid NOT NULL,
-    engine_version character varying(20) NOT NULL,
+    engine_version jsonb NOT NULL,
     response_id uuid NOT NULL,
     ending_results jsonb DEFAULT '[]'::jsonb NOT NULL,
     metadata jsonb,
     analyzed_at timestamp with time zone DEFAULT now() NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    deleted_at timestamp with time zone
+    deleted_at timestamp with time zone,
+    CONSTRAINT analysis_results_engine_version_has_semver CHECK (((engine_version ? 'semver'::text) AND ((engine_version ->> 'semver'::text) IS NOT NULL) AND ((engine_version ->> 'semver'::text) <> ''::text)))
 );
 
 CREATE TABLE public.effect_sql_migrations (
@@ -74,7 +76,7 @@ CREATE TABLE public.examples (
 
 CREATE TABLE public.quizzes (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    version text NOT NULL,
+    version jsonb NOT NULL,
     title text NOT NULL,
     subtitle text,
     description text,
@@ -84,7 +86,8 @@ CREATE TABLE public.quizzes (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     deleted_at timestamp with time zone,
     is_published boolean DEFAULT false NOT NULL,
-    is_temp boolean DEFAULT false NOT NULL
+    is_temp boolean DEFAULT false NOT NULL,
+    CONSTRAINT quizzes_version_has_semver CHECK (((version ? 'semver'::text) AND ((version ->> 'semver'::text) IS NOT NULL) AND ((version ->> 'semver'::text) <> ''::text)))
 );
 
 CREATE TABLE public.responses (
@@ -229,19 +232,21 @@ ALTER TABLE ONLY public.analysis_engines
 ALTER TABLE ONLY public.responses
     ADD CONSTRAINT responses_quiz_id_fkey FOREIGN KEY (quiz_id) REFERENCES public.quizzes(id);
 
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (1, '2025-09-27 20:43:28.427372+00', 'create-styles_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (2, '2025-09-27 20:43:28.427372+00', 'create-tests_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (3, '2025-09-27 20:43:28.427372+00', 'create-examples_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (4, '2025-09-27 20:43:28.427372+00', 'create-quizzes_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (5, '2025-09-27 20:43:28.427372+00', 'create_responses_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (6, '2025-09-27 20:43:28.427372+00', 'create_analysis_engines_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (7, '2025-09-27 20:43:28.427372+00', 'create_analysis_results_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (8, '2025-09-27 20:43:28.427372+00', 'add_quiz_publishing');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (9, '2025-09-27 20:43:28.427372+00', 'add_quiz_temp_flag');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (10, '2025-09-27 20:43:28.427372+00', 'add_analysis_engine_publishing');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (11, '2025-09-27 20:43:28.427372+00', 'add_analysis_engine_temp_flag');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (12, '2025-09-27 20:43:28.427372+00', 'add_analysis_engine_quiz_id');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (13, '2025-09-27 20:43:28.427372+00', 'create_active_quizzes_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (14, '2025-09-27 20:43:28.427372+00', 'remove_slug_from_quizzes');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (15, '2025-09-27 20:43:28.427372+00', 'remove_slug_from_analysis_engines');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (16, '2025-09-27 20:43:28.427372+00', 'remove_engine_slug_from_analysis_results');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (1, '2025-09-27 22:55:49.131779+00', 'create-styles_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (2, '2025-09-27 22:55:49.131779+00', 'create-tests_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (3, '2025-09-27 22:55:49.131779+00', 'create-examples_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (4, '2025-09-27 22:55:49.131779+00', 'create-quizzes_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (5, '2025-09-27 22:55:49.131779+00', 'create_responses_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (6, '2025-09-27 22:55:49.131779+00', 'create_analysis_engines_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (7, '2025-09-27 22:55:49.131779+00', 'create_analysis_results_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (8, '2025-09-27 22:55:49.131779+00', 'add_quiz_publishing');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (9, '2025-09-27 22:55:49.131779+00', 'add_quiz_temp_flag');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (10, '2025-09-27 22:55:49.131779+00', 'add_analysis_engine_publishing');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (11, '2025-09-27 22:55:49.131779+00', 'add_analysis_engine_temp_flag');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (12, '2025-09-27 22:55:49.131779+00', 'add_analysis_engine_quiz_id');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (13, '2025-09-27 22:55:49.131779+00', 'create_active_quizzes_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (14, '2025-09-27 22:55:49.131779+00', 'remove_slug_from_quizzes');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (15, '2025-09-27 22:55:49.131779+00', 'remove_slug_from_analysis_engines');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (16, '2025-09-27 22:55:49.131779+00', 'remove_engine_slug_from_analysis_results');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (17, '2025-09-27 22:55:49.131779+00', 'update_version_columns_to_json');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (18, '2025-09-27 22:55:49.131779+00', 'update_analysis_results_engine_version_to_json');

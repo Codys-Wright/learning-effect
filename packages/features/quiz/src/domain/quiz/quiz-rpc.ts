@@ -24,7 +24,7 @@
 //     - Any pages related to this feature will go in client/src/features/${featurename}/example.page.tsx, then that component is imported into the main router
 //
 
-import { NullOrFromFallible, SemVer } from "@core/domain";
+import { NullOrFromFallible, Version } from "@core/domain";
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "@effect/platform";
 import { faker } from "@faker-js/faker";
 import { Schema as S } from "effect";
@@ -51,7 +51,7 @@ export class QuizSettings extends S.Class<QuizSettings>("QuizSettings")({
 export class Quiz extends S.Class<Quiz>("Quiz")({
   //every entity should have an Id and a version
   id: QuizId,
-  version: SemVer,
+  version: S.parseJson(Version),
 
   //Define the actual entity here
   title: S.String,
@@ -80,7 +80,7 @@ export class Quiz extends S.Class<Quiz>("Quiz")({
 
 export class UpsertQuizPayload extends S.Class<UpsertQuizPayload>("UpsertQuizPayload")({
   id: S.optional(QuizId),
-  version: S.optional(SemVer),
+  version: S.optional(Version),
 
   title: S.Trim.pipe(
     S.nonEmptyString({

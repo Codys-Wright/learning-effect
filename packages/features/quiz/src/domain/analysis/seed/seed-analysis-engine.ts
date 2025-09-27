@@ -117,7 +117,10 @@ export const getSeedAnalysisEnginePayload = (): {
     name: "Artist Type Analysis Engine",
     description:
       "Analyzes quiz responses to determine which of the 10 artist types best matches the respondent's creative personality and approach.",
-    version: "1.0.0",
+    version: {
+      semver: "1.0.0",
+      comment: "Initial analysis engine with 10 artist archetypes and weighted scoring",
+    },
     slug: "artist-type-quiz-v1",
     scoringConfig: {
       primaryWeight: 1.5,

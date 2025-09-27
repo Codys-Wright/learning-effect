@@ -30,7 +30,7 @@ const seedEffect = Effect.gen(function* () {
   // Check if quiz already exists first
   const existingQuizzes = yield* quizRepo.findAll();
   const existingQuiz = existingQuizzes.find(
-    (q) => q.title === "My Artist Type Quiz" && q.version === "1.0.0",
+    (q) => q.title === "My Artist Type Quiz" && q.version.semver === "1.0.0",
   );
 
   let seededQuiz;
@@ -51,7 +51,7 @@ const seedEffect = Effect.gen(function* () {
       description:
         quizPayload.description ??
         "Take this comprehensive quiz to understand your artist archetype and creative approach.",
-      version: quizPayload.version ?? "1.0.0",
+      version: quizPayload.version ?? { semver: "1.0.0", comment: "Initial version" },
       questions,
       metadata: quizPayload.metadata ?? undefined,
       isPublished: false, // Don't publish individual quiz versions
@@ -211,14 +211,18 @@ const seedEffect = Effect.gen(function* () {
   if (successCount > 0) {
     yield* Effect.log(`\nCreating analysis results from Typeform data...`);
 
-    // Get all Typeform responses that were just created
-    const allResponses = yield* responsesRepo.findAll();
-    typeformResponses = allResponses.filter(
-      (response) => response.metadata?.tags?.includes("typeform") === true,
-    );
+    // Only process the responses that were just created in this run
+    // (typeformResponses already contains the 223 responses we just processed)
 
     for (const [index, response] of typeformResponses.entries()) {
       try {
+        // Check if analysis result already exists for this response
+        const existingAnalysisResults = yield* analysisRepo.findByResponseId(response.id);
+        if (existingAnalysisResults.length > 0) {
+          // Skip if analysis result already exists
+          continue;
+        }
+
         // Get the legacy artist type from the response metadata
         const legacyAnalysis = response.metadata?.customFields?.legacyAnalysis as
           | {
