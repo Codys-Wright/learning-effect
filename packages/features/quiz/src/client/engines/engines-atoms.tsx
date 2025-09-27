@@ -16,11 +16,15 @@ const remoteAtom = runtime.atom(
   }),
 );
 
-type Action = Data.TaggedEnum<{
+export type EngineAction = Data.TaggedEnum<{
   Upsert: { readonly engine: AnalysisEngine };
   Del: { readonly id: AnalysisEngineId };
 }>;
-const Action = Data.taggedEnum<Action>();
+export const EngineAction = Data.taggedEnum<EngineAction>();
+
+// Keep the internal Action for backward compatibility
+type Action = EngineAction;
+const Action = EngineAction;
 
 export const enginesAtom = Object.assign(
   Atom.writable(
@@ -120,4 +124,181 @@ export const getEngineBySlugAndVersionAtom = runtime.fn(
       onFailure: "Failed to load analysis engine",
     }),
   ),
+);
+
+// Helper function to toggle engine publishing status
+export const toggleEnginePublishAtom = runtime.fn(
+  Effect.fn(
+    function* (args: { engine: AnalysisEngine; isPublished: boolean }) {
+      const { engine, isPublished } = args;
+      const registry = yield* Registry.AtomRegistry;
+      const api = yield* ApiClient;
+
+      const updatedEngine = yield* api.http.AnalysisEngine.upsert({
+        payload: {
+          id: engine.id,
+          name: engine.name,
+          description: engine.description ?? undefined,
+          scoringConfig: engine.scoringConfig,
+          endings: engine.endings,
+          metadata: engine.metadata ?? undefined,
+          isActive: engine.isActive,
+          isPublished, // Toggle published status
+          isTemp: engine.isTemp === true, // Preserve temp status
+          slug: engine.slug,
+          version: engine.version,
+        },
+      });
+
+      registry.set(enginesAtom, Action.Upsert({ engine: updatedEngine }));
+      return updatedEngine;
+    },
+    withToast({
+      onWaiting: (args) => `${args.isPublished === true ? "Publishing" : "Unpublishing"} engine...`,
+      onSuccess: (args) =>
+        `Engine ${args.isPublished === true ? "published" : "unpublished"} successfully`,
+      onFailure: "Failed to update engine publishing status",
+    }),
+  ),
+);
+
+// Helper function to create a new engine version
+export const createNewEngineVersionAtom = runtime.fn(
+  Effect.fn(
+    function* (args: { engine: AnalysisEngine; newVersion: string }) {
+      const { engine, newVersion } = args;
+      const registry = yield* Registry.AtomRegistry;
+      const api = yield* ApiClient;
+
+      const newEngine = yield* api.http.AnalysisEngine.upsert({
+        payload: {
+          // Don't include id to create a new engine
+          name: engine.name,
+          description: engine.description ?? undefined,
+          scoringConfig: engine.scoringConfig,
+          endings: engine.endings,
+          metadata: engine.metadata ?? undefined,
+          isActive: engine.isActive,
+          isPublished: false, // New versions start as drafts
+          isTemp: false, // New versions are permanent
+          slug: engine.slug,
+          version: newVersion,
+        },
+      });
+
+      registry.set(enginesAtom, Action.Upsert({ engine: newEngine }));
+      return newEngine;
+    },
+    withToast({
+      onWaiting: "Creating new engine version...",
+      onSuccess: "New engine version created successfully",
+      onFailure: "Failed to create new engine version",
+    }),
+  ),
+);
+
+// Helper function to create a temporary engine copy for editing
+export const createTempEngineAtom = runtime.fn(
+  Effect.fn(
+    function* (args: { engine: AnalysisEngine }) {
+      const { engine } = args;
+      const registry = yield* Registry.AtomRegistry;
+      const api = yield* ApiClient;
+
+      // Create temporary copy for editing
+      const tempEngine = yield* api.http.AnalysisEngine.upsert({
+        payload: {
+          // Don't include id to create a new engine
+          name: `${engine.name} (Editing)`,
+          description: engine.description ?? undefined,
+          scoringConfig: engine.scoringConfig,
+          endings: engine.endings,
+          metadata: engine.metadata ?? undefined,
+          isActive: engine.isActive,
+          isPublished: false, // Temp engines are never published
+          isTemp: true, // Mark as temporary
+          slug: `${engine.slug}-temp-${engine.id}`, // Make slug unique for temp engines using original engine ID
+          version: engine.version,
+        },
+      });
+
+      registry.set(enginesAtom, Action.Upsert({ engine: tempEngine }));
+      return tempEngine;
+    },
+    withToast({
+      onWaiting: "Creating temporary copy...",
+      onSuccess: "Ready to edit",
+      onFailure: "Failed to create temporary copy",
+    }),
+  ),
+);
+
+// Helper function to auto-save changes to a temporary engine (no toast notifications)
+export const autoSaveTempEngineAtom = runtime.fn(
+  Effect.fn(
+    function* (args: { engine: AnalysisEngine }) {
+      const { engine } = args;
+      const registry = yield* Registry.AtomRegistry;
+      const api = yield* ApiClient;
+
+      // Only work with temporary engines
+      if (engine.isTemp !== true) return engine;
+
+      const updatedEngine = yield* api.http.AnalysisEngine.upsert({
+        payload: {
+          id: engine.id,
+          name: engine.name,
+          description: engine.description ?? undefined,
+          scoringConfig: engine.scoringConfig,
+          endings: engine.endings,
+          metadata: engine.metadata ?? undefined,
+          isActive: engine.isActive,
+          isPublished: engine.isPublished === true,
+          isTemp: engine.isTemp === true,
+          slug: engine.slug,
+          version: engine.version,
+        },
+      });
+
+      registry.set(enginesAtom, Action.Upsert({ engine: updatedEngine }));
+      return updatedEngine;
+    },
+    // No toast for auto-save to avoid spam
+  ),
+);
+
+// Clear all temporary engines
+export const clearTempEnginesAtom = runtime.fn(
+  Effect.fn(function* () {
+    const registry = yield* Registry.AtomRegistry;
+    const api = yield* ApiClient;
+
+    // Get all engines
+    const allEngines = yield* api.http.AnalysisEngine.list();
+
+    // Find all temp engines
+    const tempEngines = allEngines.filter((engine) => engine.isTemp === true);
+
+    // Delete all temp engines
+    yield* Effect.forEach(tempEngines, (engine) =>
+      api.http.AnalysisEngine.delete({ id: engine.id }),
+    );
+
+    // Update the atom to remove deleted engines
+    yield* Effect.forEach(tempEngines, (engine) =>
+      registry.set(enginesAtom, Action.Del({ id: engine.id })),
+    );
+
+    return tempEngines.length;
+  }),
+  withToast({
+    onSuccess: (count) => ({
+      title: "Draft Cleared",
+      description: `Deleted ${count} temporary analysis engine(s)`,
+    }),
+    onFailure: () => ({
+      title: "Error",
+      description: "Failed to clear analysis engine drafts",
+    }),
+  }),
 );

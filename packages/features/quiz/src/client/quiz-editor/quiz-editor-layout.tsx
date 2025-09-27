@@ -1,23 +1,108 @@
 "use client";
 
-import { Result, useAtomValue } from "@effect-atom/atom-react";
+import { Atom, Result, useAtomSet, useAtomValue } from "@effect-atom/atom-react";
 import { type AnalysisEngine, type Question, type Quiz } from "@features/quiz/domain";
 import {
   Badge,
   Button,
+  cn,
+  DropdownMenu,
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
   ScrollArea,
   Select,
-  cn,
 } from "@ui/shadcn";
-import { ArrowLeftIcon, ArrowRightIcon, EditIcon, PlusIcon, SettingsIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  EditIcon,
+  GitBranchIcon,
+  PlusIcon,
+  SaveIcon,
+  SettingsIcon,
+} from "lucide-react";
 import React from "react";
+import { getArtistIconPath } from "../components/artist-type/artist-data-utils.js";
 import { QuestionCard } from "../components/question-card.js";
 import { QuizProgressBar } from "../components/quiz-progress-bar.js";
-import { enginesAtom } from "../engines/engines-atoms.js";
-import { quizzesAtom } from "../quizzes-atoms.js";
+import { VersionIncrementDialog } from "../components/version-increment-dialog.js";
+import {
+  autoSaveTempEngineAtom,
+  clearTempEnginesAtom,
+  EngineAction,
+  enginesAtom,
+} from "../engines/engines-atoms.js";
+import {
+  clearTempQuizzesAtom,
+  createNewQuizVersionAtom,
+  createTempQuizAtom,
+  deleteQuizAtom,
+  quizzesAtom,
+} from "../quizzes-atoms.js";
+
+// Atoms for dropdown selections - keep alive to persist state
+const selectedQuizIdAtom = Atom.make("").pipe(Atom.keepAlive);
+const selectedEngineIdAtom = Atom.make("").pipe(Atom.keepAlive);
+const selectedArtistTypeAtom = Atom.make("visionary").pipe(Atom.keepAlive);
+const selectedQuestionIndexAtom = Atom.make(0).pipe(Atom.keepAlive);
+const showIdealAnswersAtom = Atom.make(true).pipe(Atom.keepAlive);
+const pendingRatingAtom = Atom.make<number | null>(null).pipe(Atom.keepAlive);
+
+// Artist Icon Component
+const ArtistIcon: React.FC<{
+  artistType: string;
+  className?: string;
+  size?: number;
+}> = ({ artistType, className, size = 20 }) => {
+  const [loadError, setLoadError] = React.useState(false);
+  // Convert artist type to database ID format
+  const databaseId = `the-${artistType.toLowerCase()}-artist`;
+  const iconPath = getArtistIconPath(databaseId);
+
+  if (iconPath === null || loadError) {
+    return (
+      <div
+        className={cn(
+          "flex items-center justify-center rounded-full bg-gray-400 text-xs font-bold text-white",
+          className,
+        )}
+        style={{ width: size, height: size }}
+        role="img"
+        aria-label={`${artistType} icon`}
+      >
+        {artistType.charAt(0).toUpperCase()}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn("flex items-center justify-center", className)}
+      style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        aspectRatio: "1 / 1",
+        flexShrink: 0,
+      }}
+    >
+      <img
+        src={iconPath}
+        alt={`${artistType} icon`}
+        className="rounded-full dark:brightness-0 dark:invert"
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "fill",
+          aspectRatio: "1 / 1",
+        }}
+        onError={() => {
+          setLoadError(true);
+        }}
+      />
+    </div>
+  );
+};
 
 // Question List Component (Left Sidebar)
 const QuestionList: React.FC<{
@@ -55,13 +140,11 @@ const QuestionList: React.FC<{
                 </span>
                 <span className="truncate">{question.title}</span>
               </div>
-              {question.subtitle !== null &&
-                question.subtitle !== undefined &&
-                question.subtitle !== "" && (
-                  <div className="text-xs text-muted-foreground mt-1 truncate">
-                    {question.subtitle}
-                  </div>
-                )}
+              {question.subtitle !== undefined && question.subtitle.length > 0 && (
+                <div className="text-xs text-muted-foreground mt-1 truncate">
+                  {question.subtitle}
+                </div>
+              )}
             </button>
           ))}
         </div>
@@ -74,6 +157,8 @@ const QuestionList: React.FC<{
 const TopBar: React.FC<{
   engines: ReadonlyArray<AnalysisEngine>;
   onArtistTypeChange: (artistType: string) => void;
+  onClearDraft: () => void;
+  onDeleteQuiz: () => void;
   onEngineChange: (engineId: string) => void;
   onQuizChange: (quizId: string) => void;
   quizzes: ReadonlyArray<Quiz>;
@@ -83,6 +168,8 @@ const TopBar: React.FC<{
 }> = ({
   engines,
   onArtistTypeChange,
+  onClearDraft,
+  onDeleteQuiz,
   onEngineChange,
   onQuizChange,
   quizzes,
@@ -90,6 +177,13 @@ const TopBar: React.FC<{
   selectedEngineId,
   selectedQuizId,
 }) => {
+  // Filter to only show "My Artist Type Quiz" versions
+  const artistTypeQuizVersions = quizzes
+    .filter((q) => q.title === "My Artist Type Quiz" || q.title === "My Artist Type Quiz (Editing)")
+    .sort((a, b) => b.version.localeCompare(a.version)); // Sort by version desc
+
+  const selectedQuiz = quizzes.find((quiz) => quiz.id === selectedQuizId);
+
   const artistTypes = [
     "visionary",
     "consummate",
@@ -103,78 +197,251 @@ const TopBar: React.FC<{
     "solo",
   ];
 
+  const [isVersionDialogOpen, setIsVersionDialogOpen] = React.useState(false);
+  const createNewVersion = useAtomSet(createNewQuizVersionAtom);
+
+  const handleCreateNewVersion = (
+    newVersion: string,
+    incrementType: "major" | "minor" | "patch",
+  ) => {
+    if (selectedQuiz === undefined) return;
+
+    // The atom handles the async operation and toast notifications
+    // The new quiz will appear in the dropdown once created
+    createNewVersion({
+      quiz: selectedQuiz,
+      newVersion,
+      incrementType,
+    });
+  };
+
   return (
-    <div className="flex items-center gap-4 p-4 border-b border-border/50 bg-card/50">
-      <div className="flex items-center gap-2">
-        <EditIcon className="h-5 w-5" />
-        <h1 className="text-xl font-semibold">Quiz Editor</h1>
-      </div>
-
-      <div className="flex items-center gap-4 flex-1">
-        {/* Quiz Selection */}
+    <>
+      <VersionIncrementDialog
+        currentVersion={selectedQuiz?.version ?? "1.0.0"}
+        isOpen={isVersionDialogOpen}
+        onClose={() => {
+          setIsVersionDialogOpen(false);
+        }}
+        onConfirm={handleCreateNewVersion}
+        title="Create New Quiz Version"
+      />
+      <div className="flex items-center gap-4 p-4 border-b border-border/50 bg-card/50">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-muted-foreground">Quiz:</span>
-          <Select value={selectedQuizId} onValueChange={onQuizChange}>
-            <Select.Trigger className="w-48">
-              <Select.Value placeholder="Select quiz" />
-            </Select.Trigger>
-            <Select.Content>
-              {quizzes.map((quiz) => (
-                <Select.Item key={quiz.id} value={quiz.id}>
-                  {quiz.title}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select>
+          <EditIcon className="h-5 w-5" />
+          <h1 className="text-xl font-semibold">Quiz Editor</h1>
         </div>
 
-        {/* Engine Selection */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-muted-foreground">Engine:</span>
-          <Select value={selectedEngineId} onValueChange={onEngineChange}>
-            <Select.Trigger className="w-48">
-              <Select.Value placeholder="Select engine" />
-            </Select.Trigger>
-            <Select.Content>
-              {engines.map((engine) => (
-                <Select.Item key={engine.id} value={engine.id}>
+        <div className="flex items-center gap-6 flex-1">
+          {/* Version Selection for My Artist Type Quiz */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground">My Artist Type Quiz:</span>
+            <Select value={selectedQuizId} onValueChange={onQuizChange}>
+              <Select.Trigger className="w-32">
+                <Select.Value placeholder="Select version">
+                  {selectedQuiz !== undefined && (
+                    <div className="flex items-center gap-1.5">
+                      <span>v{selectedQuiz.version}</span>
+                      {selectedQuiz.isTemp ? (
+                        <Badge
+                          variant="outline"
+                          className="text-xs border-orange-500 text-orange-600 px-1"
+                        >
+                          Edit
+                        </Badge>
+                      ) : selectedQuiz.isPublished === true ? (
+                        <Badge variant="default" className="text-xs px-1">
+                          Live
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs px-1">
+                          Draft
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                </Select.Value>
+              </Select.Trigger>
+              <Select.Content>
+                {artistTypeQuizVersions.map((quiz) => (
+                  <Select.Item key={quiz.id} value={quiz.id}>
+                    <div className="flex items-center gap-1.5">
+                      <span>v{quiz.version}</span>
+                      {quiz.isTemp ? (
+                        <Badge
+                          variant="outline"
+                          className="text-xs border-orange-500 text-orange-600 px-1"
+                        >
+                          Edit
+                        </Badge>
+                      ) : quiz.isPublished ? (
+                        <Badge variant="default" className="text-xs px-1">
+                          Live
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs px-1">
+                          Draft
+                        </Badge>
+                      )}
+                    </div>
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select>
+          </div>
+
+          {/* Artist Type Selection */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground">Artist Type:</span>
+            <Select value={selectedArtistType} onValueChange={onArtistTypeChange}>
+              <Select.Trigger className="w-48">
+                <Select.Value>
                   <div className="flex items-center gap-2">
-                    {engine.name}
-                    {engine.isActive && (
-                      <Badge variant="secondary" className="text-xs">
-                        Active
-                      </Badge>
-                    )}
+                    <ArtistIcon artistType={selectedArtistType} size={16} />
+                    <span className="capitalize">{selectedArtistType}</span>
                   </div>
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select>
+                </Select.Value>
+              </Select.Trigger>
+              <Select.Content>
+                {artistTypes.map((type) => (
+                  <Select.Item key={type} value={type}>
+                    <div className="flex items-center gap-2">
+                      <ArtistIcon artistType={type} size={16} />
+                      <span className="capitalize">{type}</span>
+                    </div>
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select>
+          </div>
         </div>
 
-        {/* Artist Type Selection */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-muted-foreground">Artist Type:</span>
-          <Select value={selectedArtistType} onValueChange={onArtistTypeChange}>
-            <Select.Trigger className="w-48">
-              <Select.Value placeholder="Select artist type" />
-            </Select.Trigger>
-            <Select.Content>
-              {artistTypes.map((type) => (
-                <Select.Item key={type} value={type}>
-                  <span className="capitalize">{type}</span>
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select>
+        <div className="flex items-center gap-2 ml-4">
+          {selectedQuiz !== undefined && selectedQuiz.isTemp && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => {
+                // TODO: Open save dialog
+              }}
+              className="gap-2"
+            >
+              <SaveIcon className="h-4 w-4" />
+              Save Changes
+            </Button>
+          )}
+
+          {selectedQuiz !== undefined && !selectedQuiz.isTemp && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setIsVersionDialogOpen(true);
+              }}
+              className="gap-2"
+            >
+              <GitBranchIcon className="h-4 w-4" />
+              New Version
+            </Button>
+          )}
+
+          <DropdownMenu>
+            <DropdownMenu.Trigger asChild>
+              <Button variant="outline" size="sm">
+                <SettingsIcon className="h-4 w-4 mr-2" />
+                Settings
+              </Button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content align="end" className="w-64">
+              <DropdownMenu.Label>Quiz Editor Settings</DropdownMenu.Label>
+              <DropdownMenu.Separator />
+
+              <div className="p-2">
+                <div className="flex flex-col gap-2">
+                  <span className="text-sm font-medium">Analysis Engine</span>
+                  <Select value={selectedEngineId} onValueChange={onEngineChange}>
+                    <Select.Trigger className="w-full">
+                      <Select.Value placeholder="Select engine" />
+                    </Select.Trigger>
+                    <Select.Content>
+                      {engines.map((engine) => (
+                        <Select.Item key={engine.id} value={engine.id}>
+                          <div className="flex items-center gap-2">
+                            <span>{engine.name}</span>
+                            {engine.isTemp === true && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs text-orange-600 border-orange-600"
+                              >
+                                Edit
+                              </Badge>
+                            )}
+                            {engine.isPublished === true && engine.isTemp === false && (
+                              <Badge variant="default" className="text-xs">
+                                Live
+                              </Badge>
+                            )}
+                            {engine.isPublished === false && engine.isTemp === false && (
+                              <Badge variant="secondary" className="text-xs">
+                                Draft
+                              </Badge>
+                            )}
+                            {engine.isActive === true && (
+                              <Badge variant="secondary" className="text-xs">
+                                Active
+                              </Badge>
+                            )}
+                          </div>
+                        </Select.Item>
+                      ))}
+                    </Select.Content>
+                  </Select>
+                </div>
+              </div>
+
+              <DropdownMenu.Separator />
+              <DropdownMenu.Item>
+                <span>Quiz Settings</span>
+              </DropdownMenu.Item>
+              <DropdownMenu.Item>
+                <span>Export Quiz</span>
+              </DropdownMenu.Item>
+              <DropdownMenu.Item>
+                <span>Import Quiz</span>
+              </DropdownMenu.Item>
+
+              <DropdownMenu.Separator />
+
+              <DropdownMenu.Item
+                className="text-destructive"
+                onClick={() => {
+                  onClearDraft();
+                }}
+              >
+                <span>Clear Draft</span>
+              </DropdownMenu.Item>
+
+              <DropdownMenu.Separator />
+
+              <div className="px-2 py-1">
+                <span className="text-xs font-semibold text-destructive uppercase tracking-wide">
+                  Danger
+                </span>
+              </div>
+
+              <DropdownMenu.Item
+                className="text-destructive focus:bg-destructive focus:text-destructive-foreground"
+                onClick={() => {
+                  onDeleteQuiz();
+                }}
+              >
+                <span>Delete Quiz</span>
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu>
         </div>
       </div>
-
-      <Button variant="outline" size="sm">
-        <SettingsIcon className="h-4 w-4 mr-2" />
-        Settings
-      </Button>
-    </div>
+    </>
   );
 };
 
@@ -190,7 +457,6 @@ const InspectorPanel: React.FC<{
   question: Question | undefined;
   questionIndex: number;
   selectedArtistType: string;
-  selectedRating: number | undefined;
   showIdealAnswers: boolean;
   totalQuestions: number;
 }> = ({
@@ -199,7 +465,6 @@ const InspectorPanel: React.FC<{
   question,
   questionIndex,
   selectedArtistType,
-  selectedRating,
   showIdealAnswers,
   totalQuestions,
 }) => {
@@ -294,7 +559,7 @@ const InspectorPanel: React.FC<{
                       Current Selection
                     </label>
                     <div className="px-3 py-2 text-sm border border-border rounded-md bg-muted">
-                      {selectedRating ?? "No selection"}
+                      {"Selection from atom data"}
                     </div>
                   </div>
                 </>
@@ -397,13 +662,37 @@ export const QuizEditorLayout: React.FC = () => {
   const quizzesResult = useAtomValue(quizzesAtom);
   const enginesResult = useAtomValue(enginesAtom);
 
-  // State for selections
-  const [selectedQuizId, setSelectedQuizId] = React.useState<string>("");
-  const [selectedEngineId, setSelectedEngineId] = React.useState<string>("");
-  const [selectedArtistType, setSelectedArtistType] = React.useState<string>("visionary");
-  const [selectedQuestionIndex, setSelectedQuestionIndex] = React.useState(0);
-  const [selectedRating, setSelectedRating] = React.useState<number | undefined>(undefined);
-  const [showIdealAnswers, setShowIdealAnswers] = React.useState<boolean>(true);
+  // Atom-based state for selections
+  const selectedQuizId = useAtomValue(selectedQuizIdAtom);
+  const selectedEngineId = useAtomValue(selectedEngineIdAtom);
+  const selectedArtistType = useAtomValue(selectedArtistTypeAtom);
+  const selectedQuestionIndex = useAtomValue(selectedQuestionIndexAtom);
+  const showIdealAnswers = useAtomValue(showIdealAnswersAtom);
+  const pendingRating = useAtomValue(pendingRatingAtom);
+
+  // Setters for atom-based state
+  const setSelectedQuizId = useAtomSet(selectedQuizIdAtom);
+  const setSelectedEngineId = useAtomSet(selectedEngineIdAtom);
+  const setSelectedArtistType = useAtomSet(selectedArtistTypeAtom);
+  const setSelectedQuestionIndex = useAtomSet(selectedQuestionIndexAtom);
+  const setShowIdealAnswers = useAtomSet(showIdealAnswersAtom);
+  const setPendingRating = useAtomSet(pendingRatingAtom);
+
+  // Quiz atoms for creating temp versions
+  const createTempQuiz = useAtomSet(createTempQuizAtom);
+
+  // Engine atoms for modifying ideal answers
+  const autoSaveTempEngine = useAtomSet(autoSaveTempEngineAtom);
+
+  // Clear atoms for removing temp versions
+  const clearTempQuizzes = useAtomSet(clearTempQuizzesAtom);
+  const clearTempEngines = useAtomSet(clearTempEnginesAtom);
+
+  // Delete atom for dangerous operations
+  const deleteQuiz = useAtomSet(deleteQuizAtom);
+
+  // Registry for optimistic updates
+  const setEnginesAtom = useAtomSet(enginesAtom);
 
   // Initialize selections on first load - moved before early returns
   React.useEffect(() => {
@@ -412,7 +701,17 @@ export const QuizEditorLayout: React.FC = () => {
       const engines = enginesResult.value;
 
       if (selectedQuizId === "" && quizzes.length > 0) {
-        const defaultQuiz = quizzes.find((q) => q.slug === "my-artist-type-quiz") ?? quizzes[0];
+        // Find "My Artist Type Quiz" versions and select the latest one
+        const artistTypeQuizzes = quizzes
+          .filter(
+            (q) => q.title === "My Artist Type Quiz" || q.title === "My Artist Type Quiz (Editing)",
+          )
+          .sort((a, b) => b.version.localeCompare(a.version));
+
+        const defaultQuiz =
+          artistTypeQuizzes[0] ??
+          quizzes.find((q) => q.slug === "my-artist-type-quiz") ??
+          quizzes[0];
         if (defaultQuiz !== undefined) {
           setSelectedQuizId(defaultQuiz.id);
         }
@@ -426,6 +725,100 @@ export const QuizEditorLayout: React.FC = () => {
       }
     }
   }, [quizzesResult, enginesResult, selectedQuizId, selectedEngineId]);
+
+  // Auto-sync engine selection when quiz selection changes
+  React.useEffect(() => {
+    if (Result.isSuccess(quizzesResult) && Result.isSuccess(enginesResult)) {
+      const quizzes = quizzesResult.value;
+      const engines = enginesResult.value; // Extract engines here
+      const selectedQuiz = quizzes.find((q) => q.id === selectedQuizId);
+
+      if (selectedQuiz !== undefined) {
+        // eslint-disable-next-line no-console
+        console.log(
+          "Selected quiz:",
+          selectedQuiz.title,
+          "v" + selectedQuiz.version,
+          "slug:",
+          selectedQuiz.slug,
+          "isTemp:",
+          selectedQuiz.isTemp,
+          "isPublished:",
+          selectedQuiz.isPublished,
+        );
+
+        const matchingEngine = findMatchingEngine(selectedQuiz);
+
+        // eslint-disable-next-line no-console
+        console.log(
+          "Available engines:",
+          engines.map((e: AnalysisEngine) => ({
+            id: e.id,
+            name: e.name,
+            slug: e.slug,
+            version: e.version,
+            isTemp: e.isTemp as boolean,
+            isPublished: e.isPublished as boolean,
+          })),
+        );
+
+        // eslint-disable-next-line no-console
+        console.log(
+          "Matching engine:",
+          matchingEngine !== undefined
+            ? {
+                name: matchingEngine.name,
+                slug: matchingEngine.slug,
+                version: matchingEngine.version,
+                isTemp: matchingEngine.isTemp as boolean,
+              }
+            : "NOT FOUND",
+        );
+
+        if (matchingEngine !== undefined && matchingEngine.id !== selectedEngineId) {
+          // eslint-disable-next-line no-console
+          console.log("Auto-selecting engine:", matchingEngine.name);
+          setSelectedEngineId(matchingEngine.id);
+        }
+      }
+    }
+  }, [selectedQuizId, quizzesResult, enginesResult, selectedEngineId]);
+
+  // Apply pending rating changes when engine switches to temp version
+  React.useEffect(() => {
+    if (pendingRating !== null && Result.isSuccess(enginesResult)) {
+      const engines = enginesResult.value;
+      const currentEngine = engines.find((e) => e.id === selectedEngineId);
+      if (currentEngine !== undefined && currentEngine.isTemp === true) {
+        // Apply the pending rating change
+        updateEngineIdealAnswerOptimistic(currentEngine, pendingRating);
+        setPendingRating(null); // Clear the pending rating
+      }
+    }
+  }, [selectedEngineId, pendingRating, enginesResult]);
+
+  // Auto-switch to new temp quiz when one is created
+  React.useEffect(() => {
+    if (Result.isSuccess(quizzesResult) && pendingRating !== null) {
+      const quizzes = quizzesResult.value;
+      // Find the newest temp quiz (highest ID or most recent)
+      const tempQuizzes = quizzes.filter((q) => q.isTemp === true);
+      if (tempQuizzes.length > 0) {
+        // Sort by ID descending to get the newest
+        const newestTempQuiz = tempQuizzes.sort((a, b) => b.id.localeCompare(a.id))[0];
+        if (newestTempQuiz !== undefined && newestTempQuiz.id !== selectedQuizId) {
+          // eslint-disable-next-line no-console
+          console.log(
+            "Auto-switching to temp quiz:",
+            newestTempQuiz.title,
+            "id:",
+            newestTempQuiz.id,
+          );
+          setSelectedQuizId(newestTempQuiz.id);
+        }
+      }
+    }
+  }, [quizzesResult, pendingRating, selectedQuizId]);
 
   // Early returns after all hooks
   if (!Result.isSuccess(quizzesResult) || !Result.isSuccess(enginesResult)) {
@@ -479,18 +872,254 @@ export const QuizEditorLayout: React.FC = () => {
 
   const handleSelectQuestion = (index: number) => {
     setSelectedQuestionIndex(index);
-    // Reset rating selection when changing questions
-    setSelectedRating(undefined);
   };
 
-  const handleRatingSelect = (rating: number) => {
-    setSelectedRating(rating);
+  const handleRatingSelect = async (rating: number) => {
+    // Get the current quiz and engine
+    const currentQuiz = quizzes.find((q) => q.id === selectedQuizId);
+    const currentEngine = engines.find((e) => e.id === selectedEngineId);
+    if (currentQuiz === undefined || currentEngine === undefined || selectedQuestion === undefined)
+      return;
+
+    // Check if we're already working with temp versions
+    const isWorkingWithTempVersions = currentQuiz.isTemp === true && currentEngine.isTemp === true;
+
+    if (isWorkingWithTempVersions) {
+      // Already working with temp versions, just update the engine
+      updateEngineIdealAnswerOptimistic(currentEngine, rating);
+    } else {
+      // Need to create temp versions first
+      try {
+        // 1. Set pending rating to apply after engine switches
+        setPendingRating(rating);
+
+        // 2. Create temp quiz (this will automatically create matching temp engine)
+        createTempQuiz({ quiz: currentQuiz });
+
+        // The temp quiz creation will update the atoms automatically
+        // and the useEffect will handle switching to the new temp versions
+
+        // 4. Force a refresh of the atoms to ensure UI updates
+        // The atoms should automatically reflect the new temp quiz
+
+        // 4. The useEffect will automatically:
+        //    - Switch to the matching temp engine
+        //    - Apply the pending rating change
+      } catch (error) {
+        console.error("Failed to create temp versions:", error);
+        setPendingRating(null); // Clear pending rating on error
+      }
+    }
   };
+
+  // Helper function to create updated engine with new ideal answer
+  const createUpdatedEngine = (workingEngine: AnalysisEngine, rating: number) => {
+    if (selectedQuestion === undefined) return workingEngine;
+
+    // Find the artist type ending ID
+    const artistTypeEndingId = `the-${selectedArtistType.toLowerCase()}-artist`;
+
+    // Update the engine's endings to modify the question rules
+    const updatedEndings = workingEngine.endings.map((ending) => {
+      if (ending.endingId === artistTypeEndingId) {
+        // Find or create the question rule for this question
+        const existingRuleIndex = ending.questionRules.findIndex(
+          (rule) => rule.questionId === selectedQuestion.id,
+        );
+
+        if (existingRuleIndex >= 0) {
+          // Update existing rule
+          const updatedRules = [...ending.questionRules];
+          const existingRule = updatedRules[existingRuleIndex];
+          if (existingRule !== undefined) {
+            const currentIdealAnswers = existingRule.idealAnswers;
+            let newIdealAnswers: Array<number>;
+
+            if (existingRule.isPrimary) {
+              // Primary artist type: Allow multiple selections (toggle behavior)
+              if (currentIdealAnswers.includes(rating)) {
+                // Remove rating if already selected
+                newIdealAnswers = currentIdealAnswers.filter((r) => r !== rating);
+              } else {
+                // Add rating to existing selections
+                newIdealAnswers = [...currentIdealAnswers, rating].sort((a, b) => a - b);
+              }
+            } else {
+              // Secondary artist type: Only one selection allowed (replace behavior)
+              newIdealAnswers = [rating];
+            }
+
+            updatedRules[existingRuleIndex] = {
+              ...existingRule,
+              idealAnswers: newIdealAnswers,
+            };
+          }
+          return {
+            ...ending,
+            questionRules: updatedRules,
+          };
+        }
+
+        // Create new rule - default to secondary (isPrimary: false)
+        return {
+          ...ending,
+          questionRules: [
+            ...ending.questionRules,
+            {
+              questionId: selectedQuestion.id,
+              idealAnswers: [rating],
+              isPrimary: false, // Default to secondary
+            },
+          ],
+        };
+      }
+      return ending;
+    });
+
+    // Return the updated engine
+    return {
+      ...workingEngine,
+      endings: updatedEndings,
+    };
+  };
+
+  // Optimistic update for existing temp engine
+  const updateEngineIdealAnswerOptimistic = (workingEngine: AnalysisEngine, rating: number) => {
+    // 1. Immediately update local state (optimistic)
+    const updatedEngine = createUpdatedEngine(workingEngine, rating);
+    setEnginesAtom(EngineAction.Upsert({ engine: updatedEngine }));
+
+    // 2. Persist to server in background
+    autoSaveTempEngine({ engine: updatedEngine });
+  };
+
+  // Find the matching analysis engine for a given quiz
+  const findMatchingEngine = (targetQuiz: Quiz): AnalysisEngine | undefined => {
+    // For temp quizzes, look for temp engines with the temp slug pattern
+    if (targetQuiz.isTemp) {
+      return engines.find(
+        (engine) =>
+          engine.slug === `${targetQuiz.slug}-temp-${targetQuiz.id}` && engine.isTemp === true,
+      );
+    }
+
+    // For regular quizzes, try to find exact match first
+    let matchingEngine = engines.find(
+      (engine) =>
+        engine.slug === targetQuiz.slug &&
+        engine.version === targetQuiz.version &&
+        engine.isTemp === targetQuiz.isTemp &&
+        engine.isPublished === targetQuiz.isPublished,
+    );
+
+    // If no exact match, fall back to any engine with same slug and temp/published status
+    if (matchingEngine === undefined) {
+      matchingEngine = engines.find(
+        (engine) =>
+          engine.slug === targetQuiz.slug &&
+          engine.isTemp === targetQuiz.isTemp &&
+          engine.isPublished === targetQuiz.isPublished,
+      );
+
+      if (matchingEngine !== undefined) {
+        console.log(
+          `Using fallback engine: ${matchingEngine.name} v${matchingEngine.version} for quiz v${targetQuiz.version}`,
+        );
+      }
+    }
+
+    return matchingEngine;
+  };
+
+  // Get currently selected values for the current artist type and question
+  const getCurrentSelectedValues = (): Array<number> => {
+    if (selectedQuestion === undefined) return [];
+
+    const currentEngine = engines.find((e) => e.id === selectedEngineId);
+    if (currentEngine === undefined) return [];
+
+    const artistTypeEndingId = `the-${selectedArtistType.toLowerCase()}-artist`;
+    const ending = currentEngine.endings.find((e) => e.endingId === artistTypeEndingId);
+    if (ending === undefined) return [];
+
+    const questionRule = ending.questionRules.find(
+      (rule) => rule.questionId === selectedQuestion.id,
+    );
+    if (questionRule === undefined) return [];
+
+    return [...questionRule.idealAnswers]; // Create mutable copy
+  };
+
+  // Optimistic create temp engine and update
 
   const handleAddQuestion = () => {
     // TODO: Implement add question functionality
     // eslint-disable-next-line no-console
     console.log("Add question clicked");
+  };
+
+  const handleClearDraft = () => {
+    // Clear both temp quizzes and temp engines
+    clearTempQuizzes();
+    clearTempEngines();
+
+    // Reset selection to first available non-temp quiz/engine
+    if (Result.isSuccess(quizzesResult) && Result.isSuccess(enginesResult)) {
+      const allQuizzes = quizzesResult.value;
+      const allEngines = enginesResult.value;
+
+      const nonTempQuiz = allQuizzes.find((q) => q.isTemp === false);
+      const nonTempEngine = allEngines.find((e) => e.isTemp === false);
+
+      if (nonTempQuiz !== undefined) {
+        setSelectedQuizId(nonTempQuiz.id);
+      }
+      if (nonTempEngine !== undefined) {
+        setSelectedEngineId(nonTempEngine.id);
+      }
+    }
+  };
+
+  const handleDeleteQuiz = async () => {
+    if (!Result.isSuccess(quizzesResult)) return;
+
+    const currentQuiz = quizzes.find((q) => q.id === selectedQuizId);
+    if (currentQuiz === undefined) return;
+
+    // Dangerous confirmation dialog
+    const confirmed = window.confirm(
+      `⚠️ DANGER: Delete "${currentQuiz.title}" v${currentQuiz.version}?\n\n` +
+        `This action CANNOT be undone. The quiz and all its data will be permanently deleted.\n\n` +
+        `Type "DELETE" in the next dialog to confirm.`,
+    );
+
+    if (!confirmed) return;
+
+    // Double confirmation with text input
+    const confirmText = window.prompt(
+      `To confirm deletion of "${currentQuiz.title}", type "DELETE" (all caps):`,
+    );
+
+    if (confirmText !== "DELETE") {
+      if (confirmText !== null) {
+        alert("Deletion cancelled. You must type exactly 'DELETE' to confirm.");
+      }
+      return;
+    }
+
+    deleteQuiz(currentQuiz.id);
+
+    // The atom will handle the deletion and update the state automatically
+    // Reset selection to first available quiz
+    setTimeout(() => {
+      const remainingQuizzes = quizzes.filter((q) => q.id !== currentQuiz.id);
+      if (remainingQuizzes.length > 0) {
+        const firstRemaining = remainingQuizzes[0];
+        if (firstRemaining !== undefined) {
+          setSelectedQuizId(firstRemaining.id);
+        }
+      }
+    }, 100); // Small delay to allow atom to update
   };
 
   const handlePreviousQuestion = () => {
@@ -556,7 +1185,7 @@ export const QuizEditorLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-120px)] flex-col">
+    <div className="flex h-[calc(100vh-1rem)] flex-col overflow-hidden">
       {/* Top Bar */}
       <TopBar
         quizzes={quizzes}
@@ -567,10 +1196,12 @@ export const QuizEditorLayout: React.FC = () => {
         onQuizChange={setSelectedQuizId}
         onEngineChange={setSelectedEngineId}
         onArtistTypeChange={setSelectedArtistType}
+        onClearDraft={handleClearDraft}
+        onDeleteQuiz={handleDeleteQuiz}
       />
 
       {/* Main Content Area */}
-      <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0">
+      <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0 overflow-hidden">
         {/* Left Sidebar - Question List */}
         <ResizablePanel defaultSize={25} minSize={20} maxSize={35} className="min-w-[220px]">
           <QuestionList
@@ -618,7 +1249,7 @@ export const QuizEditorLayout: React.FC = () => {
                   max={
                     selectedQuestion.data.type === "rating" ? selectedQuestion.data.maxRating : 10
                   }
-                  currentValue={selectedRating} // Use the selected rating state
+                  selectedValues={getCurrentSelectedValues()} // Show multiple selections for primary artist types
                   idealAnswers={currentQuestionIdealAnswers} // Use the ideal answers from the selected engine
                   showIdealAnswers={showIdealAnswers}
                   onRatingSelect={handleRatingSelect} // Handle rating selection
@@ -674,7 +1305,6 @@ export const QuizEditorLayout: React.FC = () => {
             question={selectedQuestion}
             questionIndex={selectedQuestionIndex}
             selectedArtistType={selectedArtistType}
-            selectedRating={selectedRating}
             showIdealAnswers={showIdealAnswers}
             totalQuestions={questions.length}
           />

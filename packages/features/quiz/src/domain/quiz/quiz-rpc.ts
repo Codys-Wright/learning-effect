@@ -61,6 +61,12 @@ export class Quiz extends S.Class<Quiz>("Quiz")({
   questions: S.optional(S.parseJson(S.Array(Question))),
   settings: S.optional(S.NullOr(S.parseJson(NullOrFromFallible(QuizSettings)))),
 
+  //Publishing state - only one version per slug can be published
+  isPublished: S.Boolean,
+
+  //Temporary state - for unsaved edits that are auto-saved but not committed
+  isTemp: S.Boolean,
+
   //optional metadata - stored as JSON in database
   metadata: S.optional(S.NullOr(S.parseJson(NullOrFromFallible(QuizMetadata)))),
 
@@ -120,6 +126,12 @@ export class UpsertQuizPayload extends S.Class<UpsertQuizPayload>("UpsertQuizPay
   questions: S.optional(S.Array(UpsertQuestionPayload)),
   settings: S.optional(S.NullOr(S.parseJson(NullOrFromFallible(QuizSettings)))),
 
+  //Publishing state - defaults to false (draft mode)
+  isPublished: S.optional(S.Boolean),
+
+  //Temporary state - defaults to false (permanent quiz)
+  isTemp: S.optional(S.Boolean),
+
   metadata: S.optional(QuizMetadata),
 
   //
@@ -142,6 +154,17 @@ export class QuizNotFoundError extends S.TaggedError<QuizNotFoundError>("QuizNot
 // This is where we use all the building blocks we made above
 export class QuizzesGroup extends HttpApiGroup.make("Quizzes")
   .add(HttpApiEndpoint.get("list", "/").addSuccess(S.Array(Quiz)))
+  .add(HttpApiEndpoint.get("listPublished", "/published").addSuccess(S.Array(Quiz)))
+  .add(
+    HttpApiEndpoint.get("bySlug", "/published/:slug")
+      .addSuccess(Quiz)
+      .addError(QuizNotFoundError)
+      .setPayload(
+        S.Struct({
+          slug: S.String,
+        }),
+      ),
+  )
   .add(
     HttpApiEndpoint.get("byId", "/:id")
       .addSuccess(Quiz)

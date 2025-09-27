@@ -19,6 +19,8 @@ const CreateAnalysisEngineInput = AnalysisEngine.pipe(
     "endings",
     "metadata",
     "isActive",
+    "isPublished",
+    "isTemp",
   ),
 );
 
@@ -33,6 +35,8 @@ const UpdateAnalysisEngineInput = AnalysisEngine.pipe(
     "endings",
     "metadata",
     "isActive",
+    "isPublished",
+    "isTemp",
   ),
 );
 type UpdateAnalysisEngineInput = typeof UpdateAnalysisEngineInput.Type;
@@ -109,15 +113,83 @@ export class AnalysisEngineRepo extends Effect.Service<AnalysisEngineRepo>()("An
       `,
     });
 
+    const findPublished = SqlSchema.findAll({
+      Result: AnalysisEngine,
+      Request: Schema.Void,
+      execute: () => sql`
+        SELECT
+          *
+        FROM
+          analysis_engines
+        WHERE
+          is_published = TRUE
+          AND deleted_at IS NULL
+        ORDER BY
+          created_at DESC
+      `,
+    });
+
+    const findBySlugPublished = SqlSchema.single({
+      Result: AnalysisEngine,
+      Request: Schema.Struct({ slug: Schema.String }),
+      execute: ({ slug }) => sql`
+        SELECT
+          *
+        FROM
+          analysis_engines
+        WHERE
+          slug = ${slug}
+          AND is_published = TRUE
+          AND deleted_at IS NULL
+      `,
+    });
+
+    const findAllBySlug = SqlSchema.findAll({
+      Result: AnalysisEngine,
+      Request: Schema.Struct({ slug: Schema.String }),
+      execute: ({ slug }) => sql`
+        SELECT
+          *
+        FROM
+          analysis_engines
+        WHERE
+          slug = ${slug}
+          AND deleted_at IS NULL
+        ORDER BY
+          version DESC
+      `,
+    });
+
     const create = SqlSchema.single({
       Result: AnalysisEngine,
       Request: CreateAnalysisEngineInput,
-      execute: (request) => sql`
-        INSERT INTO
-          analysis_engines ${sql.insert(request)}
-        RETURNING
-          *
-      `,
+      execute: (request) => {
+        // If publishing this engine, unpublish any existing published engines with the same slug
+        if (request.isPublished === true) {
+          return sql`
+            WITH
+              unpublish_others AS (
+                UPDATE analysis_engines
+                SET
+                  is_published = FALSE
+                WHERE
+                  slug = ${request.slug}
+                  AND is_published = TRUE
+                  AND deleted_at IS NULL
+              )
+            INSERT INTO
+              analysis_engines ${sql.insert(request)}
+            RETURNING
+              *
+          `;
+        }
+        return sql`
+          INSERT INTO
+            analysis_engines ${sql.insert(request)}
+          RETURNING
+            *
+        `;
+      },
     });
 
     const update = SqlSchema.single({
@@ -125,6 +197,44 @@ export class AnalysisEngineRepo extends Effect.Service<AnalysisEngineRepo>()("An
       Request: UpdateAnalysisEngineInput,
       execute: (request) => {
         const { id, ...updateData } = request;
+        // If publishing this engine, unpublish any existing published engines with the same slug
+        if (request.isPublished === true) {
+          return sql`
+            WITH
+              current_engine AS (
+                SELECT
+                  slug
+                FROM
+                  analysis_engines
+                WHERE
+                  id = ${id}
+                  AND deleted_at IS NULL
+              ),
+              unpublish_others AS (
+                UPDATE analysis_engines
+                SET
+                  is_published = FALSE
+                WHERE
+                  slug = (
+                    SELECT
+                      slug
+                    FROM
+                      current_engine
+                  )
+                  AND id != ${id}
+                  AND is_published = TRUE
+                  AND deleted_at IS NULL
+              )
+            UPDATE analysis_engines
+            SET
+              ${sql.update(updateData)}
+            WHERE
+              id = ${id}
+              AND deleted_at IS NULL
+            RETURNING
+              *
+          `;
+        }
         return sql`
           UPDATE analysis_engines
           SET
@@ -238,6 +348,29 @@ export class AnalysisEngineRepo extends Effect.Service<AnalysisEngineRepo>()("An
 
       // create: If it fails, crash the program - creation should always work with valid input
       create: flow(create, Effect.orDie),
+
+      // findPublished: Get all published analysis engines
+      findPublished: flow(findPublished, Effect.orDie),
+
+      // findBySlugPublished: Get published analysis engine by slug
+      findBySlugPublished: (slug: string) =>
+        findBySlugPublished({ slug }).pipe(
+          Effect.catchTags({
+            NoSuchElementException: () =>
+              new AnalysisEngineNotFoundError({ id: slug as AnalysisEngineId }),
+            ParseError: Effect.die,
+            SqlError: Effect.die,
+          }),
+        ),
+
+      // findAllBySlug: Get all versions of an analysis engine by slug
+      findAllBySlug: (slug: string) =>
+        findAllBySlug({ slug }).pipe(
+          Effect.catchTags({
+            ParseError: Effect.die,
+            SqlError: Effect.die,
+          }),
+        ),
     } as const;
   }),
 }) {}

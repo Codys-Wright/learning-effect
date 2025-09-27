@@ -7,7 +7,7 @@ import { getColorByEndingName } from "./artist-type/artist-data-utils.js";
 type IdealAnswer = {
   endingId: string;
   endingName: string;
-  idealAnswers: number[];
+  idealAnswers: Array<number>;
   isPrimary: boolean;
 };
 
@@ -23,10 +23,10 @@ type QuestionCardProps = {
   max?: number;
 
   // Current state
-  currentValue: number | undefined;
+  selectedValues?: Array<number>; // For multiple selections - derived from atom data
 
   // Ideal answers for overlay
-  idealAnswers?: IdealAnswer[];
+  idealAnswers?: Array<IdealAnswer>;
   showIdealAnswers?: boolean;
 
   // Callbacks
@@ -49,9 +49,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   canGoBack = true,
   canGoNext = true,
   content,
-  currentValue,
   idealAnswers,
-  showIdealAnswers = true,
   isLastQuestion = false,
   max = 10,
   maxLabel = "Max",
@@ -61,6 +59,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   onNext,
   onRatingSelect,
   onSubmit,
+  selectedValues = [],
+  showIdealAnswers = true,
   title,
 }) => {
   // Generate rating choices from min to max (inclusive)
@@ -76,7 +76,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
 
   // Create ideal dots overlay for secondary answers positioned above rating buttons
   const renderIdealDots = () => {
-    if (!showIdealAnswers || !idealAnswers || idealAnswers.length === 0) return null;
+    if (!showIdealAnswers || idealAnswers === undefined || idealAnswers.length === 0) return null;
 
     // Filter for secondary answers only (isPrimary: false)
     const secondaryAnswers = idealAnswers.filter((answer) => !answer.isPrimary);
@@ -90,13 +90,17 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         if (!answersByValue.has(idealValue)) {
           answersByValue.set(idealValue, []);
         }
-        answersByValue.get(idealValue)!.push(answer);
+        answersByValue.get(idealValue)?.push(answer);
       });
     });
 
     return (
       <>
         {Array.from(answersByValue.entries()).map(([idealValue, answers]) => {
+          if (answers.length === 0) {
+            return null;
+          }
+
           // Calculate position above the specific button
           const buttonIndex = idealValue - min;
           const buttonWidth = 100 / (max - min + 1); // Percentage width per button
@@ -111,8 +115,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
               {/* 3x3 grid for multiple dots - all positioned above the card */}
               <div className="grid grid-cols-3 gap-0.5 w-6 h-6">
                 {answers.slice(0, 9).map((answer, index) => {
-                  const row = Math.floor(index / 3);
-                  const col = index % 3;
                   return (
                     <div
                       key={`${answer.endingId}-${idealValue}-${index}`}
@@ -138,7 +140,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
 
   // Create primary answer bars positioned below rating buttons
   const renderPrimaryBars = () => {
-    if (!showIdealAnswers || !idealAnswers || idealAnswers.length === 0) return null;
+    if (!showIdealAnswers || idealAnswers === undefined || idealAnswers.length === 0) return null;
 
     // Filter for primary answers only (isPrimary: true)
     const primaryAnswers = idealAnswers.filter((answer) => answer.isPrimary);
@@ -151,16 +153,20 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       if (!answersByEnding.has(answer.endingId)) {
         answersByEnding.set(answer.endingId, []);
       }
-      answersByEnding.get(answer.endingId)!.push(answer);
+      answersByEnding.get(answer.endingId)?.push(answer);
     });
 
     return (
       <>
         {Array.from(answersByEnding.entries()).map(([endingId, answers]) => {
+          if (answers.length === 0) {
+            return null;
+          }
+
           // Get the first answer to get the ending name and color
-          const firstAnswer = answers[0];
-          const endingName = firstAnswer.endingName;
-          const barColor = getColorByEndingName(endingName);
+          const [firstAnswer] = answers;
+          const endingName = firstAnswer?.endingName;
+          const barColor = getColorByEndingName(endingName ?? "");
 
           // Collect all ideal values for this ending
           const allValues = new Set<number>();
@@ -171,25 +177,34 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           // Sort the values
           const sortedValues = Array.from(allValues).sort((a, b) => a - b);
 
+          if (sortedValues.length === 0) return null;
+
           // Group consecutive values into ranges
-          const ranges: number[][] = [];
-          let currentRange: number[] = [sortedValues[0]];
+          const ranges: Array<Array<number>> = [];
+          const firstValue = sortedValues[0];
+          if (firstValue === undefined) return null;
+          let currentRange: Array<number> = [firstValue];
 
           for (let i = 1; i < sortedValues.length; i++) {
-            if (sortedValues[i] === sortedValues[i - 1] + 1) {
+            const current = sortedValues[i];
+            const prev = sortedValues[i - 1];
+            if (current === undefined || prev === undefined) continue;
+            if (current === prev + 1) {
               // Consecutive, add to current range
-              currentRange.push(sortedValues[i]);
+              currentRange.push(current);
             } else {
               // Not consecutive, start new range
               ranges.push(currentRange);
-              currentRange = [sortedValues[i]];
+              currentRange = [current];
             }
           }
           ranges.push(currentRange); // Add the last range
 
           return ranges.map((range, rangeIndex) => {
+            if (range.length === 0) return null;
             const startValue = range[0];
             const endValue = range[range.length - 1];
+            if (startValue === undefined || endValue === undefined) return null;
 
             // Calculate position and width for the bar - span full width of buttons
             const startButtonIndex = startValue - min;
@@ -235,23 +250,29 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           {renderPrimaryBars()}
 
           <div className="grid w-full grid-cols-11 gap-2">
-            {choices.map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => {
-                  handleRatingClick(n);
-                }}
-                className={cn(
-                  "rounded-md border p-3 text-center text-sm transition-all",
-                  currentValue === n
-                    ? "bg-primary text-primary-foreground shadow-md scale-[1.02]"
-                    : "hover:bg-accent hover:scale-[1.01]",
-                )}
-              >
-                {n}
-              </button>
-            ))}
+            {choices.map((n) => {
+              // Check if this rating is selected from the selectedValues array
+              // This now comes directly from atom data, not local state
+              const isSelected = selectedValues.includes(n);
+
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => {
+                    handleRatingClick(n);
+                  }}
+                  className={cn(
+                    "rounded-md border p-3 text-center text-sm transition-all",
+                    isSelected
+                      ? "bg-primary text-primary-foreground shadow-md scale-[1.02]"
+                      : "hover:bg-accent hover:scale-[1.01]",
+                  )}
+                >
+                  {n}
+                </button>
+              );
+            })}
           </div>
         </div>
         <div className="grid grid-cols-[auto_1fr_auto] items-center">

@@ -63,7 +63,7 @@
     "babel-plugin-annotate-pure-calls": "^0.4.0",
     "dotenv-cli": "^10.0.0",
     "effect": "3.17.7",
-    "eslint": "9.13.0",
+    "eslint": "9.36.0",
     "eslint-import-resolver-typescript": "^3.10.0",
     "eslint-plugin-codegen": "^0.29.0",
     "eslint-plugin-import": "^2.31.0",
@@ -119,6 +119,7 @@
   },
   "dependencies": {
     "@niklaserik/effect-mcp": "^1.0.7",
+    "@typescript-eslint/typescript-estree": "^8.44.1",
     "tailwindcss": "4.0.4"
   }
 }

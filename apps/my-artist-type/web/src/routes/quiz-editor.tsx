@@ -1,4 +1,4 @@
-import { QuizEditorPage } from "@features/quiz/client";
+import { QuizEditorLayout } from "@features/quiz/client";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/quiz-editor")({
@@ -6,5 +6,5 @@ export const Route = createFileRoute("/quiz-editor")({
 });
 
 function RouteComponent() {
-  return <QuizEditorPage />;
+  return <QuizEditorLayout />;
 }

@@ -10,6 +10,8 @@ export const QuizzesRpcLive = HttpApiBuilder.group(DomainApi, "Quizzes", (handle
 
     return handlers
       .handle("list", () => repo.findAll())
+      .handle("listPublished", () => repo.findPublished())
+      .handle("bySlug", ({ payload }) => repo.findBySlug(payload.slug))
       .handle("byId", ({ payload }) => repo.findById(payload.id))
       .handle("upsert", ({ payload }) =>
         Effect.gen(function* () {
@@ -28,6 +30,8 @@ export const QuizzesRpcLive = HttpApiBuilder.group(DomainApi, "Quizzes", (handle
               version: payload.version ?? "1.0.0",
               questions,
               metadata: payload.metadata,
+              isPublished: payload.isPublished ?? false,
+              isTemp: payload.isTemp ?? false,
             });
           }
           return yield* repo.create({
@@ -37,6 +41,8 @@ export const QuizzesRpcLive = HttpApiBuilder.group(DomainApi, "Quizzes", (handle
             version: payload.version ?? "1.0.0",
             questions: questions ?? [],
             metadata: payload.metadata,
+            isPublished: payload.isPublished ?? false,
+            isTemp: payload.isTemp ?? false,
           });
         }),
       )

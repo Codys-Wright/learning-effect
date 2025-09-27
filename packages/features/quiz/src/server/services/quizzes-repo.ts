@@ -9,11 +9,30 @@ const slugify = slugifyModule.default;
 //1) Define the Inputs that the repository is expecting, we map these to UpsertPayload because it decouples them like a DTO and lets us
 //   easily see what our Repo is expecting to deal with
 const CreateQuizInput = Quiz.pipe(
-  Schema.pick("title", "subtitle", "description", "questions", "metadata", "version"),
+  Schema.pick(
+    "title",
+    "subtitle",
+    "description",
+    "questions",
+    "metadata",
+    "version",
+    "isPublished",
+    "isTemp",
+  ),
 );
 
 const UpdateQuizInput = Quiz.pipe(
-  Schema.pick("id", "version", "title", "subtitle", "description", "questions", "metadata"),
+  Schema.pick(
+    "id",
+    "version",
+    "title",
+    "subtitle",
+    "description",
+    "questions",
+    "metadata",
+    "isPublished",
+    "isTemp",
+  ),
 );
 type UpdateQuizInput = typeof UpdateQuizInput.Type;
 
@@ -54,6 +73,37 @@ export class QuizzesRepo extends Effect.Service<QuizzesRepo>()("QuizzesRepo", {
       `,
     });
 
+    const findPublished = SqlSchema.findAll({
+      Result: Quiz,
+      Request: Schema.Void,
+      execute: () => sql`
+        SELECT
+          *
+        FROM
+          quizzes
+        WHERE
+          is_published = TRUE
+          AND deleted_at IS NULL
+        ORDER BY
+          created_at DESC
+      `,
+    });
+
+    const findBySlug = SqlSchema.single({
+      Result: Quiz,
+      Request: Schema.Struct({ slug: Schema.String }),
+      execute: ({ slug }) => sql`
+        SELECT
+          *
+        FROM
+          quizzes
+        WHERE
+          slug = ${slug}
+          AND is_published = TRUE
+          AND deleted_at IS NULL
+      `,
+    });
+
     const create = SqlSchema.single({
       Result: Quiz,
       Request: CreateQuizInput,
@@ -63,6 +113,29 @@ export class QuizzesRepo extends Effect.Service<QuizzesRepo>()("QuizzesRepo", {
           strict: true,
           trim: true,
         });
+
+        // If creating a published quiz, unpublish other versions first
+        if (request.isPublished) {
+          return sql`
+            WITH
+              unpublish_others AS (
+                UPDATE quizzes
+                SET
+                  is_published = FALSE
+                WHERE
+                  slug = ${slug}
+                  AND is_published = TRUE
+                  AND deleted_at IS NULL
+              )
+            INSERT INTO
+              quizzes ${sql.insert({
+              ...request,
+              slug,
+            })}
+            RETURNING
+              *
+          `;
+        }
 
         return sql`
           INSERT INTO
@@ -85,6 +158,34 @@ export class QuizzesRepo extends Effect.Service<QuizzesRepo>()("QuizzesRepo", {
           strict: true,
           trim: true,
         });
+
+        // If updating to published, unpublish other versions first
+        if (request.isPublished) {
+          return sql`
+            WITH
+              unpublish_others AS (
+                UPDATE quizzes
+                SET
+                  is_published = FALSE
+                WHERE
+                  slug = ${slug}
+                  AND is_published = TRUE
+                  AND deleted_at IS NULL
+                  AND id != ${request.id}
+              )
+            UPDATE quizzes
+            SET
+              ${sql.update({
+              ...request,
+              slug,
+            })}
+            WHERE
+              id = ${request.id}
+              AND deleted_at IS NULL
+            RETURNING
+              *
+          `;
+        }
 
         return sql`
           UPDATE quizzes
@@ -141,6 +242,19 @@ export class QuizzesRepo extends Effect.Service<QuizzesRepo>()("QuizzesRepo", {
     return {
       // findAll: If it fails, crash the program (orDie) - this should always work
       findAll: flow(findAll, Effect.orDie),
+
+      // findPublished: Get all published quizzes
+      findPublished: flow(findPublished, Effect.orDie),
+
+      // findBySlug: Get published quiz by slug
+      findBySlug: (slug: string) =>
+        findBySlug({ slug }).pipe(
+          Effect.catchTags({
+            NoSuchElementException: () => new QuizNotFoundError({ id: slug as QuizId }), // Use slug as id for error
+            ParseError: Effect.die,
+            SqlError: Effect.die,
+          }),
+        ),
 
       // findById: Get a specific quiz by ID
       findById: (id: QuizId) =>

@@ -131,6 +131,12 @@ export class AnalysisEngine extends S.Class<AnalysisEngine>("AnalysisEngine")({
   // Whether this engine is active/available
   isActive: S.Boolean,
 
+  // Publishing state - only one version per slug can be published
+  isPublished: S.Boolean,
+
+  // Temporary state - for unsaved edits that are auto-saved but not committed
+  isTemp: S.Boolean,
+
   // Creation and update timestamps
   createdAt: S.DateTimeUtc,
   updatedAt: S.DateTimeUtc,
@@ -154,6 +160,12 @@ export class UpsertAnalysisEnginePayload extends S.Class<UpsertAnalysisEnginePay
   endings: S.parseJson(S.Array(EndingDefinition)),
   metadata: S.optional(S.NullOr(S.parseJson(S.Record({ key: S.String, value: S.Unknown })))),
   isActive: S.optional(S.Boolean),
+
+  // Publishing state - defaults to false (draft mode)
+  isPublished: S.optional(S.Boolean),
+
+  // Temporary state - defaults to false (permanent engine)
+  isTemp: S.optional(S.Boolean),
 }) {}
 
 // ============================================================================
@@ -180,6 +192,7 @@ export class AnalysisEngineNotFoundError extends S.TaggedError<AnalysisEngineNot
 
 export class AnalysisEngineGroup extends HttpApiGroup.make("AnalysisEngine")
   .add(HttpApiEndpoint.get("list", "/").addSuccess(S.Array(AnalysisEngine)))
+  .add(HttpApiEndpoint.get("listPublished", "/published").addSuccess(S.Array(AnalysisEngine)))
   .add(
     HttpApiEndpoint.get("byId", "/:id")
       .addSuccess(AnalysisEngine)
@@ -191,8 +204,18 @@ export class AnalysisEngineGroup extends HttpApiGroup.make("AnalysisEngine")
       ),
   )
   .add(
-    HttpApiEndpoint.get("bySlug", "/slug/:slug")
+    HttpApiEndpoint.get("bySlug", "/published/:slug")
       .addSuccess(AnalysisEngine)
+      .addError(AnalysisEngineNotFoundError)
+      .setPayload(
+        S.Struct({
+          slug: S.String,
+        }),
+      ),
+  )
+  .add(
+    HttpApiEndpoint.get("bySlugAll", "/slug/:slug")
+      .addSuccess(S.Array(AnalysisEngine))
       .addError(AnalysisEngineNotFoundError)
       .setPayload(
         S.Struct({
