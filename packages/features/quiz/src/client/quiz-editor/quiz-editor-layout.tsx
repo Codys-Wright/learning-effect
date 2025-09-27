@@ -2,6 +2,8 @@
 
 import { Atom, Result, useAtomSet, useAtomValue } from "@effect-atom/atom-react";
 import { type AnalysisEngine, type Question, type Quiz } from "@features/quiz/domain";
+import { Effect } from "effect";
+// Use the actual Result types from the atoms instead of importing platform types
 import {
   Badge,
   Button,
@@ -48,6 +50,132 @@ const selectedArtistTypeAtom = Atom.make("visionary").pipe(Atom.keepAlive);
 const selectedQuestionIndexAtom = Atom.make(0).pipe(Atom.keepAlive);
 const showIdealAnswersAtom = Atom.make(true).pipe(Atom.keepAlive);
 const pendingRatingAtom = Atom.make<number | null>(null).pipe(Atom.keepAlive);
+
+// Helper function to get ideal answers for the current selection
+const getIdealAnswersForCurrentSelection = (
+  quizzesResult: ReturnType<typeof quizzesAtom.read>,
+  enginesResult: ReturnType<typeof enginesAtom.read>,
+  selectedQuizId: string,
+  selectedEngineId: string,
+  selectedQuestionIndex: number,
+) => {
+  if (!Result.isSuccess(quizzesResult) || !Result.isSuccess(enginesResult)) {
+    return [];
+  }
+
+  const quizzes = quizzesResult.value;
+  const engines = enginesResult.value;
+
+  const selectedQuiz = quizzes.find((q: Quiz) => q.id === selectedQuizId);
+  const selectedEngine = engines.find((e: AnalysisEngine) => e.id === selectedEngineId);
+
+  if (selectedQuiz === undefined || selectedEngine === undefined) {
+    return [];
+  }
+
+  const questions = selectedQuiz.questions as Array<Question>;
+  const selectedQuestion = questions[selectedQuestionIndex];
+
+  if (selectedQuestion === undefined) {
+    Effect.runSync(
+      Effect.log(
+        `No selected question found at index: ${selectedQuestionIndex}, total questions: ${questions.length}`,
+      ),
+    );
+    return [];
+  }
+
+  Effect.runSync(
+    Effect.log(`Current question: ${selectedQuestion.title}, id: ${selectedQuestion.id}`),
+  );
+  Effect.runSync(
+    Effect.log(
+      `Selected quiz: ${selectedQuiz.title}, version: ${selectedQuiz.version}, isTemp: ${selectedQuiz.isTemp}`,
+    ),
+  );
+  Effect.runSync(
+    Effect.log(
+      `Selected engine: ${selectedEngine.name}, version: ${selectedEngine.version}, isTemp: ${selectedEngine.isTemp}`,
+    ),
+  );
+
+  // Get ideal answers for the current question
+  const idealAnswers = selectedEngine.endings.flatMap((ending) =>
+    ending.questionRules
+      .filter((rule) => rule.questionId === selectedQuestion.id)
+      .map((rule) => ({
+        endingId: ending.endingId,
+        endingName: ending.name,
+        idealAnswers: [...rule.idealAnswers], // Convert readonly array to mutable array
+        isPrimary: rule.isPrimary,
+      })),
+  );
+
+  Effect.runSync(
+    Effect.log(`Ideal answers for question: ${JSON.stringify(idealAnswers, null, 2)}`),
+  );
+
+  return idealAnswers;
+};
+
+// Helper function to get selected values for the current selection
+const getSelectedValuesForCurrentSelection = (
+  quizzesResult: ReturnType<typeof quizzesAtom.read>,
+  enginesResult: ReturnType<typeof enginesAtom.read>,
+  selectedQuizId: string,
+  selectedEngineId: string,
+  selectedArtistType: string,
+  selectedQuestionIndex: number,
+) => {
+  if (!Result.isSuccess(enginesResult) || !Result.isSuccess(quizzesResult)) {
+    return [];
+  }
+
+  const engines = enginesResult.value;
+  const quizzes = quizzesResult.value;
+
+  const selectedEngine = engines.find((e: AnalysisEngine) => e.id === selectedEngineId);
+  const selectedQuiz = quizzes.find((q: Quiz) => q.id === selectedQuizId);
+
+  if (selectedEngine === undefined || selectedQuiz === undefined) {
+    return [];
+  }
+
+  const questions = selectedQuiz.questions as Array<Question>;
+  const selectedQuestion = questions[selectedQuestionIndex];
+
+  if (selectedQuestion === undefined) {
+    return [];
+  }
+
+  const artistTypeEndingId = `the-${selectedArtistType.toLowerCase()}-artist`;
+  const ending = selectedEngine.endings.find((e) => e.endingId === artistTypeEndingId);
+
+  if (ending === undefined) {
+    return [];
+  }
+
+  const questionRule = ending.questionRules.find((rule) => rule.questionId === selectedQuestion.id);
+
+  if (questionRule === undefined) {
+    Effect.runSync(
+      Effect.log(
+        `No question rule found for artist type: ${selectedArtistType}, question id: ${selectedQuestion.id}`,
+      ),
+    );
+    return [];
+  }
+
+  const selectedValues = [...questionRule.idealAnswers]; // Create mutable copy
+
+  Effect.runSync(
+    Effect.log(
+      `Selected values for artist type ${selectedArtistType}: ${JSON.stringify(selectedValues)}`,
+    ),
+  );
+
+  return selectedValues;
+};
 
 // Artist Icon Component
 const ArtistIcon: React.FC<{
@@ -620,6 +748,24 @@ export const QuizEditorLayout: React.FC = () => {
   const showIdealAnswers = useAtomValue(showIdealAnswersAtom);
   const pendingRating = useAtomValue(pendingRatingAtom);
 
+  // Derived values that automatically update based on selections
+  const currentQuestionIdealAnswers = getIdealAnswersForCurrentSelection(
+    quizzesResult,
+    enginesResult,
+    selectedQuizId,
+    selectedEngineId,
+    selectedQuestionIndex,
+  );
+
+  const currentSelectedValues = getSelectedValuesForCurrentSelection(
+    quizzesResult,
+    enginesResult,
+    selectedQuizId,
+    selectedEngineId,
+    selectedArtistType,
+    selectedQuestionIndex,
+  );
+
   // Setters for atom-based state
   const setSelectedQuizId = useAtomSet(selectedQuizIdAtom);
   const setSelectedEngineId = useAtomSet(selectedEngineIdAtom);
@@ -660,7 +806,7 @@ export const QuizEditorLayout: React.FC = () => {
 
         const defaultQuiz =
           artistTypeQuizzes[0] ??
-          quizzes.find((q) => q.slug === "my-artist-type-quiz") ??
+          quizzes.find((q) => q.title.includes("My Artist Type")) ??
           quizzes[0];
         if (defaultQuiz !== undefined) {
           setSelectedQuizId(defaultQuiz.id);
@@ -689,8 +835,8 @@ export const QuizEditorLayout: React.FC = () => {
           "Selected quiz:",
           selectedQuiz.title,
           "v" + selectedQuiz.version,
-          "slug:",
-          selectedQuiz.slug,
+          "id:",
+          selectedQuiz.id,
           "isTemp:",
           selectedQuiz.isTemp,
           "isPublished:",
@@ -705,10 +851,10 @@ export const QuizEditorLayout: React.FC = () => {
           engines.map((e: AnalysisEngine) => ({
             id: e.id,
             name: e.name,
-            slug: e.slug,
+            quizId: e.quizId,
             version: e.version,
-            isTemp: e.isTemp as boolean,
-            isPublished: e.isPublished as boolean,
+            isTemp: e.isTemp,
+            isPublished: e.isPublished,
           })),
         );
 
@@ -718,9 +864,9 @@ export const QuizEditorLayout: React.FC = () => {
           matchingEngine !== undefined
             ? {
                 name: matchingEngine.name,
-                slug: matchingEngine.slug,
+                quizId: matchingEngine.quizId,
                 version: matchingEngine.version,
-                isTemp: matchingEngine.isTemp as boolean,
+                isTemp: matchingEngine.isTemp,
               }
             : "NOT FOUND",
         );
@@ -794,7 +940,7 @@ export const QuizEditorLayout: React.FC = () => {
   // Find the selected quiz
   const quiz =
     quizzes.find((q) => q.id === selectedQuizId) ??
-    quizzes.find((q) => q.slug === "my-artist-type-quiz");
+    quizzes.find((q) => q.title.includes("My Artist Type"));
 
   if (quiz === undefined) {
     return (
@@ -807,27 +953,7 @@ export const QuizEditorLayout: React.FC = () => {
   const questions = quiz.questions as Array<Question>;
   const selectedQuestion = questions[selectedQuestionIndex];
 
-  // Get the selected analysis engine
-  const selectedEngine = engines.find((e) => e.id === selectedEngineId);
-
-  // Get ideal answers for the current question (similar to quiz-taker)
-  const getIdealAnswersForQuestion = (questionId: string) => {
-    if (selectedEngine === undefined) return [];
-
-    return selectedEngine.endings.flatMap((ending) =>
-      ending.questionRules
-        .filter((rule) => rule.questionId === questionId)
-        .map((rule) => ({
-          endingId: ending.endingId,
-          endingName: ending.name,
-          idealAnswers: [...rule.idealAnswers], // Convert readonly array to mutable array
-          isPrimary: rule.isPrimary,
-        })),
-    );
-  };
-
-  const currentQuestionIdealAnswers =
-    selectedQuestion !== undefined ? getIdealAnswersForQuestion(selectedQuestion.id) : [];
+  // The ideal answers are now provided by the derived atom
 
   const handleSelectQuestion = (index: number) => {
     setSelectedQuestionIndex(index);
@@ -866,8 +992,9 @@ export const QuizEditorLayout: React.FC = () => {
         // 4. The useEffect will automatically:
         //    - Switch to the matching temp engine
         //    - Apply the pending rating change
-      } catch (error) {
-        setPendingRating(null); // Clear pending rating on error
+      } catch {
+        // Clear pending rating on error
+        setPendingRating(null);
       }
     }
   };
@@ -953,62 +1080,37 @@ export const QuizEditorLayout: React.FC = () => {
     autoSaveTempEngine({ engine: updatedEngine });
   };
 
-  // Find the matching analysis engine for a given quiz
+  // Find the matching analysis engine for a given quiz using direct quizId reference
   const findMatchingEngine = (targetQuiz: Quiz): AnalysisEngine | undefined => {
-    // For temp quizzes, look for temp engines with the temp slug pattern
-    if (targetQuiz.isTemp) {
-      const expectedSlug = `${targetQuiz.slug}-temp-${targetQuiz.id}`;
-      // eslint-disable-next-line no-console
-      console.log(`Looking for temp engine with slug: ${expectedSlug}`);
-      // eslint-disable-next-line no-console
-      console.log(
-        `Available engine slugs:`,
-        engines.map((e) => `${e.slug} (isTemp: ${e.isTemp})`),
-      );
-
-      return engines.find((engine) => engine.slug === expectedSlug && engine.isTemp === true);
-    }
-
-    // For regular quizzes, try to find exact match first
-    let matchingEngine = engines.find(
-      (engine) =>
-        engine.slug === targetQuiz.slug &&
-        engine.version === targetQuiz.version &&
-        engine.isTemp === targetQuiz.isTemp &&
-        engine.isPublished === targetQuiz.isPublished,
+    Effect.runSync(
+      Effect.log(
+        `Finding engine for quiz: ${targetQuiz.title} (id: ${targetQuiz.id}, isTemp: ${targetQuiz.isTemp})`,
+      ),
     );
 
-    // If no exact match, fall back to any engine with same slug and temp/published status
-    if (matchingEngine === undefined) {
-      matchingEngine = engines.find(
-        (engine) =>
-          engine.slug === targetQuiz.slug &&
-          engine.isTemp === targetQuiz.isTemp &&
-          engine.isPublished === targetQuiz.isPublished,
+    // Simple direct lookup by quizId - this is much more reliable!
+    const matchingEngine = engines.find((engine) => engine.quizId === targetQuiz.id);
+
+    if (matchingEngine !== undefined) {
+      Effect.runSync(
+        Effect.log(
+          `Found matching engine: ${matchingEngine.name} (quizId: ${matchingEngine.quizId})`,
+        ),
       );
+      return matchingEngine;
     }
 
-    return matchingEngine;
-  };
-
-  // Get currently selected values for the current artist type and question
-  const getCurrentSelectedValues = (): Array<number> => {
-    if (selectedQuestion === undefined) return [];
-
-    const currentEngine = engines.find((e) => e.id === selectedEngineId);
-    if (currentEngine === undefined) return [];
-
-    const artistTypeEndingId = `the-${selectedArtistType.toLowerCase()}-artist`;
-    const ending = currentEngine.endings.find((e) => e.endingId === artistTypeEndingId);
-    if (ending === undefined) return [];
-
-    const questionRule = ending.questionRules.find(
-      (rule) => rule.questionId === selectedQuestion.id,
+    Effect.runSync(Effect.log(`No engine found with quizId: ${targetQuiz.id}`));
+    Effect.runSync(
+      Effect.log(
+        `Available engines: ${engines.map((e) => `${e.name} (quizId: ${e.quizId})`).join(", ")}`,
+      ),
     );
-    if (questionRule === undefined) return [];
 
-    return [...questionRule.idealAnswers]; // Create mutable copy
+    return undefined;
   };
+
+  // The currently selected values are now provided by the derived atom
 
   // Optimistic create temp engine and update
 
@@ -1208,7 +1310,7 @@ export const QuizEditorLayout: React.FC = () => {
                   max={
                     selectedQuestion.data.type === "rating" ? selectedQuestion.data.maxRating : 10
                   }
-                  selectedValues={getCurrentSelectedValues()} // Show multiple selections for primary artist types
+                  selectedValues={currentSelectedValues} // Show multiple selections for primary artist types
                   idealAnswers={currentQuestionIdealAnswers} // Use the ideal answers from the selected engine
                   showIdealAnswers={showIdealAnswers}
                   onRatingSelect={handleRatingSelect} // Handle rating selection

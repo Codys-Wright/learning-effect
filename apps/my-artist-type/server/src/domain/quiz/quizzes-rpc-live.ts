@@ -11,7 +11,6 @@ export const QuizzesRpcLive = HttpApiBuilder.group(DomainApi, "Quizzes", (handle
     return handlers
       .handle("list", () => repo.findAll())
       .handle("listPublished", () => repo.findPublished())
-      .handle("bySlug", ({ payload }) => repo.findBySlug(payload.slug))
       .handle("byId", ({ payload }) => repo.findById(payload.id))
       .handle("upsert", ({ payload }) =>
         Effect.gen(function* () {

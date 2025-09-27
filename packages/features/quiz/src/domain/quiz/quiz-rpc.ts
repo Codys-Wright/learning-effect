@@ -24,7 +24,7 @@
 //     - Any pages related to this feature will go in client/src/features/${featurename}/example.page.tsx, then that component is imported into the main router
 //
 
-import { NullOrFromFallible, SemVer, Slug } from "@core/domain";
+import { NullOrFromFallible, SemVer } from "@core/domain";
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "@effect/platform";
 import { faker } from "@faker-js/faker";
 import { Schema as S } from "effect";
@@ -52,7 +52,6 @@ export class Quiz extends S.Class<Quiz>("Quiz")({
   //every entity should have an Id and a version
   id: QuizId,
   version: SemVer,
-  slug: Slug,
 
   //Define the actual entity here
   title: S.String,
@@ -137,7 +136,7 @@ export class UpsertQuizPayload extends S.Class<UpsertQuizPayload>("UpsertQuizPay
   //
 }) {}
 
-//4) Define an Error for the entity, this will help us trace any errors back here if something is wrong
+//5) Define Errors for the entities
 export class QuizNotFoundError extends S.TaggedError<QuizNotFoundError>("QuizNotFoundError")(
   "QuizNotFoundError",
   { id: QuizId },
@@ -155,16 +154,6 @@ export class QuizNotFoundError extends S.TaggedError<QuizNotFoundError>("QuizNot
 export class QuizzesGroup extends HttpApiGroup.make("Quizzes")
   .add(HttpApiEndpoint.get("list", "/").addSuccess(S.Array(Quiz)))
   .add(HttpApiEndpoint.get("listPublished", "/published").addSuccess(S.Array(Quiz)))
-  .add(
-    HttpApiEndpoint.get("bySlug", "/published/:slug")
-      .addSuccess(Quiz)
-      .addError(QuizNotFoundError)
-      .setPayload(
-        S.Struct({
-          slug: S.String,
-        }),
-      ),
-  )
   .add(
     HttpApiEndpoint.get("byId", "/:id")
       .addSuccess(Quiz)

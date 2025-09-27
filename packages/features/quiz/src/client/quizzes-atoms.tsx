@@ -138,10 +138,10 @@ export const createNewQuizVersionAtom = runtime.fn(
 
       // Also create a matching analysis engine version
       try {
-        // Find the original analysis engine (same slug, different version)
+        // Find the original analysis engine (linked to the original quiz)
         const allEngines = yield* api.http.AnalysisEngine.list();
         const originalEngine = allEngines.find(
-          (engine) => engine.slug === quiz.slug && engine.isTemp === false,
+          (engine) => engine.quizId === quiz.id && engine.isTemp === false,
         );
 
         if (originalEngine !== undefined) {
@@ -149,7 +149,7 @@ export const createNewQuizVersionAtom = runtime.fn(
           yield* api.http.AnalysisEngine.upsert({
             payload: {
               name: originalEngine.name, // Keep same name
-              slug: originalEngine.slug, // Keep same slug
+              quizId: newQuiz.id, // Reference the new quiz version!
               version: newVersion, // Use the new version to match quiz
               description: originalEngine.description ?? undefined,
               scoringConfig: originalEngine.scoringConfig,
@@ -201,33 +201,22 @@ export const createTempQuizAtom = runtime.fn(
       registry.set(quizzesAtom, Action.Upsert({ quiz: tempQuiz }));
 
       // eslint-disable-next-line no-console
-      console.log(
-        "Temp quiz created and added to atom:",
-        tempQuiz.title,
-        "id:",
-        tempQuiz.id,
-        "slug:",
-        tempQuiz.slug,
-      );
+      console.log("Temp quiz created and added to atom:", tempQuiz.title, "id:", tempQuiz.id);
 
       // Automatically create matching analysis engine
-      // Find the original analysis engine (non-temp version with same base slug)
+      // Find the original analysis engine (linked to the original quiz)
       const allEngines = yield* api.http.AnalysisEngine.list();
-      const baseSlug = tempQuiz.slug.replace("-editing", ""); // Remove editing suffix
 
-      // Look for engines that match the base slug pattern
-      const originalEngine =
-        allEngines.find((engine) => engine.slug === baseSlug && engine.isTemp === false) ??
-        allEngines.find(
-          // Fallback: look for engines with similar slug patterns
-          (engine) => engine.slug.includes("artist-type") && engine.isTemp === false,
-        );
+      // Look for engines that match the original quiz ID
+      const originalEngine = allEngines.find(
+        (engine) => engine.quizId === quiz.id && engine.isTemp === false,
+      );
 
       if (originalEngine !== undefined) {
         try {
           // First, clean up any existing temp engines for this quiz to avoid conflicts
           const existingTempEngines = allEngines.filter(
-            (engine) => engine.slug.startsWith(`${tempQuiz.slug}-temp-`) && engine.isTemp === true,
+            (engine) => engine.quizId === tempQuiz.id && engine.isTemp === true,
           );
 
           for (const existingEngine of existingTempEngines) {
@@ -244,7 +233,7 @@ export const createTempQuizAtom = runtime.fn(
           const tempEngine = yield* api.http.AnalysisEngine.upsert({
             payload: {
               name: `${originalEngine.name} (Editing)`,
-              slug: `${tempQuiz.slug}-temp-${tempQuiz.id}`, // Use quiz ID for uniqueness
+              quizId: tempQuiz.id, // Direct reference to the quiz!
               version: originalEngine.version,
               description: originalEngine.description ?? undefined,
               scoringConfig: originalEngine.scoringConfig,
@@ -384,49 +373,31 @@ export const createMatchingTempEngineAtom = runtime.fn(
     // Only work with temp quizzes
     if (quiz.isTemp !== true) return undefined;
 
-    // Find the original analysis engine (non-temp version with same base slug and version)
+    // Find the original quiz that this temp quiz is based on
+    const allQuizzes = yield* api.http.Quizzes.list();
+    const originalQuiz = allQuizzes.find(
+      (q) => q.title === quiz.title.replace(" (Editing)", "") && q.isTemp === false,
+    );
+
+    if (originalQuiz === undefined) {
+      throw new Error(`No original quiz found for temp quiz: ${quiz.title}`);
+    }
+
+    // Find the original analysis engine (linked to the original quiz)
     const allEngines = yield* api.http.AnalysisEngine.list();
-    const baseSlug = quiz.slug.replace("-editing", ""); // Remove editing suffix if present
     const originalEngine = allEngines.find(
-      (engine) =>
-        engine.slug === baseSlug && engine.version === quiz.version && engine.isTemp === false,
+      (engine) => engine.quizId === originalQuiz.id && engine.isTemp === false,
     );
 
     if (originalEngine === undefined) {
-      // If no original engine found, try to find any engine with the base slug
-      const anyMatchingEngine = allEngines.find(
-        (engine) => engine.slug === baseSlug && engine.isTemp === false,
-      );
-
-      if (anyMatchingEngine === undefined) {
-        throw new Error(`No analysis engine found for quiz slug: ${baseSlug}`);
-      }
-
-      // Use the found engine as template
-      const tempEngine = yield* api.http.AnalysisEngine.upsert({
-        payload: {
-          name: `${anyMatchingEngine.name} (Editing)`,
-          slug: `${quiz.slug}-temp-${quiz.id}`, // Use quiz ID for uniqueness
-          version: quiz.version,
-          description: anyMatchingEngine.description ?? undefined,
-          scoringConfig: anyMatchingEngine.scoringConfig,
-          endings: anyMatchingEngine.endings,
-          metadata: anyMatchingEngine.metadata ?? undefined,
-          isActive: anyMatchingEngine.isActive,
-          isPublished: false,
-          isTemp: true,
-        },
-      });
-
-      return tempEngine;
+      throw new Error(`No analysis engine found for original quiz: ${originalQuiz.title}`);
     }
 
     // Create temp engine based on original
     const tempEngine = yield* api.http.AnalysisEngine.upsert({
       payload: {
         name: `${originalEngine.name} (Editing)`,
-        slug: `${quiz.slug}-temp-${quiz.id}`, // Use quiz ID for uniqueness
-        version: originalEngine.version,
+        version: quiz.version,
         description: originalEngine.description ?? undefined,
         scoringConfig: originalEngine.scoringConfig,
         endings: originalEngine.endings,
@@ -434,6 +405,7 @@ export const createMatchingTempEngineAtom = runtime.fn(
         isActive: originalEngine.isActive,
         isPublished: false,
         isTemp: true,
+        quizId: quiz.id, // Link to the temp quiz
       },
     });
 

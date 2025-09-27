@@ -1,7 +1,6 @@
 import { PgLive } from "@/database.js";
 import { NodeContext } from "@effect/platform-node";
 import { type QuizResponse, ResponseId } from "@features/quiz/domain";
-import { type UpsertAnalysisEnginePayload } from "@features/quiz/domain/analysis/analysis-engine-rpc";
 import { getSeedAnalysisEnginePayload } from "@features/quiz/domain/analysis/seed/seed-analysis-engine";
 import { getSeedPayload } from "@features/quiz/domain/quiz/seed/seed-quiz";
 import { getTypeformResponseSeedData } from "@features/quiz/domain/responses/seed/typeform/seed-typeform-responses";
@@ -12,42 +11,56 @@ import {
   QuizzesRepo,
   ResponsesRepo,
 } from "@features/quiz/server";
+import { ActiveQuizRepo } from "@features/quiz/server/services/active-quiz-repo";
 import { DateTime, Effect, Schema } from "effect";
 
 const seedEffect = Effect.gen(function* () {
   const quizRepo = yield* QuizzesRepo;
   const analysisEngineRepo = yield* AnalysisEngineRepo;
+  const activeQuizRepo = yield* ActiveQuizRepo;
   const questionService = yield* QuestionService;
   const responsesRepo = yield* ResponsesRepo;
   const analysisRepo = yield* AnalysisRepo;
   const quizPayload = getSeedPayload();
-  const analysisEnginePayload = (
-    getSeedAnalysisEnginePayload as () => UpsertAnalysisEnginePayload
-  )();
+  const analysisEnginePayload = getSeedAnalysisEnginePayload();
   const typeformResponseData = getTypeformResponseSeedData();
 
   yield* Effect.log("Starting database seeding...");
 
-  // Create questions first using the question service
-  const questions =
-    quizPayload.questions !== undefined
-      ? yield* questionService.createMany(quizPayload.questions)
-      : [];
+  // Check if quiz already exists first
+  const existingQuizzes = yield* quizRepo.findAll();
+  const existingQuiz = existingQuizzes.find(
+    (q) => q.title === "My Artist Type Quiz" && q.version === "1.0.0",
+  );
 
-  // Ensure all required fields are present for quiz
-  const createQuizPayload = {
-    title: quizPayload.title,
-    subtitle: quizPayload.subtitle ?? "Discover your unique creative personality",
-    description:
-      quizPayload.description ??
-      "Take this comprehensive quiz to understand your artist archetype and creative approach.",
-    version: quizPayload.version ?? "1.0.0",
-    questions,
-    metadata: quizPayload.metadata ?? undefined,
-  };
+  let seededQuiz;
+  if (existingQuiz !== undefined) {
+    yield* Effect.log(`Quiz already exists: ${existingQuiz.title} (ID: ${existingQuiz.id})`);
+    seededQuiz = existingQuiz;
+  } else {
+    // Create questions first using the question service
+    const questions =
+      quizPayload.questions !== undefined
+        ? yield* questionService.createMany(quizPayload.questions)
+        : [];
 
-  const seededQuiz = yield* quizRepo.create(createQuizPayload);
-  yield* Effect.log(`Created quiz: ${seededQuiz.title} (ID: ${seededQuiz.id})`);
+    // Ensure all required fields are present for quiz
+    const createQuizPayload = {
+      title: quizPayload.title,
+      subtitle: quizPayload.subtitle ?? "Discover your unique creative personality",
+      description:
+        quizPayload.description ??
+        "Take this comprehensive quiz to understand your artist archetype and creative approach.",
+      version: quizPayload.version ?? "1.0.0",
+      questions,
+      metadata: quizPayload.metadata ?? undefined,
+      isPublished: false, // Don't publish individual quiz versions
+      isTemp: false, // Seed data is permanent
+    };
+
+    seededQuiz = yield* quizRepo.create(createQuizPayload);
+    yield* Effect.log(`Created quiz: ${seededQuiz.title} (ID: ${seededQuiz.id})`);
+  }
 
   // Map analysis engine question rules to use actual question IDs from the created quiz
   // The seed data uses question IDs 1, 2, 3, etc., which correspond to the order field in quiz questions
@@ -66,20 +79,78 @@ const seedEffect = Effect.gen(function* () {
     })),
   }));
 
-  // Create the analysis engine
-  const createAnalysisEnginePayload = {
-    name: analysisEnginePayload.name,
-    description: analysisEnginePayload.description ?? undefined,
-    version: analysisEnginePayload.version ?? "1.0.0",
-    slug: analysisEnginePayload.slug ?? "artist-type-quiz-v1",
-    scoringConfig: analysisEnginePayload.scoringConfig,
-    endings: updatedEndings,
-    metadata: analysisEnginePayload.metadata ?? undefined,
-    isActive: analysisEnginePayload.isActive ?? true,
-  };
-  const seededAnalysisEngine = yield* analysisEngineRepo.create(createAnalysisEnginePayload);
-  yield* Effect.log(
-    `Created analysis engine: ${seededAnalysisEngine.name} (ID: ${seededAnalysisEngine.id})`,
+  // Check if analysis engine already exists for this quiz version
+  const existingEngines = yield* analysisEngineRepo.findAll();
+  const existingEngine = existingEngines.find(
+    (e) => e.quizId === seededQuiz.id && e.version === seededQuiz.version,
+  );
+
+  let seededAnalysisEngine;
+  if (existingEngine !== undefined) {
+    yield* Effect.log(
+      `Analysis engine already exists: ${existingEngine.name} (ID: ${existingEngine.id})`,
+    );
+    seededAnalysisEngine = existingEngine;
+  } else {
+    // Create the analysis engine with simple slug (no version in slug)
+    const createAnalysisEnginePayload = {
+      name: analysisEnginePayload.name, // Keep original name simple
+      description: analysisEnginePayload.description,
+      version: seededQuiz.version, // Match the quiz version exactly
+      slug:
+        analysisEnginePayload.slug.length > 0 ? analysisEnginePayload.slug : "artist-type-analysis", // Use simple base slug
+      scoringConfig: analysisEnginePayload.scoringConfig,
+      endings: updatedEndings,
+      metadata: {
+        ...analysisEnginePayload.metadata,
+        linkedQuizVersion: seededQuiz.version,
+        linkedQuizId: seededQuiz.id,
+      },
+      isActive: analysisEnginePayload.isActive,
+      isPublished: false, // Don't publish individual engine versions
+      isTemp: false, // Seed data is permanent
+      quizId: seededQuiz.id, // Link the engine to the quiz
+    };
+    seededAnalysisEngine = yield* analysisEngineRepo.create(createAnalysisEnginePayload);
+    yield* Effect.log(
+      `Created analysis engine: ${seededAnalysisEngine.name} (ID: ${seededAnalysisEngine.id})`,
+    );
+  }
+
+  // Create or update the ActiveQuiz entry to link this quiz+engine to a clean public slug
+  const publicSlug = "my-artist-type"; // Clean public-facing slug
+
+  yield* activeQuizRepo.findBySlug(publicSlug).pipe(
+    Effect.flatMap((existingActiveQuiz) =>
+      Effect.gen(function* () {
+        // Update existing active quiz to point to the current quiz+engine versions
+        yield* activeQuizRepo.update({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          id: existingActiveQuiz.id,
+          slug: publicSlug,
+          quizId: seededQuiz.id,
+          engineId: seededAnalysisEngine.id,
+        });
+
+        yield* Effect.log(
+          `Updated active quiz "${publicSlug}" to point to Quiz v${seededQuiz.version} + Engine v${seededAnalysisEngine.version}`,
+        );
+      }),
+    ),
+    Effect.catchTag("ActiveQuizNotFoundError", () =>
+      Effect.gen(function* () {
+        // Active quiz doesn't exist, create it
+        yield* activeQuizRepo.create({
+          slug: publicSlug,
+          quizId: seededQuiz.id,
+          engineId: seededAnalysisEngine.id,
+        });
+
+        yield* Effect.log(
+          `Created active quiz "${publicSlug}" linking Quiz v${seededQuiz.version} + Engine v${seededAnalysisEngine.version}`,
+        );
+      }),
+    ),
   );
 
   // Seed Typeform responses
@@ -168,7 +239,6 @@ const seedEffect = Effect.gen(function* () {
           const now = yield* DateTime.now;
           const mockAnalysisResult = {
             engineId: seededAnalysisEngine.id,
-            engineSlug: seededAnalysisEngine.slug,
             engineVersion: seededAnalysisEngine.version,
             responseId: response.id,
             endingResults: [
@@ -217,10 +287,12 @@ const seedEffect = Effect.gen(function* () {
   }
 
   yield* Effect.log("Seeding completed successfully!");
+  yield* Effect.log(`Active quiz available at public slug: "${publicSlug}"`);
 
   return {
     quiz: seededQuiz,
     analysisEngine: seededAnalysisEngine,
+    activeQuizSlug: publicSlug,
     typeformResponses: { successCount, errorCount, totalProcessed: typeformResponseData.length },
     analysisResults: {
       successCount: analysisSuccessCount,
@@ -230,6 +302,7 @@ const seedEffect = Effect.gen(function* () {
   };
 }).pipe(
   Effect.provide([
+    ActiveQuizRepo.Default,
     QuizzesRepo.Default,
     AnalysisEngineRepo.Default,
     QuestionService.Default,

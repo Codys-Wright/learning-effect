@@ -13,22 +13,13 @@ import { Effect, flow, Schema } from "effect";
 //1) Define the Inputs that the repository is expecting, we map these to UpsertPayload because it decouples them like a DTO and lets us
 //   easily see what our Repo is expecting to deal with
 const CreateAnalysisResultInput = AnalysisResult.pipe(
-  Schema.pick(
-    "engineId",
-    "engineSlug",
-    "engineVersion",
-    "responseId",
-    "endingResults",
-    "metadata",
-    "analyzedAt",
-  ),
+  Schema.pick("engineId", "engineVersion", "responseId", "endingResults", "metadata", "analyzedAt"),
 );
 
 const UpdateAnalysisResultInput = AnalysisResult.pipe(
   Schema.pick(
     "id",
     "engineId",
-    "engineSlug",
     "engineVersion",
     "responseId",
     "endingResults",

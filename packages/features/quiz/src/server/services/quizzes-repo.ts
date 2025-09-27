@@ -2,9 +2,6 @@ import { SqlClient, SqlSchema } from "@effect/sql";
 import { Quiz, QuizId, QuizNotFoundError } from "@features/quiz/domain";
 import { PgLive } from "@my-artist-type/database/database";
 import { Effect, flow, Schema } from "effect";
-import * as slugifyModule from "slugify";
-
-const slugify = slugifyModule.default;
 
 //1) Define the Inputs that the repository is expecting, we map these to UpsertPayload because it decouples them like a DTO and lets us
 //   easily see what our Repo is expecting to deal with
@@ -89,60 +86,13 @@ export class QuizzesRepo extends Effect.Service<QuizzesRepo>()("QuizzesRepo", {
       `,
     });
 
-    const findBySlug = SqlSchema.single({
-      Result: Quiz,
-      Request: Schema.Struct({ slug: Schema.String }),
-      execute: ({ slug }) => sql`
-        SELECT
-          *
-        FROM
-          quizzes
-        WHERE
-          slug = ${slug}
-          AND is_published = TRUE
-          AND deleted_at IS NULL
-      `,
-    });
-
     const create = SqlSchema.single({
       Result: Quiz,
       Request: CreateQuizInput,
       execute: (request) => {
-        const slug = slugify(request.title, {
-          lower: true,
-          strict: true,
-          trim: true,
-        });
-
-        // If creating a published quiz, unpublish other versions first
-        if (request.isPublished) {
-          return sql`
-            WITH
-              unpublish_others AS (
-                UPDATE quizzes
-                SET
-                  is_published = FALSE
-                WHERE
-                  slug = ${slug}
-                  AND is_published = TRUE
-                  AND deleted_at IS NULL
-              )
-            INSERT INTO
-              quizzes ${sql.insert({
-              ...request,
-              slug,
-            })}
-            RETURNING
-              *
-          `;
-        }
-
         return sql`
           INSERT INTO
-            quizzes ${sql.insert({
-            ...request,
-            slug,
-          })}
+            quizzes ${sql.insert(request)}
           RETURNING
             *
         `;
@@ -153,47 +103,10 @@ export class QuizzesRepo extends Effect.Service<QuizzesRepo>()("QuizzesRepo", {
       Result: Quiz,
       Request: UpdateQuizInput,
       execute: (request) => {
-        const slug = slugify(request.title, {
-          lower: true,
-          strict: true,
-          trim: true,
-        });
-
-        // If updating to published, unpublish other versions first
-        if (request.isPublished) {
-          return sql`
-            WITH
-              unpublish_others AS (
-                UPDATE quizzes
-                SET
-                  is_published = FALSE
-                WHERE
-                  slug = ${slug}
-                  AND is_published = TRUE
-                  AND deleted_at IS NULL
-                  AND id != ${request.id}
-              )
-            UPDATE quizzes
-            SET
-              ${sql.update({
-              ...request,
-              slug,
-            })}
-            WHERE
-              id = ${request.id}
-              AND deleted_at IS NULL
-            RETURNING
-              *
-          `;
-        }
-
         return sql`
           UPDATE quizzes
           SET
-            ${sql.update({
-            ...request,
-            slug,
-          })}
+            ${sql.update(request)}
           WHERE
             id = ${request.id}
             AND deleted_at IS NULL
@@ -204,19 +117,13 @@ export class QuizzesRepo extends Effect.Service<QuizzesRepo>()("QuizzesRepo", {
     });
 
     //Only sets the deleted_at timestamp so that it will be excluded from all further queries
-    //Also appends timestamp to slug to avoid unique constraint violations on future creates
     const del = SqlSchema.single({
       Request: QuizId,
       Result: Schema.Unknown,
       execute: (id) => sql`
         UPDATE quizzes
         SET
-          deleted_at = now(),
-          slug = slug || '-deleted-' || extract(
-            epoch
-            FROM
-              now()
-          )::bigint
+          deleted_at = now()
         WHERE
           id = ${id}
           AND deleted_at IS NULL
@@ -245,16 +152,6 @@ export class QuizzesRepo extends Effect.Service<QuizzesRepo>()("QuizzesRepo", {
 
       // findPublished: Get all published quizzes
       findPublished: flow(findPublished, Effect.orDie),
-
-      // findBySlug: Get published quiz by slug
-      findBySlug: (slug: string) =>
-        findBySlug({ slug }).pipe(
-          Effect.catchTags({
-            NoSuchElementException: () => new QuizNotFoundError({ id: slug as QuizId }), // Use slug as id for error
-            ParseError: Effect.die,
-            SqlError: Effect.die,
-          }),
-        ),
 
       // findById: Get a specific quiz by ID
       findById: (id: QuizId) =>

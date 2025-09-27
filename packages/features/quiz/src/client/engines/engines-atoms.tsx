@@ -98,33 +98,7 @@ export const getEngineByIdAtom = runtime.fn(
   ),
 );
 
-export const getEngineBySlugAtom = runtime.fn(
-  Effect.fn(
-    function* (slug: string) {
-      const api = yield* ApiClient;
-      return yield* api.http.AnalysisEngine.bySlug({ payload: { slug } });
-    },
-    withToast({
-      onWaiting: "Loading analysis engine...",
-      onSuccess: "Analysis engine loaded",
-      onFailure: "Failed to load analysis engine",
-    }),
-  ),
-);
-
-export const getEngineBySlugAndVersionAtom = runtime.fn(
-  Effect.fn(
-    function* (params: { slug: string; version: string }) {
-      const api = yield* ApiClient;
-      return yield* api.http.AnalysisEngine.bySlugAndVersion({ payload: params });
-    },
-    withToast({
-      onWaiting: "Loading analysis engine...",
-      onSuccess: "Analysis engine loaded",
-      onFailure: "Failed to load analysis engine",
-    }),
-  ),
-);
+// Note: Slug-based engine lookups removed - use ActiveQuiz architecture instead
 
 // Helper function to toggle engine publishing status
 export const toggleEnginePublishAtom = runtime.fn(
@@ -144,9 +118,9 @@ export const toggleEnginePublishAtom = runtime.fn(
           metadata: engine.metadata ?? undefined,
           isActive: engine.isActive,
           isPublished, // Toggle published status
-          isTemp: engine.isTemp === true, // Preserve temp status
-          slug: engine.slug,
+          isTemp: engine.isTemp, // Preserve temp status
           version: engine.version,
+          quizId: engine.quizId, // Preserve quiz link
         },
       });
 
@@ -181,8 +155,8 @@ export const createNewEngineVersionAtom = runtime.fn(
           isActive: engine.isActive,
           isPublished: false, // New versions start as drafts
           isTemp: false, // New versions are permanent
-          slug: engine.slug,
           version: newVersion,
+          quizId: engine.quizId, // Preserve quiz link
         },
       });
 
@@ -217,8 +191,8 @@ export const createTempEngineAtom = runtime.fn(
           isActive: engine.isActive,
           isPublished: false, // Temp engines are never published
           isTemp: true, // Mark as temporary
-          slug: `${engine.slug}-temp-${engine.id}`, // Make slug unique for temp engines using original engine ID
           version: engine.version,
+          quizId: engine.quizId, // Preserve quiz link
         },
       });
 
@@ -253,10 +227,10 @@ export const autoSaveTempEngineAtom = runtime.fn(
           endings: engine.endings,
           metadata: engine.metadata ?? undefined,
           isActive: engine.isActive,
-          isPublished: engine.isPublished === true,
-          isTemp: engine.isTemp === true,
-          slug: engine.slug,
+          isPublished: engine.isPublished,
+          isTemp: engine.isTemp,
           version: engine.version,
+          quizId: engine.quizId, // Preserve quiz link
         },
       });
 

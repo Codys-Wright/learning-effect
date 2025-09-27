@@ -52,7 +52,6 @@ export class AnalysisResult extends S.Class<AnalysisResult>("AnalysisResult")({
 
   // Which engine was used
   engineId: AnalysisEngineId,
-  engineSlug: Slug,
   engineVersion: SemVer,
 
   // Which response was analyzed

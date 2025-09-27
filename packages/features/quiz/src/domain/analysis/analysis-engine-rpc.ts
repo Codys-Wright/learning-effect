@@ -1,9 +1,10 @@
 // Analysis Engine Domain Schema
 // This defines the structure for storing and running different analysis engines
 
-import { SemVer, Slug } from "@core/domain";
+import { SemVer } from "@core/domain";
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "@effect/platform";
 import { Schema as S } from "effect";
+import { QuizId } from "../quiz/quiz-rpc.js";
 
 // ============================================================================
 // CORE TYPES
@@ -107,11 +108,11 @@ export class AnalysisEngine extends S.Class<AnalysisEngine>("AnalysisEngine")({
   // Unique identifier
   id: AnalysisEngineId,
 
+  // Direct reference to the quiz this engine analyzes
+  quizId: QuizId,
+
   // Version using SemVer
   version: SemVer,
-
-  // Slug for external identification (e.g., "artist-type-quiz-v1")
-  slug: Slug,
 
   // Human-readable name
   name: S.String,
@@ -152,8 +153,8 @@ export class UpsertAnalysisEnginePayload extends S.Class<UpsertAnalysisEnginePay
   "UpsertAnalysisEnginePayload",
 )({
   id: S.optional(AnalysisEngineId),
+  quizId: S.optional(QuizId),
   version: S.optional(SemVer),
-  slug: S.optional(Slug),
   name: S.String,
   description: S.optional(S.NullOr(S.String)),
   scoringConfig: S.parseJson(ScoringConfig),
@@ -200,37 +201,6 @@ export class AnalysisEngineGroup extends HttpApiGroup.make("AnalysisEngine")
       .setPayload(
         S.Struct({
           id: AnalysisEngineId,
-        }),
-      ),
-  )
-  .add(
-    HttpApiEndpoint.get("bySlug", "/published/:slug")
-      .addSuccess(AnalysisEngine)
-      .addError(AnalysisEngineNotFoundError)
-      .setPayload(
-        S.Struct({
-          slug: S.String,
-        }),
-      ),
-  )
-  .add(
-    HttpApiEndpoint.get("bySlugAll", "/slug/:slug")
-      .addSuccess(S.Array(AnalysisEngine))
-      .addError(AnalysisEngineNotFoundError)
-      .setPayload(
-        S.Struct({
-          slug: S.String,
-        }),
-      ),
-  )
-  .add(
-    HttpApiEndpoint.get("bySlugAndVersion", "/slug/:slug/version/:version")
-      .addSuccess(AnalysisEngine)
-      .addError(AnalysisEngineNotFoundError)
-      .setPayload(
-        S.Struct({
-          slug: S.String,
-          version: S.String,
         }),
       ),
   )

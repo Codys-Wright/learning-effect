@@ -1,3 +1,4 @@
+export * from "./active-quiz-repo.js";
 export * from "./analysis-engine-repo.js";
 export type * from "./analysis-engine-repo.test.js";
 export * from "./analysis-repo.js";

@@ -1,6 +1,7 @@
 import { HttpApiScalar, HttpLayerRouter, HttpServer, HttpServerResponse } from "@effect/platform";
 import { DomainApi } from "@my-artist-type/domain";
 import { Layer } from "effect";
+import { ActiveQuizRpcLive } from "./domain/active-quiz/active-quiz-rpc-live.js";
 import { AnalysisEngineRpcLive } from "./domain/analysis/analysis-engine-rpc-live.js";
 import { AnalysisRpcLive } from "./domain/analysis/analysis-rpc-live.js";
 import { QuizzesRpcLive } from "./domain/quiz/quizzes-rpc-live.js";
@@ -9,7 +10,13 @@ import { ResponsesRpcLive } from "./domain/responses/responses-rpc-live.js";
 export const ApiLive = HttpLayerRouter.addHttpApi(DomainApi, {
   openapiPath: "/api/docs/openapi.json",
 }).pipe(
-  Layer.provide([QuizzesRpcLive, ResponsesRpcLive, AnalysisEngineRpcLive, AnalysisRpcLive]),
+  Layer.provide([
+    ActiveQuizRpcLive,
+    QuizzesRpcLive,
+    ResponsesRpcLive,
+    AnalysisEngineRpcLive,
+    AnalysisRpcLive,
+  ]),
   Layer.provide(HttpServer.layerContext),
 );
 

@@ -1,3 +1,4 @@
+export * from "./active-quiz/active-quiz-rpc.js";
 export * from "./analysis/analysis-engine-rpc.js";
 export * from "./analysis/analysis-rpc.js";
 export * from "./analysis/analysis.service.js";

@@ -12,7 +12,6 @@ import { Effect, flow, Schema } from "effect";
 const CreateAnalysisEngineInput = AnalysisEngine.pipe(
   Schema.pick(
     "version",
-    "slug",
     "name",
     "description",
     "scoringConfig",
@@ -21,6 +20,7 @@ const CreateAnalysisEngineInput = AnalysisEngine.pipe(
     "isActive",
     "isPublished",
     "isTemp",
+    "quizId",
   ),
 );
 
@@ -28,7 +28,6 @@ const UpdateAnalysisEngineInput = AnalysisEngine.pipe(
   Schema.pick(
     "id",
     "version",
-    "slug",
     "name",
     "description",
     "scoringConfig",
@@ -37,6 +36,7 @@ const UpdateAnalysisEngineInput = AnalysisEngine.pipe(
     "isActive",
     "isPublished",
     "isTemp",
+    "quizId",
   ),
 );
 type UpdateAnalysisEngineInput = typeof UpdateAnalysisEngineInput.Type;
@@ -80,39 +80,6 @@ export class AnalysisEngineRepo extends Effect.Service<AnalysisEngineRepo>()("An
       `,
     });
 
-    const findBySlug = SqlSchema.single({
-      Result: AnalysisEngine,
-      Request: Schema.Struct({ slug: Schema.String }),
-      execute: ({ slug }) => sql`
-        SELECT
-          *
-        FROM
-          analysis_engines
-        WHERE
-          slug = ${slug}
-          AND deleted_at IS NULL
-        ORDER BY
-          created_at DESC
-        LIMIT
-          1
-      `,
-    });
-
-    const findBySlugAndVersion = SqlSchema.single({
-      Result: AnalysisEngine,
-      Request: Schema.Struct({ slug: Schema.String, version: Schema.String }),
-      execute: ({ slug, version }) => sql`
-        SELECT
-          *
-        FROM
-          analysis_engines
-        WHERE
-          slug = ${slug}
-          AND version = ${version}
-          AND deleted_at IS NULL
-      `,
-    });
-
     const findPublished = SqlSchema.findAll({
       Result: AnalysisEngine,
       Request: Schema.Void,
@@ -129,42 +96,11 @@ export class AnalysisEngineRepo extends Effect.Service<AnalysisEngineRepo>()("An
       `,
     });
 
-    const findBySlugPublished = SqlSchema.single({
-      Result: AnalysisEngine,
-      Request: Schema.Struct({ slug: Schema.String }),
-      execute: ({ slug }) => sql`
-        SELECT
-          *
-        FROM
-          analysis_engines
-        WHERE
-          slug = ${slug}
-          AND is_published = TRUE
-          AND deleted_at IS NULL
-      `,
-    });
-
-    const findAllBySlug = SqlSchema.findAll({
-      Result: AnalysisEngine,
-      Request: Schema.Struct({ slug: Schema.String }),
-      execute: ({ slug }) => sql`
-        SELECT
-          *
-        FROM
-          analysis_engines
-        WHERE
-          slug = ${slug}
-          AND deleted_at IS NULL
-        ORDER BY
-          version DESC
-      `,
-    });
-
     const create = SqlSchema.single({
       Result: AnalysisEngine,
       Request: CreateAnalysisEngineInput,
       execute: (request) => {
-        // If publishing this engine, unpublish any existing published engines with the same slug
+        // If publishing this engine, unpublish any existing published engines with the same quizId
         if (request.isPublished === true) {
           return sql`
             WITH
@@ -173,7 +109,7 @@ export class AnalysisEngineRepo extends Effect.Service<AnalysisEngineRepo>()("An
                 SET
                   is_published = FALSE
                 WHERE
-                  slug = ${request.slug}
+                  quiz_id = ${request.quizId}
                   AND is_published = TRUE
                   AND deleted_at IS NULL
               )
@@ -197,13 +133,13 @@ export class AnalysisEngineRepo extends Effect.Service<AnalysisEngineRepo>()("An
       Request: UpdateAnalysisEngineInput,
       execute: (request) => {
         const { id, ...updateData } = request;
-        // If publishing this engine, unpublish any existing published engines with the same slug
+        // If publishing this engine, unpublish any existing published engines with the same quizId
         if (request.isPublished === true) {
           return sql`
             WITH
               current_engine AS (
                 SELECT
-                  slug
+                  quiz_id
                 FROM
                   analysis_engines
                 WHERE
@@ -215,9 +151,9 @@ export class AnalysisEngineRepo extends Effect.Service<AnalysisEngineRepo>()("An
                 SET
                   is_published = FALSE
                 WHERE
-                  slug = (
+                  quiz_id = (
                     SELECT
-                      slug
+                      quiz_id
                     FROM
                       current_engine
                   )
@@ -293,28 +229,6 @@ export class AnalysisEngineRepo extends Effect.Service<AnalysisEngineRepo>()("An
           }),
         ),
 
-      // findBySlug: Get the latest version of an analysis engine by slug
-      findBySlug: (slug: string) =>
-        findBySlug({ slug }).pipe(
-          Effect.catchTags({
-            NoSuchElementException: () =>
-              new AnalysisEngineNotFoundError({ id: slug as AnalysisEngineId }),
-            ParseError: Effect.die,
-            SqlError: Effect.die,
-          }),
-        ),
-
-      // findBySlugAndVersion: Get a specific version of an analysis engine
-      findBySlugAndVersion: (slug: string, version: string) =>
-        findBySlugAndVersion({ slug, version }).pipe(
-          Effect.catchTags({
-            NoSuchElementException: () =>
-              new AnalysisEngineNotFoundError({ id: slug as AnalysisEngineId }),
-            ParseError: Effect.die,
-            SqlError: Effect.die,
-          }),
-        ),
-
       // del: Soft delete - sets deleted_at timestamp to exclude from queries
       del: (id: AnalysisEngineId) =>
         del({ id }).pipe(
@@ -351,26 +265,6 @@ export class AnalysisEngineRepo extends Effect.Service<AnalysisEngineRepo>()("An
 
       // findPublished: Get all published analysis engines
       findPublished: flow(findPublished, Effect.orDie),
-
-      // findBySlugPublished: Get published analysis engine by slug
-      findBySlugPublished: (slug: string) =>
-        findBySlugPublished({ slug }).pipe(
-          Effect.catchTags({
-            NoSuchElementException: () =>
-              new AnalysisEngineNotFoundError({ id: slug as AnalysisEngineId }),
-            ParseError: Effect.die,
-            SqlError: Effect.die,
-          }),
-        ),
-
-      // findAllBySlug: Get all versions of an analysis engine by slug
-      findAllBySlug: (slug: string) =>
-        findAllBySlug({ slug }).pipe(
-          Effect.catchTags({
-            ParseError: Effect.die,
-            SqlError: Effect.die,
-          }),
-        ),
     } as const;
   }),
 }) {}
