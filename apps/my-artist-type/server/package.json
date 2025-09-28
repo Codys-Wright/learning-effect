@@ -54,6 +54,7 @@
     "@opentelemetry/sdk-trace-node": "*",
     "@opentelemetry/semantic-conventions": "*",
     "@features/quiz": "workspace:^",
+    "@core/domain": "workspace:^",
     "@my-artist-type/domain": "workspace:^",
     "@testcontainers/postgresql": "^10.28.0",
     "effect": "*",

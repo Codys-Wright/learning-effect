@@ -248,10 +248,15 @@ export const createTempQuizAtom = runtime.fn(
           // Add the temp engine to the engines atom so it's immediately available
           registry.set(enginesAtom, EngineAction.Upsert({ engine: tempEngine }));
 
+          // eslint-disable-next-line no-console
           console.log("🔧 Created temp engine for temp quiz:");
+          // eslint-disable-next-line no-console
           console.log("  Temp Quiz ID:", tempQuiz.id);
+          // eslint-disable-next-line no-console
           console.log("  Temp Engine ID:", tempEngine.id);
+          // eslint-disable-next-line no-console
           console.log("  Engine quizId:", tempEngine.quizId);
+          // eslint-disable-next-line no-console
           console.log("  Engine isTemp:", tempEngine.isTemp);
         } catch {
           // Silently ignore temp engine creation failures
@@ -361,10 +366,15 @@ export const saveTempQuizAtom = runtime.fn(
 
           registry.set(enginesAtom, EngineAction.Upsert({ engine: savedEngine }));
 
+          // eslint-disable-next-line no-console
           console.log("🔧 Updated temp engine to permanent:");
+          // eslint-disable-next-line no-console
           console.log("  Saved Quiz ID:", savedQuiz.id);
+          // eslint-disable-next-line no-console
           console.log("  Saved Engine ID:", savedEngine.id);
+          // eslint-disable-next-line no-console
           console.log("  Engine quizId:", savedEngine.quizId);
+          // eslint-disable-next-line no-console
           console.log("  Engine isTemp:", savedEngine.isTemp);
         }
 
@@ -415,10 +425,15 @@ export const saveTempQuizAtom = runtime.fn(
 
         registry.set(enginesAtom, EngineAction.Upsert({ engine: newEngine }));
 
+        // eslint-disable-next-line no-console
         console.log("🔧 Created permanent engine for new quiz version:");
+        // eslint-disable-next-line no-console
         console.log("  New Quiz ID:", newQuiz.id);
+        // eslint-disable-next-line no-console
         console.log("  New Engine ID:", newEngine.id);
+        // eslint-disable-next-line no-console
         console.log("  Engine quizId:", newEngine.quizId);
+        // eslint-disable-next-line no-console
         console.log("  Engine isTemp:", newEngine.isTemp);
 
         // Delete the temporary engine

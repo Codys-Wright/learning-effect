@@ -1,5 +1,5 @@
 // Admin Components Exports
-export { AdminSidebar } from "./AdminSidebar.js";
+export { AdminSidebar, adminSidebarVisibleAtom } from "./AdminSidebar.js";
 export { AnalysisChart } from "./AnalysisChart.js";
 export { ResponsesOverTimeChart } from "./ResponsesOverTimeChart.js";
 export { ResponsesTable, combineResponseWithAnalysis } from "./ResponsesTable.js";

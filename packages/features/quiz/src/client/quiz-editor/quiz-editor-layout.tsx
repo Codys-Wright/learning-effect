@@ -2,7 +2,9 @@
 
 import { Version } from "@core/domain";
 import { Atom, Result, useAtomSet, useAtomValue } from "@effect-atom/atom-react";
+import { BrowserKeyValueStore } from "@effect/platform-browser";
 import { type AnalysisEngine, type Question, type Quiz } from "@features/quiz/domain";
+import { Effect, Schema } from "effect";
 // Use the actual Result types from the atoms instead of importing platform types
 import {
   Badge,
@@ -18,13 +20,15 @@ import {
   ResizablePanelGroup,
   ScrollArea,
   Select,
+  Sidebar,
   type ChartConfig,
 } from "@ui/shadcn";
-import { Effect } from "effect";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
   BarChart3Icon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   EditIcon,
   GitBranchIcon,
   PlayIcon,
@@ -59,12 +63,78 @@ import {
   saveTempQuizAtom,
 } from "../quizzes-atoms.js";
 
-// Atoms for dropdown selections - keep alive to persist state
-const selectedQuizIdAtom = Atom.make("").pipe(Atom.keepAlive);
-const selectedEngineIdAtom = Atom.make("").pipe(Atom.keepAlive);
-const selectedArtistTypeAtom = Atom.make("visionary").pipe(Atom.keepAlive);
-const selectedQuestionIndexAtom = Atom.make(0).pipe(Atom.keepAlive);
-const showIdealAnswersAtom = Atom.make(true).pipe(Atom.keepAlive);
+// Create a runtime for localStorage atoms
+const localStorageRuntime = Atom.runtime(BrowserKeyValueStore.layerLocalStorage);
+
+// Atoms for dropdown selections - persisted to localStorage
+const selectedQuizIdAtom = Atom.kvs({
+  runtime: localStorageRuntime,
+  key: "quiz-editor-selected-quiz-id",
+  schema: Schema.String,
+  defaultValue: () => "",
+});
+
+const selectedEngineIdAtom = Atom.kvs({
+  runtime: localStorageRuntime,
+  key: "quiz-editor-selected-engine-id",
+  schema: Schema.String,
+  defaultValue: () => "",
+});
+
+const selectedArtistTypeAtom = Atom.kvs({
+  runtime: localStorageRuntime,
+  key: "quiz-editor-selected-artist-type",
+  schema: Schema.String,
+  defaultValue: () => "visionary",
+});
+
+const selectedQuestionIndexAtom = Atom.kvs({
+  runtime: localStorageRuntime,
+  key: "quiz-editor-selected-question-index",
+  schema: Schema.Number,
+  defaultValue: () => 0,
+});
+
+const showIdealAnswersAtom = Atom.kvs({
+  runtime: localStorageRuntime,
+  key: "quiz-editor-show-ideal-answers",
+  schema: Schema.Boolean,
+  defaultValue: () => true,
+});
+
+// Define sidebar view schema
+const SidebarViewSchema = Schema.Literal("inspector", "graphs");
+
+const sidebarViewAtom = Atom.kvs({
+  runtime: localStorageRuntime,
+  key: "quiz-editor-sidebar-view",
+  schema: SidebarViewSchema,
+  defaultValue: () => "inspector" as const,
+});
+
+const sidebarVisibleAtom = Atom.kvs({
+  runtime: localStorageRuntime,
+  key: "quiz-editor-sidebar-visible",
+  schema: Schema.Boolean,
+  defaultValue: () => true,
+});
+
+// Define schema for re-analysis chart data
+const ChartDataSchema = Schema.Array(
+  Schema.Struct({
+    type: Schema.String,
+    count: Schema.Number,
+    fill: Schema.String,
+  }),
+);
+
+const reanalysisDataAtom = Atom.kvs({
+  runtime: localStorageRuntime,
+  key: "quiz-editor-reanalysis-data",
+  schema: Schema.NullOr(ChartDataSchema),
+  defaultValue: () => null,
+});
+
 const pendingRatingAtom = Atom.make<number | null>(null).pipe(Atom.keepAlive);
 const expectedNewVersionAtom = Atom.make<string | null>(null).pipe(Atom.keepAlive);
 const expectedTempQuizAtom = Atom.make<{
@@ -72,8 +142,12 @@ const expectedTempQuizAtom = Atom.make<{
   existingTempQuizIds: Array<string>;
 } | null>(null).pipe(Atom.keepAlive);
 
-// Sidebar view state atom for switching between inspector and graphs
-const sidebarViewAtom = Atom.make<"inspector" | "graphs">("inspector").pipe(Atom.keepAlive);
+// Sidebar view state atom is now defined above with localStorage persistence
+
+// Admin Sidebar Toggle Component using shadcn SidebarTrigger
+const AdminSidebarToggle: React.FC = () => {
+  return <Sidebar.Trigger className="h-8 w-8 p-0" />;
+};
 
 // Generate consistent random colors for temp/edit badges based on quiz ID
 const getTempBadgeColor = (quizId: string): string => {
@@ -310,16 +384,16 @@ const QuestionList: React.FC<{
                 onSelectQuestion(index);
               }}
               className={cn(
-                "w-full text-left p-2 rounded-md text-sm transition-colors",
+                "w-full text-left p-2 rounded-md text-xs transition-colors",
                 "hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-ring/40",
                 selectedIndex === index ? "bg-primary text-primary-foreground" : "text-foreground",
               )}
             >
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded flex-shrink-0">
                   {index + 1}
                 </span>
-                <span className="truncate">{question.title}</span>
+                <span className="truncate flex-1 min-w-0">{question.title}</span>
               </div>
               {question.subtitle !== undefined && question.subtitle.length > 0 && (
                 <div className="text-xs text-muted-foreground mt-1 truncate">
@@ -399,6 +473,7 @@ const TopBar: React.FC<{
       />
       <div className="flex items-center gap-4 p-4 border-b border-border/50 bg-card/50">
         <div className="flex items-center gap-2">
+          <AdminSidebarToggle />
           <EditIcon className="h-5 w-5" />
           <h1 className="text-xl font-semibold">Quiz Editor</h1>
         </div>
@@ -989,129 +1064,28 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-// Projected Analysis Chart Component (mimics the admin AnalysisChart)
-const ProjectedAnalysisChart: React.FC<{
-  responsesResult: ReturnType<typeof responsesAtom.read>;
-  selectedEngine: AnalysisEngine;
-}> = ({ responsesResult, selectedEngine }) => {
-  // Calculate projected analysis based on current engine
-  const { chartData, totalProjected } = React.useMemo(() => {
-    if (!Result.isSuccess(responsesResult)) {
-      return { chartData: [], totalProjected: 0 };
-    }
+// Helper function to get the primary artist type from analysis results (from admin chart)
+const getPrimaryArtistType = (
+  endingResults: ReadonlyArray<{ endingId: string; points: number; percentage: number }>,
+) => {
+  if (endingResults.length === 0) return null;
 
-    const responses = responsesResult.value;
-
-    // Simulate what the analysis would be with the current engine
-    // This creates a more realistic distribution based on engine configuration
-    const artistTypeCounts: Record<string, number> = {};
-
-    selectedEngine.endings.forEach((ending) => {
-      // Calculate weight based on number of rules and ideal answers
-      const ruleWeight = ending.questionRules.length;
-      const answerWeight = ending.questionRules.reduce(
-        (sum, rule) => sum + rule.idealAnswers.length,
-        0,
-      );
-      const primaryWeight = ending.questionRules.filter((r) => r.isPrimary).length * 2;
-
-      // Total weight determines how likely this artist type is to be selected
-      const totalWeight = ruleWeight + answerWeight + primaryWeight;
-
-      // Convert ending name to artist type
-      const artistType = endingNameToArtistType[ending.name];
-      if (artistType !== undefined) {
-        // Distribute responses based on weights (simplified simulation)
-        const baseCount = Math.floor(responses.length / selectedEngine.endings.length);
-        const weightedCount = Math.floor(baseCount * (totalWeight / 10)); // Scale weight
-        artistTypeCounts[artistType] = Math.max(1, weightedCount);
-      }
-    });
-
-    // Normalize to match total responses
-    const totalCounts = Object.values(artistTypeCounts).reduce((sum, count) => sum + count, 0);
-    const scaleFactor = responses.length / totalCounts;
-
-    Object.keys(artistTypeCounts).forEach((artistType) => {
-      const currentCount = artistTypeCounts[artistType];
-      if (currentCount !== undefined) {
-        artistTypeCounts[artistType] = Math.round(currentCount * scaleFactor);
-      }
-    });
-
-    // Convert to chart data format (matching admin chart)
-    const projectedChartData = Object.entries(artistTypeCounts).map(([artistType, count]) => ({
-      type: artistType.toLowerCase(),
-      count,
-      fill: artistColors[artistType as keyof typeof artistColors],
-    }));
-
-    return { chartData: projectedChartData, totalProjected: responses.length };
-  }, [selectedEngine, responsesResult]);
-
-  return (
-    <Card className="flex flex-col h-full">
-      <Card.Header className="pb-2">
-        <Card.Title className="text-sm">Projected Results</Card.Title>
-        <Card.Description className="text-xs">
-          What distribution would be with current engine
-        </Card.Description>
-      </Card.Header>
-      <Card.Content className="flex-1 pb-2">
-        {!Result.isSuccess(responsesResult) ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-muted-foreground text-xs">Loading...</div>
-          </div>
-        ) : (
-          <ChartContainer config={chartConfig} className="w-full h-full">
-            <PieChart>
-              <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-              <Pie data={chartData} dataKey="count" nameKey="type" innerRadius={40} strokeWidth={3}>
-                <Label
-                  content={({ viewBox }) => {
-                    if (
-                      Boolean(viewBox) &&
-                      typeof viewBox === "object" &&
-                      "cx" in viewBox &&
-                      "cy" in viewBox
-                    ) {
-                      return (
-                        <text
-                          x={viewBox.cx}
-                          y={viewBox.cy}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                        >
-                          <tspan
-                            x={viewBox.cx}
-                            y={viewBox.cy}
-                            className="fill-foreground text-xl font-bold"
-                          >
-                            {totalProjected.toLocaleString()}
-                          </tspan>
-                          <tspan
-                            x={viewBox.cx}
-                            y={(viewBox.cy ?? 0) + 16}
-                            className="fill-muted-foreground text-xs"
-                          >
-                            Projected
-                          </tspan>
-                        </text>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-              </Pie>
-            </PieChart>
-          </ChartContainer>
-        )}
-      </Card.Content>
-    </Card>
+  // Find the result with the highest points
+  const primaryResult = endingResults.reduce((prev, current) =>
+    current.points > prev.points ? current : prev,
   );
+
+  // Map endingId to full name
+  const endingIdToFullName: Record<string, string> = {};
+  Object.keys(endingNameToArtistType).forEach((fullName) => {
+    const endingId = fullName.toLowerCase().replace(/\s+/g, "-");
+    endingIdToFullName[endingId] = fullName;
+  });
+
+  return endingIdToFullName[primaryResult.endingId] ?? primaryResult.endingId;
 };
 
-// Real Analysis Chart with Card wrapper
+// Real Analysis Chart with Card wrapper (using exact admin logic)
 const RealAnalysisChart: React.FC = () => {
   const analysisResult = useAtomValue(allAnalysisAtom);
   const responsesResult = useAtomValue(responsesAtom);
@@ -1123,29 +1097,16 @@ const RealAnalysisChart: React.FC = () => {
 
     const analyses = analysisResult.value;
 
-    // Count artist types from the most recent analysis for each response
+    // Count artist types from the most recent analysis for each response (exact admin logic)
     const artistTypeCounts: Record<string, number> = {};
 
     analyses.forEach((analysis) => {
-      // Get primary artist type logic (copied from admin chart)
-      if (analysis.endingResults.length === 0) return;
-
-      const primaryResult = analysis.endingResults.reduce((prev, current) =>
-        current.points > prev.points ? current : prev,
-      );
-
-      // Map endingId to full name
-      const endingIdToFullName: Record<string, string> = {};
-      Object.keys(endingNameToArtistType).forEach((fullName) => {
-        const endingId = fullName.toLowerCase().replace(/\s+/g, "-");
-        endingIdToFullName[endingId] = fullName;
-      });
-
-      const primaryArtistType =
-        endingIdToFullName[primaryResult.endingId] ?? primaryResult.endingId;
-      const artistType = endingNameToArtistType[primaryArtistType];
-      if (artistType !== undefined) {
-        artistTypeCounts[artistType] = (artistTypeCounts[artistType] ?? 0) + 1;
+      const primaryArtistType = getPrimaryArtistType(analysis.endingResults);
+      if (primaryArtistType !== null) {
+        const artistType = endingNameToArtistType[primaryArtistType];
+        if (artistType !== undefined) {
+          artistTypeCounts[artistType] = (artistTypeCounts[artistType] ?? 0) + 1;
+        }
       }
     });
 
@@ -1161,6 +1122,7 @@ const RealAnalysisChart: React.FC = () => {
     if (!Result.isSuccess(analysisResult)) {
       return 0;
     }
+    // Use the actual count of analysis results, not the chart data count (exact admin logic)
     return analysisResult.value.length;
   }, [analysisResult, responsesResult]);
 
@@ -1228,323 +1190,12 @@ const RealAnalysisChart: React.FC = () => {
 
 // Re-analysis Chart - Analyzes all responses with current engine
 const ReanalysisChart: React.FC<{
+  isAnalyzing?: boolean;
+  onReanalyze?: () => void;
   responsesResult: ReturnType<typeof responsesAtom.read>;
   selectedEngine: AnalysisEngine;
-}> = ({ responsesResult, selectedEngine }) => {
-  // Get quiz data and current selections from atoms
-  const quizzesResult = useAtomValue(quizzesAtom);
-  const selectedQuizId = useAtomValue(selectedQuizIdAtom);
-  const [isAnalyzing, setIsAnalyzing] = React.useState(false);
-  const [reanalysisData, setReanalysisData] = React.useState<Array<{
-    type: string;
-    count: number;
-    fill: string;
-  }> | null>(null);
-
-  // Function to re-analyze all responses with current engine using the real AnalysisService
-  const handleReanalyze = React.useCallback(async () => {
-    if (!Result.isSuccess(responsesResult) || !Result.isSuccess(quizzesResult)) {
-      // eslint-disable-next-line no-console
-      console.log("❌ Cannot re-analyze: missing data", {
-        responsesSuccess: Result.isSuccess(responsesResult),
-        quizzesSuccess: Result.isSuccess(quizzesResult),
-      });
-      return;
-    }
-
-    if (selectedQuizId === "") {
-      // eslint-disable-next-line no-console
-      console.log("❌ Cannot re-analyze: no quiz selected");
-      return;
-    }
-
-    setIsAnalyzing(true);
-
-    try {
-      const allResponses = responsesResult.value;
-      const allQuizzes = quizzesResult.value;
-
-      // Use the currently selected quiz version from the dropdown for analysis
-      const selectedQuiz = allQuizzes.find((quiz) => quiz.id === selectedQuizId);
-
-      if (selectedQuiz === undefined) {
-        // eslint-disable-next-line no-console
-        console.error("❌ No selected quiz found for analysis");
-        return;
-      }
-
-      // Find all "My Artist Type Quiz" versions for response filtering
-      const artistTypeQuizzes = allQuizzes.filter(
-        (quiz) =>
-          quiz.title === "My Artist Type Quiz" || quiz.title === "My Artist Type Quiz (Editing)",
-      );
-      const artistTypeQuizIds = new Set(artistTypeQuizzes.map((q) => q.id));
-
-      // Filter responses to only include those from "My Artist Type Quiz" versions
-      const responses = allResponses.filter((response) => artistTypeQuizIds.has(response.quizId));
-
-      const artistTypeCounts: Record<string, number> = {};
-
-      // eslint-disable-next-line no-console
-      console.log("🔄 Starting re-analysis with current engine:", {
-        engineName: selectedEngine.name,
-        engineId: selectedEngine.id,
-        selectedQuizVersion: selectedQuiz.version.semver,
-        selectedQuizId: selectedQuiz.id,
-        totalAllResponses: allResponses.length,
-        totalArtistTypeQuizzes: artistTypeQuizzes.length,
-        totalFilteredResponses: responses.length,
-        engineEndings: selectedEngine.endings.length,
-      });
-
-      // Log detailed engine configuration
-      // eslint-disable-next-line no-console
-      console.log("🔧 Engine configuration details:", {
-        engineName: selectedEngine.name,
-        engineId: selectedEngine.id,
-        isActive: selectedEngine.isActive,
-        scoringConfig: selectedEngine.scoringConfig,
-        endingsCount: selectedEngine.endings.length,
-        endings: selectedEngine.endings.map((ending) => ({
-          endingId: ending.endingId,
-          name: ending.name,
-          questionRulesCount: ending.questionRules.length,
-          questionRules: ending.questionRules.map((rule) => ({
-            questionId: rule.questionId,
-            idealAnswers: rule.idealAnswers,
-            idealAnswersCount: rule.idealAnswers.length,
-            isPrimary: rule.isPrimary,
-            weightMultiplier: rule.weightMultiplier,
-          })),
-        })),
-      });
-
-      // Check if this engine has any question rules with ideal answers
-      const totalQuestionRules = selectedEngine.endings.reduce(
-        (total, ending) => total + ending.questionRules.length,
-        0,
-      );
-      const rulesWithIdealAnswers = selectedEngine.endings.reduce(
-        (total, ending) =>
-          total + ending.questionRules.filter((rule) => rule.idealAnswers.length > 0).length,
-        0,
-      );
-
-      // eslint-disable-next-line no-console
-      console.log("🔍 Engine rules summary:", {
-        totalQuestionRules,
-        rulesWithIdealAnswers,
-        rulesWithoutIdealAnswers: totalQuestionRules - rulesWithIdealAnswers,
-        engineHasAnyRules: totalQuestionRules > 0,
-        engineHasAnyIdealAnswers: rulesWithIdealAnswers > 0,
-      });
-
-      // Group responses by quiz ID for efficient lookup
-      const responsesByQuizId: Record<string, Array<(typeof responses)[0]>> = {};
-      for (const response of responses) {
-        const quizId = response.quizId;
-        if (responsesByQuizId[quizId] === undefined) {
-          responsesByQuizId[quizId] = [];
-        }
-        responsesByQuizId[quizId].push(response);
-      }
-
-      // eslint-disable-next-line no-console
-      console.log(
-        "📊 Responses grouped by quiz version:",
-        Object.keys(responsesByQuizId).map((quizId) => {
-          const quiz = artistTypeQuizzes.find((q) => q.id === quizId);
-          return {
-            quizId,
-            quizTitle: quiz?.title ?? "Unknown",
-            quizVersion: quiz?.version.semver ?? "Unknown",
-            responseCount: responsesByQuizId[quizId]?.length ?? 0,
-          };
-        }),
-      );
-
-      // Log basic info about the analysis setup
-      // eslint-disable-next-line no-console
-      console.log("🎯 Analysis setup complete:", {
-        selectedQuizFound: selectedQuiz !== undefined,
-        selectedEngineFound: selectedEngine !== undefined,
-        responsesToAnalyze: responses.length,
-        readyToAnalyze: true,
-      });
-
-      // Create a function to map old response question IDs to current quiz question IDs
-      const mapResponseToCurrentQuiz = (response: (typeof responses)[0]) => {
-        const originalQuiz = artistTypeQuizzes.find((q) => q.id === response.quizId);
-        if (originalQuiz === undefined) return null;
-
-        const originalQuestions = originalQuiz.questions ?? [];
-        const selectedQuestions = selectedQuiz.questions ?? [];
-
-        // Map responses by question position (index) since question content should be the same
-        const mappedAnswers = (response.answers ?? [])
-          .map((answer, index) => {
-            // Try to find the corresponding question in the selected quiz by index
-            const selectedQuestion = selectedQuestions[index];
-            if (selectedQuestion !== undefined) {
-              return {
-                ...answer,
-                questionId: selectedQuestion.id, // Use selected quiz's question ID
-              };
-            }
-            return answer; // Keep original if no mapping found
-          })
-          .filter((answer) => {
-            // Only keep answers that have a corresponding question in selected quiz
-            return selectedQuestions.some((q) => q.id === answer.questionId);
-          });
-
-        return {
-          ...response,
-          answers: mappedAnswers,
-        };
-      };
-
-      // For each response, map it to current quiz structure and analyze
-      for (const response of responses) {
-        try {
-          // Map the response to use selected quiz question IDs
-          const mappedResponse = mapResponseToCurrentQuiz(response);
-          if (mappedResponse === null) {
-            // eslint-disable-next-line no-console
-            console.warn(
-              "⚠️ Could not map response to selected quiz:",
-              response.id,
-              "quizId:",
-              response.quizId,
-            );
-            continue;
-          }
-
-          // eslint-disable-next-line no-console
-          console.log("🔍 Analyzing response:", {
-            responseId: response.id,
-            originalQuizId: response.quizId,
-            selectedQuizId: selectedQuiz.id,
-            selectedQuizTitle: selectedQuiz.title,
-            selectedQuizVersion: selectedQuiz.version.semver,
-            questionCount: selectedQuiz.questions?.length ?? 0,
-            originalAnswerCount: response.answers?.length ?? 0,
-            mappedAnswerCount: mappedResponse.answers?.length ?? 0,
-            sampleMappedAnswers: (mappedResponse.answers ?? []).slice(0, 3).map((a) => ({
-              questionId: a.questionId,
-              value: a.value,
-            })),
-          });
-
-          // Quick validation of the mapping
-          const mappedResponseQuestionIds = new Set(
-            (mappedResponse.answers ?? []).map((a) => a.questionId),
-          );
-          const selectedQuizQuestionIds = (selectedQuiz.questions ?? []).map((q) => q.id);
-          const responseToQuizMatches = [...mappedResponseQuestionIds].filter((id) =>
-            selectedQuizQuestionIds.includes(id),
-          );
-
-          // Only log the first response for debugging
-          if (response === responses[0]) {
-            // eslint-disable-next-line no-console
-            console.log("🔗 First response mapping check:", {
-              originalAnswerCount: (response.answers ?? []).length,
-              mappedAnswerCount: mappedResponse.answers?.length ?? 0,
-              selectedQuizQuestionCount: selectedQuizQuestionIds.length,
-              matchingQuestionCount: responseToQuizMatches.length,
-              mappingSuccessful: responseToQuizMatches.length > 0,
-            });
-          }
-
-          // Use the actual AnalysisService to analyze this mapped response
-          const analysisResult = await Effect.runPromise(
-            Effect.provide(
-              AnalysisService.pipe(
-                Effect.flatMap((service) =>
-                  service.analyzeResponse(selectedEngine, selectedQuiz, mappedResponse),
-                ),
-              ),
-              AnalysisService.Default,
-            ),
-          );
-
-          // eslint-disable-next-line no-console
-          console.log("📈 Analysis result:", {
-            responseId: response.id,
-            endingResultsCount: analysisResult.endingResults.length,
-            allResults: analysisResult.endingResults
-              .sort((a, b) => b.points - a.points)
-              .map((r) => ({ endingId: r.endingId, points: r.points, percentage: r.percentage })),
-          });
-
-          // Find the winning artist type (highest points)
-          if (analysisResult.endingResults.length > 0) {
-            const winningResult = analysisResult.endingResults.reduce((winner, current) =>
-              current.points > winner.points ? current : winner,
-            );
-
-            // Map endingId to full name, then to artist type
-            const endingIdToFullName: Record<string, string> = {};
-            Object.keys(endingNameToArtistType).forEach((fullName) => {
-              const endingId = fullName.toLowerCase().replace(/\s+/g, "-");
-              endingIdToFullName[endingId] = fullName;
-            });
-
-            const fullName = endingIdToFullName[winningResult.endingId] ?? winningResult.endingId;
-            const artistType = endingNameToArtistType[fullName];
-
-            // eslint-disable-next-line no-console
-            console.log("🎯 Winner for response:", {
-              responseId: response.id,
-              winningEndingId: winningResult.endingId,
-              winningPoints: winningResult.points,
-              fullName,
-              artistType,
-            });
-
-            if (artistType !== undefined) {
-              artistTypeCounts[artistType] = (artistTypeCounts[artistType] ?? 0) + 1;
-            } else {
-              // eslint-disable-next-line no-console
-              console.warn("⚠️ Could not map ending to artist type:", {
-                endingId: winningResult.endingId,
-                fullName,
-                availableArtistTypes: Object.keys(endingNameToArtistType),
-              });
-            }
-          } else {
-            // eslint-disable-next-line no-console
-            console.warn("⚠️ No ending results for response:", response.id);
-          }
-        } catch (error) {
-          // eslint-disable-next-line no-console
-          console.error("❌ Failed to analyze response:", response.id, error);
-          // Continue with other responses even if one fails
-        }
-      }
-
-      // eslint-disable-next-line no-console
-      console.log("📊 Final artist type counts:", artistTypeCounts);
-
-      // Convert to chart data format
-      const chartData = Object.entries(artistTypeCounts).map(([artistType, count]) => ({
-        type: artistType.toLowerCase(),
-        count,
-        fill: artistColors[artistType as keyof typeof artistColors],
-      }));
-
-      // eslint-disable-next-line no-console
-      console.log("🎨 Chart data:", chartData);
-
-      setReanalysisData(chartData);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("❌ Re-analysis failed:", error);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  }, [responsesResult, quizzesResult, selectedEngine, selectedQuizId]);
+}> = ({ isAnalyzing = false, onReanalyze, responsesResult }) => {
+  const reanalysisData = useAtomValue(reanalysisDataAtom);
 
   const totalReanalyzed = React.useMemo(() => {
     if (reanalysisData === null) return 0;
@@ -1566,8 +1217,10 @@ const ReanalysisChart: React.FC<{
           <Button
             variant="outline"
             size="sm"
-            onClick={handleReanalyze}
-            disabled={isAnalyzing || !Result.isSuccess(responsesResult)}
+            onClick={onReanalyze}
+            disabled={
+              isAnalyzing || !Result.isSuccess(responsesResult) || onReanalyze === undefined
+            }
             className="h-8 w-8 p-0"
           >
             <PlayIcon className="h-4 w-4" />
@@ -1591,7 +1244,7 @@ const ReanalysisChart: React.FC<{
             <PieChart>
               <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
               <Pie
-                data={reanalysisData}
+                data={[...reanalysisData]}
                 dataKey="count"
                 nameKey="type"
                 innerRadius={40}
@@ -1641,6 +1294,133 @@ const ReanalysisChart: React.FC<{
   );
 };
 
+// Artist Type Comparison Component
+const ArtistTypeComparison: React.FC<{
+  isAnalyzing?: boolean;
+  onReanalyze?: () => void;
+  selectedEngine: AnalysisEngine;
+}> = ({ isAnalyzing = false, onReanalyze, selectedEngine: _selectedEngine }) => {
+  const analysisResult = useAtomValue(allAnalysisAtom);
+  const reanalysisData = useAtomValue(reanalysisDataAtom);
+  const responsesResult = useAtomValue(responsesAtom);
+
+  // Get real analysis counts
+  const realCounts = React.useMemo(() => {
+    if (!Result.isSuccess(analysisResult)) {
+      return {};
+    }
+
+    const analyses = analysisResult.value;
+    const artistTypeCounts: Record<string, number> = {};
+
+    analyses.forEach((analysis) => {
+      const primaryArtistType = getPrimaryArtistType(analysis.endingResults);
+      if (primaryArtistType !== null) {
+        const artistType = endingNameToArtistType[primaryArtistType];
+        if (artistType !== undefined) {
+          artistTypeCounts[artistType] = (artistTypeCounts[artistType] ?? 0) + 1;
+        }
+      }
+    });
+
+    return artistTypeCounts;
+  }, [analysisResult]);
+
+  // Get engine projection counts
+  const engineCounts = React.useMemo(() => {
+    if (reanalysisData === null) {
+      return {};
+    }
+
+    const counts: Record<string, number> = {};
+    reanalysisData.forEach((item) => {
+      // Convert type back to proper case
+      const artistType = item.type.charAt(0).toUpperCase() + item.type.slice(1);
+      counts[artistType] = item.count;
+    });
+
+    return counts;
+  }, [reanalysisData]);
+
+  const artistTypes = [
+    "Visionary",
+    "Consummate",
+    "Analyzer",
+    "Tech",
+    "Entertainer",
+    "Maverick",
+    "Dreamer",
+    "Feeler",
+    "Tortured",
+    "Solo",
+  ];
+
+  return (
+    <Card className="mt-3">
+      <Card.Header className="pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <Card.Title className="text-sm">Engine vs Real Results</Card.Title>
+            <Card.Description className="text-xs">
+              Comparison of projected vs actual artist type distribution
+            </Card.Description>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onReanalyze}
+            disabled={
+              isAnalyzing || !Result.isSuccess(responsesResult) || onReanalyze === undefined
+            }
+            className="h-8 w-8 p-0"
+          >
+            <PlayIcon className="h-4 w-4" />
+          </Button>
+        </div>
+      </Card.Header>
+      <Card.Content className="p-3">
+        <div className="space-y-2">
+          {artistTypes.map((artistType) => {
+            const engineCount = engineCounts[artistType] ?? 0;
+            const realCount = realCounts[artistType] ?? 0;
+
+            return (
+              <div key={artistType} className="grid grid-cols-3 items-center gap-2 py-1">
+                {/* Left - Engine Count */}
+                <div className="text-right">
+                  <span className="text-sm font-mono text-blue-600 dark:text-blue-400">
+                    {engineCount}
+                  </span>
+                </div>
+
+                {/* Center - Artist Icon */}
+                <div className="flex justify-center">
+                  <ArtistIcon artistType={artistType.toLowerCase()} size={48} />
+                </div>
+
+                {/* Right - Real Count */}
+                <div className="text-left">
+                  <span className="text-sm font-mono text-green-600 dark:text-green-400">
+                    {realCount}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Legend */}
+        <div className="mt-3 pt-2 border-t border-border/50">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span className="text-blue-600 dark:text-blue-400">Engine</span>
+            <span className="text-green-600 dark:text-green-400">Real</span>
+          </div>
+        </div>
+      </Card.Content>
+    </Card>
+  );
+};
+
 // Sidebar Graphs View Component (Compact version for sidebar)
 const SidebarGraphsView: React.FC<{
   engines: ReadonlyArray<AnalysisEngine>;
@@ -1651,6 +1431,142 @@ const SidebarGraphsView: React.FC<{
 
   // Get real analysis data from atoms
   const responsesResult = useAtomValue(responsesAtom);
+  const quizzesResult = useAtomValue(quizzesAtom);
+  const selectedQuizId = useAtomValue(selectedQuizIdAtom);
+  const setReanalysisData = useAtomSet(reanalysisDataAtom);
+  const [isAnalyzing, setIsAnalyzing] = React.useState(false);
+
+  // Shared reanalyze function that can be used by both components
+  const handleReanalyze = React.useCallback(async () => {
+    if (
+      !Result.isSuccess(responsesResult) ||
+      !Result.isSuccess(quizzesResult) ||
+      selectedEngine === undefined
+    ) {
+      return;
+    }
+
+    if (selectedQuizId === "") {
+      return;
+    }
+
+    setIsAnalyzing(true);
+
+    try {
+      const allResponses = responsesResult.value;
+      const allQuizzes = quizzesResult.value;
+
+      // Use the currently selected quiz version from the dropdown for analysis
+      const selectedQuiz = allQuizzes.find((quiz) => quiz.id === selectedQuizId);
+
+      if (selectedQuiz === undefined) {
+        return;
+      }
+
+      // Find all "My Artist Type Quiz" versions for response filtering
+      const artistTypeQuizzes = allQuizzes.filter(
+        (quiz) =>
+          quiz.title === "My Artist Type Quiz" || quiz.title === "My Artist Type Quiz (Editing)",
+      );
+      const artistTypeQuizIds = new Set(artistTypeQuizzes.map((q) => q.id));
+
+      // Filter responses to only include those from "My Artist Type Quiz" versions
+      const responses = allResponses.filter((response) => artistTypeQuizIds.has(response.quizId));
+
+      const artistTypeCounts: Record<string, number> = {};
+
+      // Create a function to map old response question IDs to current quiz question IDs
+      const mapResponseToCurrentQuiz = (response: (typeof responses)[0]) => {
+        const originalQuiz = artistTypeQuizzes.find((q) => q.id === response.quizId);
+        if (originalQuiz === undefined) return null;
+
+        const selectedQuestions = selectedQuiz.questions ?? [];
+
+        // Map responses by question position (index) since question content should be the same
+        const mappedAnswers = (response.answers ?? [])
+          .map((answer, index) => {
+            // Try to find the corresponding question in the selected quiz by index
+            const selectedQuestion = selectedQuestions[index];
+            if (selectedQuestion !== undefined) {
+              return {
+                ...answer,
+                questionId: selectedQuestion.id as string, // Use selected quiz's question ID
+              };
+            }
+            return answer; // Keep original if no mapping found
+          })
+          .filter((answer) => {
+            // Only keep answers that have a corresponding question in selected quiz
+            return selectedQuestions.some((q) => q.id === answer.questionId);
+          });
+
+        return {
+          ...response,
+          answers: mappedAnswers,
+        };
+      };
+
+      // For each response, map it to current quiz structure and analyze
+      for (const response of responses) {
+        try {
+          // Map the response to use selected quiz question IDs
+          const mappedResponse = mapResponseToCurrentQuiz(response);
+          if (mappedResponse === null) {
+            continue;
+          }
+
+          // Use the actual AnalysisService to analyze this mapped response
+          const analysisResult = await Effect.runPromise(
+            Effect.provide(
+              AnalysisService.pipe(
+                Effect.flatMap((service) =>
+                  service.analyzeResponse(selectedEngine, selectedQuiz, mappedResponse),
+                ),
+              ),
+              AnalysisService.Default,
+            ),
+          );
+
+          // Find the winning artist type (highest points)
+          if (analysisResult.endingResults.length > 0) {
+            const winningResult = analysisResult.endingResults.reduce((winner, current) =>
+              current.points > winner.points ? current : winner,
+            );
+
+            // Map endingId to full name, then to artist type
+            const endingIdToFullName: Record<string, string> = {};
+            Object.keys(endingNameToArtistType).forEach((fullName) => {
+              const endingId = fullName.toLowerCase().replace(/\s+/g, "-");
+              endingIdToFullName[endingId] = fullName;
+            });
+
+            const fullName = endingIdToFullName[winningResult.endingId] ?? winningResult.endingId;
+            const artistType = endingNameToArtistType[fullName];
+
+            if (artistType !== undefined) {
+              artistTypeCounts[artistType] = (artistTypeCounts[artistType] ?? 0) + 1;
+            }
+          }
+        } catch {
+          // Continue with other responses even if one fails
+        }
+      }
+
+      // Convert to chart data format
+      const chartData = Object.entries(artistTypeCounts).map(([artistType, count]) => ({
+        type: artistType.toLowerCase(),
+        count,
+        fill: artistColors[artistType as keyof typeof artistColors],
+      }));
+
+      setReanalysisData([...chartData]); // Create mutable copy
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("❌ Re-analysis failed:", error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [responsesResult, quizzesResult, selectedEngine, selectedQuizId, setReanalysisData]);
 
   if (selectedEngine === undefined) {
     return (
@@ -1667,22 +1583,26 @@ const SidebarGraphsView: React.FC<{
     <ScrollArea className="flex-1 p-3">
       <div className="space-y-3">
         {/* Re-analysis Chart - Top */}
-        <div className="h-[200px]">
-          <ReanalysisChart responsesResult={responsesResult} selectedEngine={selectedEngine} />
+        <div className="h-[300px]">
+          <ReanalysisChart
+            responsesResult={responsesResult}
+            selectedEngine={selectedEngine}
+            onReanalyze={handleReanalyze}
+            isAnalyzing={isAnalyzing}
+          />
         </div>
 
         {/* Real Analysis Distribution */}
-        <div className="h-[200px]">
+        <div className="h-[300px]">
           <RealAnalysisChart />
         </div>
 
-        {/* Projected Analysis Distribution */}
-        <div className="h-[200px]">
-          <ProjectedAnalysisChart
-            responsesResult={responsesResult}
-            selectedEngine={selectedEngine}
-          />
-        </div>
+        {/* Artist Type Comparison */}
+        <ArtistTypeComparison
+          selectedEngine={selectedEngine}
+          onReanalyze={handleReanalyze}
+          isAnalyzing={isAnalyzing}
+        />
       </div>
     </ScrollArea>
   );
@@ -1702,6 +1622,10 @@ export const QuizEditorLayout: React.FC = () => {
   const pendingRating = useAtomValue(pendingRatingAtom);
   const expectedNewVersion = useAtomValue(expectedNewVersionAtom);
   const expectedTempQuiz = useAtomValue(expectedTempQuizAtom);
+
+  // Sidebar visibility state - moved to top to avoid hook order issues
+  const sidebarVisible = useAtomValue(sidebarVisibleAtom);
+  const setSidebarVisible = useAtomSet(sidebarVisibleAtom);
 
   // Derived values that automatically update based on selections
   const currentQuestionIdealAnswers = getIdealAnswersForCurrentSelection(
@@ -2324,8 +2248,25 @@ export const QuizEditorLayout: React.FC = () => {
         <ResizableHandle withHandle />
 
         {/* Middle Section - Question Preview */}
-        <ResizablePanel defaultSize={50}>
-          <div className="h-full p-4 flex flex-col">
+        <ResizablePanel defaultSize={sidebarVisible ? 50 : 75}>
+          <div className="h-full p-4 flex flex-col relative">
+            {/* Sidebar Toggle Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSidebarVisible(!sidebarVisible);
+              }}
+              className="absolute top-4 right-4 z-10 h-8 w-8 p-0"
+              title={sidebarVisible ? "Hide sidebar" : "Show sidebar"}
+            >
+              {sidebarVisible ? (
+                <ChevronRightIcon className="h-4 w-4" />
+              ) : (
+                <ChevronLeftIcon className="h-4 w-4" />
+              )}
+            </Button>
+
             {/* Progress Bar */}
             <div className="mb-4">
               <QuizProgressBar
@@ -2402,28 +2343,32 @@ export const QuizEditorLayout: React.FC = () => {
           </div>
         </ResizablePanel>
 
-        <ResizableHandle withHandle />
+        {sidebarVisible && (
+          <>
+            <ResizableHandle withHandle />
 
-        {/* Right Sidebar - Inspector + Graphs */}
-        <ResizablePanel defaultSize={25} minSize={20} maxSize={35} className="min-w-[280px]">
-          <RightSidebar
-            quiz={quiz}
-            engines={engines}
-            selectedEngineId={selectedEngineId}
-            idealAnswers={currentQuestionIdealAnswers}
-            onToggleIdealAnswers={() => {
-              setShowIdealAnswers(!showIdealAnswers);
-            }}
-            onTogglePrimaryRule={handleTogglePrimaryRule}
-            onUpdateIdealAnswer={handleUpdateIdealAnswer}
-            question={selectedQuestion}
-            questionIndex={selectedQuestionIndex}
-            selectedArtistType={selectedArtistType}
-            selectedValues={currentSelectedValues}
-            showIdealAnswers={showIdealAnswers}
-            totalQuestions={questions.length}
-          />
-        </ResizablePanel>
+            {/* Right Sidebar - Inspector + Graphs */}
+            <ResizablePanel defaultSize={25} minSize={20} maxSize={35} className="min-w-[280px]">
+              <RightSidebar
+                quiz={quiz}
+                engines={engines}
+                selectedEngineId={selectedEngineId}
+                idealAnswers={currentQuestionIdealAnswers}
+                onToggleIdealAnswers={() => {
+                  setShowIdealAnswers(!showIdealAnswers);
+                }}
+                onTogglePrimaryRule={handleTogglePrimaryRule}
+                onUpdateIdealAnswer={handleUpdateIdealAnswer}
+                question={selectedQuestion}
+                questionIndex={selectedQuestionIndex}
+                selectedArtistType={selectedArtistType}
+                selectedValues={currentSelectedValues}
+                showIdealAnswers={showIdealAnswers}
+                totalQuestions={questions.length}
+              />
+            </ResizablePanel>
+          </>
+        )}
       </ResizablePanelGroup>
     </div>
   );

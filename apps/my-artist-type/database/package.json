@@ -29,6 +29,7 @@
   "dependencies": {
     "pg": "8.13.1",
     "effect": "*",
+    "@core/domain": "workspace:^",
     "@effect/platform": "*",
     "@effect/platform-node": "*",
     "@effect/sql": "*",

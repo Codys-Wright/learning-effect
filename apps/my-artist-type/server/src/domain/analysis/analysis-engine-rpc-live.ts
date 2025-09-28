@@ -29,7 +29,7 @@ export const AnalysisEngineRpcLive = HttpApiBuilder.group(DomainApi, "AnalysisEn
             return yield* repo
               .update({
                 id: payload.id,
-                version: payload.version ?? "1.0.0",
+                version: payload.version,
                 name: payload.name,
                 description: payload.description ?? undefined,
                 scoringConfig: payload.scoringConfig,

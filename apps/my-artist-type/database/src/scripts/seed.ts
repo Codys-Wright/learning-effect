@@ -44,18 +44,18 @@ const seedEffect = Effect.gen(function* () {
         ? yield* questionService.createMany(quizPayload.questions)
         : [];
 
-    // Ensure all required fields are present for quiz
+    // Ensure all required fields are present for quiz (matching CreateQuizInput schema)
     const createQuizPayload = {
       title: quizPayload.title,
       subtitle: quizPayload.subtitle ?? "Discover your unique creative personality",
       description:
         quizPayload.description ??
         "Take this comprehensive quiz to understand your artist archetype and creative approach.",
-      version: quizPayload.version ?? { semver: "1.0.0", comment: "Initial version" },
+      version: quizPayload.version,
       questions,
-      metadata: quizPayload.metadata ?? undefined,
-      isPublished: false, // Don't publish individual quiz versions
-      isTemp: false, // Seed data is permanent
+      metadata: quizPayload.metadata ?? null,
+      isPublished: false as const, // Don't publish individual quiz versions
+      isTemp: false as const, // Seed data is permanent
     };
 
     seededQuiz = yield* quizRepo.create(createQuizPayload);
@@ -161,7 +161,7 @@ const seedEffect = Effect.gen(function* () {
   let errorCount = 0;
   let analysisSuccessCount = 0;
   let analysisErrorCount = 0;
-  let typeformResponses: Array<QuizResponse> = [];
+  const typeformResponses: Array<QuizResponse> = [];
 
   for (const [index, responseData] of typeformResponseData.entries()) {
     try {
@@ -179,8 +179,10 @@ const seedEffect = Effect.gen(function* () {
           ? new Date(submitDateStr)
           : new Date();
 
-      yield* responsesRepo.insert({
-        id: Schema.decodeSync(ResponseId)(crypto.randomUUID()),
+      const responseId = Schema.decodeSync(ResponseId)(crypto.randomUUID());
+
+      const createdResponse = yield* responsesRepo.insert({
+        id: responseId,
         quizId: createResponsePayload.quizId,
         answers: createResponsePayload.answers,
         sessionMetadata: createResponsePayload.sessionMetadata,
@@ -188,6 +190,9 @@ const seedEffect = Effect.gen(function* () {
         metadata: createResponsePayload.metadata,
         createdAt: submitDate.toISOString(),
       });
+
+      // Store the created response for analysis processing
+      typeformResponses.push(createdResponse);
       successCount++;
 
       if (index % 100 === 0) {
@@ -207,12 +212,12 @@ const seedEffect = Effect.gen(function* () {
   yield* Effect.log(`Successfully imported: ${successCount} responses`);
   yield* Effect.log(`Errors: ${errorCount} responses`);
 
-  // Create analysis results directly from Typeform data (no need to run our analysis engine)
+  // Create analysis results directly from Typeform data (using legacy artist type assignments)
   if (successCount > 0) {
     yield* Effect.log(`\nCreating analysis results from Typeform data...`);
 
-    // Only process the responses that were just created in this run
-    // (typeformResponses already contains the 223 responses we just processed)
+    // Process the responses that were just created in this run
+    // typeformResponses now contains the actual response objects we just created
 
     for (const [index, response] of typeformResponses.entries()) {
       try {

@@ -210,6 +210,9 @@ importers:
 
   apps/my-artist-type/database:
     dependencies:
+      "@core/domain":
+        specifier: workspace:^
+        version: link:../../../packages/core/domain
       "@effect/cli":
         specifier: 0.69.0
         version: 0.69.0(@effect/platform@0.90.1(effect@3.17.7))(@effect/printer-ansi@0.45.0(@effect/typeclass@0.36.0(effect@3.17.7))(effect@3.17.7))(@effect/printer@0.45.0(@effect/typeclass@0.36.0(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)
@@ -263,6 +266,9 @@ importers:
 
   apps/my-artist-type/server:
     dependencies:
+      "@core/domain":
+        specifier: workspace:^
+        version: link:../../../packages/core/domain
       "@effect/ai":
         specifier: 0.25.2
         version: 0.25.2(@effect/experimental@0.54.5(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7)(ioredis@5.7.0))(@effect/platform@0.90.1(effect@3.17.7))(@effect/rpc@0.68.3(@effect/platform@0.90.1(effect@3.17.7))(effect@3.17.7))(effect@3.17.7)

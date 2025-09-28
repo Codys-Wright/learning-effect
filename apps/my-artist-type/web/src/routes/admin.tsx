@@ -1,6 +1,7 @@
-import { useAtomValue } from "@effect-atom/atom-react";
+import { useAtomSet, useAtomValue } from "@effect-atom/atom-react";
 import {
   AdminSidebar,
+  adminSidebarVisibleAtom,
   allAnalysisAtom,
   AnalysisChart,
   combineResponseWithAnalysis,
@@ -19,6 +20,18 @@ const AdminLayout: React.FC = () => {
   // Check if we're on the quiz-editor route
   const isQuizEditorRoute = location.pathname === "/admin/quiz-editor";
 
+  // Control sidebar state with atom - prevent hydration mismatch
+  const [isHydrated, setIsHydrated] = React.useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  const sidebarOpen = useAtomValue(adminSidebarVisibleAtom);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  const setSidebarOpen = useAtomSet(adminSidebarVisibleAtom);
+
+  // Prevent hydration mismatch by waiting for client hydration
+  React.useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
   // Get actual responses data from the atom
   const responsesResult = useAtomValue(responsesAtom);
   const analysisResult = useAtomValue(allAnalysisAtom);
@@ -32,7 +45,7 @@ const AdminLayout: React.FC = () => {
   }, [responsesResult, analysisResult]);
 
   return (
-    <SidebarProvider defaultOpen={true}>
+    <SidebarProvider open={isHydrated ? sidebarOpen : true} onOpenChange={setSidebarOpen}>
       <AdminSidebar variant="inset" />
       <SidebarInset>
         <div className="flex flex-1 flex-col">

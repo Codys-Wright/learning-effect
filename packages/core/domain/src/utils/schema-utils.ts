@@ -311,8 +311,8 @@ export class Version extends Schema.Class<Version>("Version")({
   /**
    * Creates a Version from just a semver string (for backward compatibility)
    */
-  static fromSemver(semver: string, comment?: string): Version {
-    return new Version({ semver, comment });
+  static fromSemver(semver: string, comment?: string | null): Version {
+    return new Version({ semver, comment: comment ?? null });
   }
 
   /**
@@ -326,7 +326,9 @@ export class Version extends Schema.Class<Version>("Version")({
    * Returns a formatted string with version and comment
    */
   toDisplayString(): string {
-    return this.comment ? `${this.semver} - ${this.comment}` : this.semver;
+    return this.comment !== null && this.comment !== undefined && this.comment.length > 0
+      ? `${this.semver} - ${this.comment}`
+      : this.semver;
   }
 }
 

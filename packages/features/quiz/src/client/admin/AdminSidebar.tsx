@@ -1,5 +1,7 @@
 "use client";
 
+import { Atom } from "@effect-atom/atom-react";
+import { BrowserKeyValueStore } from "@effect/platform-browser";
 import {
   IconBuilding,
   IconChartBar,
@@ -8,15 +10,27 @@ import {
   IconSettings,
   IconUsers,
 } from "@tabler/icons-react";
+import { Schema } from "effect";
 import * as React from "react";
 
 import { NavMain, NavSecondary, NavUser, Sidebar } from "@ui/shadcn";
+
+// Create a runtime for localStorage atoms
+const localStorageRuntime = Atom.runtime(BrowserKeyValueStore.layerLocalStorage);
+
+// Admin sidebar visibility atom using localStorage
+export const adminSidebarVisibleAtom = Atom.kvs({
+  runtime: localStorageRuntime,
+  key: "admin-sidebar-visible",
+  schema: Schema.Boolean,
+  defaultValue: () => true,
+});
 
 const adminData = {
   user: {
     name: "Admin User",
     email: "admin@example.com",
-    avatar: undefined,
+    avatar: "/placeholder-avatar.png",
   },
   navMain: [
     {

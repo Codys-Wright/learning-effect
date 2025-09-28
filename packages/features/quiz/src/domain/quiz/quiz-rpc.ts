@@ -80,7 +80,12 @@ export class Quiz extends S.Class<Quiz>("Quiz")({
 
 export class UpsertQuizPayload extends S.Class<UpsertQuizPayload>("UpsertQuizPayload")({
   id: S.optional(QuizId),
-  version: S.optional(Version),
+  version: S.optional(Version).pipe(
+    S.withDefaults({
+      constructor: () => new Version({ semver: "1.0.0", comment: "Initial version" }),
+      decoding: () => new Version({ semver: "1.0.0", comment: "Initial version" }),
+    }),
+  ),
 
   title: S.Trim.pipe(
     S.nonEmptyString({

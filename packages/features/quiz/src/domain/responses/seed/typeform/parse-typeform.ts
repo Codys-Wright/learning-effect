@@ -45,11 +45,15 @@ const questions: Array<QuizQuestion> = quizData.questions;
 // Load the Typeform CSV
 const csvPath = join(currentDir, "responses.csv");
 const csvData = readFileSync(csvPath, "utf8");
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call
 const records = parse(csvData, {
   columns: true,
   skip_empty_lines: true,
-}) as Array<Record<string, string>>;
+  // Handle quoted fields with newlines properly
+  quote: '"',
+  escape: '"',
+  relax_quotes: true,
+  relax_column_count: true,
+});
 
 // Function to find question ID by content (fuzzy matching)
 function findQuestionId(content: string): number | null {
@@ -86,26 +90,41 @@ function findQuestionId(content: string): number | null {
 
 // Function to extract artist type from ending text
 function extractArtistType(endingText: string): string | null {
-  // First, try to find the specific pattern for "Your Primary Artist Type is:"
-  const primaryMatch = endingText.match(/your primary artist type is:?\s*\*([^*]+)\*/i);
+  if (!endingText || endingText.trim().length === 0) {
+    return null;
+  }
+
+  // Clean up the text - remove extra whitespace and normalize line breaks
+  const cleanText = endingText.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+
+  // Primary pattern: "Your Primary Artist Type is:" followed by "*The [Type] Artist*"
+  const primaryPattern = /your\s+primary\s+artist\s+type\s+is:?\s*\*([^*]+)\*/i;
+  const primaryMatch = cleanText.match(primaryPattern);
+
   if (primaryMatch !== null) {
     const extracted = primaryMatch[1]?.trim();
-    if (extracted?.toLowerCase().includes("artist") === true) {
+    if (extracted?.toLowerCase().includes("artist")) {
       return extracted;
     }
   }
 
-  // Fallback patterns
-  const patterns = [/you are a\s*\*([^*]+)\*/i, /your artist type is\s*\*([^*]+)\*/i];
+  // Alternative pattern: Look for any "*The [Something] Artist*" pattern
+  const artistPattern = /\*(the\s+[^*]*artist)\*/gi;
+  const artistMatches = cleanText.match(artistPattern);
 
-  for (const pattern of patterns) {
-    const match = endingText.match(pattern);
-    if (match !== null) {
-      const extracted = match[1]?.trim();
-      if (extracted?.toLowerCase().includes("artist") === true) {
-        return extracted;
-      }
+  if (artistMatches !== null && artistMatches.length > 0) {
+    // Take the first match and clean it up
+    const firstMatch = artistMatches[0].replace(/\*/g, "").trim();
+    if (firstMatch.toLowerCase().includes("artist")) {
+      return firstMatch;
     }
+  }
+
+  // Debug: log if we can't extract anything
+  if (cleanText.toLowerCase().includes("artist type")) {
+    Effect.runSync(
+      Effect.log(`Could not extract artist type from: ${cleanText.substring(0, 200)}...`),
+    );
   }
 
   return null;
@@ -132,12 +151,13 @@ const processedResponses: Array<TypeformResponse> = [];
 Effect.runSync(Effect.log(`Processing ${records.length} records...`));
 Effect.runSync(Effect.log("Sample record keys:", Object.keys(records[0] ?? {})));
 
-records.forEach((record: Record<string, string>, index: number) => {
+records.forEach((record, index: number) => {
+  const typedRecord = record as Record<string, string>;
   const responseId = `typeform-${index + 1}`;
   const answers: Array<{ questionId: string; value: number }> = [];
 
   // Process each column (question)
-  Object.entries(record).forEach(([columnName, value]) => {
+  Object.entries(typedRecord).forEach(([columnName, value]) => {
     // Skip the first column (#) and the last column (email)
     if (columnName === "#" || columnName.includes("email")) {
       return;
@@ -163,14 +183,26 @@ records.forEach((record: Record<string, string>, index: number) => {
   // Extract artist type and legacy analysis from the ending (last column that's not email)
   let artistType: string | null = null;
   let legacyAnalysis: ReturnType<typeof extractLegacyAnalysis> | null = null;
-  const columns = Object.keys(record);
+  const columns = Object.keys(typedRecord);
   for (let i = columns.length - 1; i >= 0; i--) {
     const columnName = columns[i];
-    if (columnName && !columnName.includes("email") && columnName !== "#") {
-      const columnValue = record[columnName];
-      if (columnValue && columnValue.length > 0) {
+    if (columnName !== undefined && !columnName.includes("email") && columnName !== "#") {
+      const columnValue = typedRecord[columnName];
+      if (columnValue !== undefined && columnValue.length > 0) {
         artistType = extractArtistType(columnValue);
         legacyAnalysis = extractLegacyAnalysis(columnValue);
+
+        // Debug: Log all records that contain "Visionary" to see what's happening
+        if (
+          columnValue.includes("Visionary Artist") &&
+          columnValue.includes("Your Primary Artist Type is")
+        ) {
+          Effect.runSync(Effect.log(`Found Visionary record ${index + 1}:`));
+          Effect.runSync(Effect.log("Column:", columnName));
+          Effect.runSync(Effect.log("Content preview:", columnValue.substring(0, 300)));
+          Effect.runSync(Effect.log("Extracted artist type:", artistType));
+        }
+
         if (index === 0 && columnName === "Ending") {
           Effect.runSync(Effect.log("Ending column content:", columnValue));
           Effect.runSync(Effect.log("Extracted artist type:", artistType));
@@ -187,14 +219,14 @@ records.forEach((record: Record<string, string>, index: number) => {
 
   const metadata = {
     source: "typeform",
-    originalRecord: record,
+    originalRecord: typedRecord,
     processedAt: new Date().toISOString(),
     totalQuestions: answers.length,
-    email: record[emailKey],
-    startDate: record["Start Date (UTC)"],
-    submitDate: record["Submit Date (UTC)"],
-    responseType: record["Response Type"],
-    networkId: record["Network ID"],
+    email: typedRecord[emailKey],
+    startDate: typedRecord["Start Date (UTC)"],
+    submitDate: typedRecord["Submit Date (UTC)"],
+    responseType: typedRecord["Response Type"],
+    networkId: typedRecord["Network ID"],
     // Legacy analysis data from Typeform
     legacyAnalysis,
     // Include the entire Typeform response object
@@ -205,14 +237,14 @@ records.forEach((record: Record<string, string>, index: number) => {
       legacyAnalysis,
       metadata: {
         source: "typeform",
-        originalRecord: record,
+        originalRecord: typedRecord,
         processedAt: new Date().toISOString(),
         totalQuestions: answers.length,
-        email: record[emailKey],
-        startDate: record["Start Date (UTC)"],
-        submitDate: record["Submit Date (UTC)"],
-        responseType: record["Response Type"],
-        networkId: record["Network ID"],
+        email: typedRecord[emailKey],
+        startDate: typedRecord["Start Date (UTC)"],
+        submitDate: typedRecord["Submit Date (UTC)"],
+        responseType: typedRecord["Response Type"],
+        networkId: typedRecord["Network ID"],
         legacyAnalysis,
       },
     },
@@ -258,3 +290,17 @@ Effect.runSync(Effect.log("\nArtist Type Distribution:"));
 Object.entries(artistTypeCounts).forEach(([type, count]) => {
   Effect.runSync(Effect.log(`  ${type}: ${count}`));
 });
+
+// Calculate total artist type counts and compare to processed responses
+const totalArtistTypeCounts = Object.values(artistTypeCounts).reduce(
+  (sum, count) => sum + count,
+  0,
+);
+Effect.runSync(Effect.log(`\nSummary:`));
+Effect.runSync(Effect.log(`  Total responses processed: ${processedResponses.length}`));
+Effect.runSync(Effect.log(`  Total artist type counts: ${totalArtistTypeCounts}`));
+Effect.runSync(
+  Effect.log(
+    `  Match: ${totalArtistTypeCounts === processedResponses.length ? "✅ YES" : "❌ NO"}`,
+  ),
+);

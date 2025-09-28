@@ -1,8 +1,13 @@
-import { PgLive } from "@/database.js";
 import { NodeContext, NodeRuntime } from "@effect/platform-node";
 import { AnalysisService } from "@features/quiz/domain";
-import { AnalysisRepo, QuizzesRepo, ResponsesRepo } from "@features/quiz/server";
-import { Effect } from "effect";
+import {
+  AnalysisEngineRepo,
+  AnalysisRepo,
+  QuizzesRepo,
+  ResponsesRepo,
+} from "@features/quiz/server";
+import { PgLive } from "@my-artist-type/database/database";
+import { DateTime, Effect } from "effect";
 
 // Analysis comparison result
 type AnalysisComparison = {
@@ -23,6 +28,7 @@ type AnalysisComparison = {
 const analyzeTypeformResponses = Effect.gen(function* () {
   const responsesRepo = yield* ResponsesRepo;
   const analysisRepo = yield* AnalysisRepo;
+  const analysisEngineRepo = yield* AnalysisEngineRepo;
   const analysisService = yield* AnalysisService;
   const quizzesRepo = yield* QuizzesRepo;
 
@@ -42,25 +48,25 @@ const analyzeTypeformResponses = Effect.gen(function* () {
   }
 
   // Get the quiz and analysis engine
-  const quiz = yield* quizzesRepo.findById({ id: typeformResponses[0]?.quizId ?? "" });
+  const quiz = yield* quizzesRepo.findById(typeformResponses[0]?.quizId ?? ("" as any));
   if (quiz === undefined) {
     yield* Effect.logError("Quiz not found");
     return;
   }
 
   // Get the analysis engine (assuming there's one active engine)
-  const allAnalysisEngines = yield* analysisRepo.findAll();
-  const activeEngine = allAnalysisEngines.find((engine) => engine.isActive === true);
+  const allAnalysisEngines = yield* analysisEngineRepo.findAll();
+  const activeEngine = allAnalysisEngines.find((engine) => engine.isPublished === true);
 
   if (activeEngine === undefined) {
     yield* Effect.logError("No active analysis engine found");
     return;
   }
 
-  yield* Effect.log(`Using analysis engine: ${activeEngine.name} (${activeEngine.slug})`);
+  yield* Effect.log(`Using analysis engine: ${activeEngine.name} (ID: ${activeEngine.id})`);
 
   const comparisons: Array<AnalysisComparison> = [];
-  let successCount = 0;
+  let _successCount = 0;
   let errorCount = 0;
 
   // Analyze each response
@@ -79,29 +85,27 @@ const analyzeTypeformResponses = Effect.gen(function* () {
       const email = response.metadata?.customFields?.email as string | undefined;
 
       // Run new analysis
-      const analysisResult = yield* analysisService.analyzeWithValidation(
-        activeEngine,
-        quiz,
-        response,
-      );
+      const analysisResult = yield* analysisService.analyzeResponse(activeEngine, quiz, response);
 
       // Save the analysis result
-      const savedAnalysis = yield* analysisRepo.create({
-        engineId: analysisResult.engineId,
-        engineSlug: analysisResult.engineSlug,
-        engineVersion: analysisResult.engineVersion,
-        responseId: analysisResult.responseId,
+      const _savedAnalysis = yield* analysisRepo.create({
+        engineId: activeEngine.id,
+        engineVersion: activeEngine.version,
+        responseId: response.id,
         endingResults: analysisResult.endingResults,
-        metadata: analysisResult.metadata,
-        analyzedAt: analysisResult.analyzedAt,
+        metadata: {
+          source: "typeform-reanalysis",
+          originalLegacyType: legacyArtistType,
+        },
+        analyzedAt: DateTime.nowInCurrentZone,
       });
 
       // Get the primary result (highest scoring)
       const primaryResult = analysisResult.endingResults.reduce((prev, current) =>
-        current.score > prev.score ? current : prev,
+        current.points > prev.points ? current : prev,
       );
 
-      const newPrimaryArtistType = primaryResult.endingName;
+      const newPrimaryArtistType = primaryResult.endingId;
       const confidence = primaryResult.percentage;
 
       // Check if results match
@@ -113,8 +117,8 @@ const analyzeTypeformResponses = Effect.gen(function* () {
         legacyArtistType,
         newPrimaryArtistType,
         newAnalysisResults: analysisResult.endingResults.map((result) => ({
-          endingName: result.endingName,
-          score: result.score,
+          endingName: result.endingId,
+          score: result.points,
           percentage: result.percentage,
         })),
         match,
@@ -124,7 +128,7 @@ const analyzeTypeformResponses = Effect.gen(function* () {
       comparisons.push(comparison);
 
       if (match) {
-        successCount++;
+        _successCount++;
       } else {
         yield* Effect.log(
           `Mismatch for ${email ?? response.id}: Legacy="${legacyArtistType}" vs New="${newPrimaryArtistType}"`,
@@ -150,11 +154,11 @@ const analyzeTypeformResponses = Effect.gen(function* () {
   const newDistribution: Record<string, number> = {};
 
   comparisons.forEach((comparison) => {
-    if (comparison.legacyArtistType) {
+    if (comparison.legacyArtistType !== null && comparison.legacyArtistType) {
       legacyDistribution[comparison.legacyArtistType] =
         (legacyDistribution[comparison.legacyArtistType] ?? 0) + 1;
     }
-    if (comparison.newPrimaryArtistType) {
+    if (comparison.newPrimaryArtistType !== null && comparison.newPrimaryArtistType) {
       newDistribution[comparison.newPrimaryArtistType] =
         (newDistribution[comparison.newPrimaryArtistType] ?? 0) + 1;
     }
@@ -167,29 +171,24 @@ const analyzeTypeformResponses = Effect.gen(function* () {
   yield* Effect.log(`Errors: ${errorCount}`);
 
   yield* Effect.log("\n=== LEGACY ARTIST TYPE DISTRIBUTION ===");
-  Object.entries(legacyDistribution)
-    .sort(([, a], [, b]) => b - a)
-    .forEach(([type, count]) => {
-      yield * Effect.log(`  ${type}: ${count} (${((count / totalAnalyzed) * 100).toFixed(1)}%)`);
-    });
+  for (const [type, count] of Object.entries(legacyDistribution).sort(([, a], [, b]) => b - a)) {
+    yield* Effect.log(`  ${type}: ${count} (${((count / totalAnalyzed) * 100).toFixed(1)}%)`);
+  }
 
   yield* Effect.log("\n=== NEW ANALYSIS ARTIST TYPE DISTRIBUTION ===");
-  Object.entries(newDistribution)
-    .sort(([, a], [, b]) => b - a)
-    .forEach(([type, count]) => {
-      yield * Effect.log(`  ${type}: ${count} (${((count / totalAnalyzed) * 100).toFixed(1)}%)`);
-    });
+  for (const [type, count] of Object.entries(newDistribution).sort(([, a], [, b]) => b - a)) {
+    yield* Effect.log(`  ${type}: ${count} (${((count / totalAnalyzed) * 100).toFixed(1)}%)`);
+  }
 
   // Show mismatches
   const mismatches = comparisons.filter((c) => !c.match);
   if (mismatches.length > 0) {
     yield* Effect.log(`\n=== MISMATCHES (${mismatches.length}) ===`);
-    mismatches.slice(0, 10).forEach((mismatch) => {
-      yield *
-        Effect.log(
-          `  ${mismatch.email ?? mismatch.responseId}: "${mismatch.legacyArtistType}" → "${mismatch.newPrimaryArtistType}" (${mismatch.confidence.toFixed(1)}%)`,
-        );
-    });
+    for (const mismatch of mismatches.slice(0, 10)) {
+      yield* Effect.log(
+        `  ${mismatch.email ?? mismatch.responseId}: "${mismatch.legacyArtistType}" → "${mismatch.newPrimaryArtistType}" (${mismatch.confidence.toFixed(1)}%)`,
+      );
+    }
     if (mismatches.length > 10) {
       yield* Effect.log(`  ... and ${mismatches.length - 10} more mismatches`);
     }
@@ -209,13 +208,12 @@ const analyzeTypeformResponses = Effect.gen(function* () {
 // Run the analysis
 NodeRuntime.runMain(
   analyzeTypeformResponses.pipe(
-    Effect.provide([
-      ResponsesRepo.Default,
-      AnalysisRepo.Default,
-      AnalysisService.Default,
-      QuizzesRepo.Default,
-      NodeContext.layer,
-      PgLive,
-    ]),
+    Effect.provide(ResponsesRepo.Default),
+    Effect.provide(AnalysisRepo.Default),
+    Effect.provide(AnalysisEngineRepo.Default),
+    Effect.provide(AnalysisService.Default),
+    Effect.provide(QuizzesRepo.Default),
+    Effect.provide(NodeContext.layer),
+    Effect.provide(PgLive),
   ),
 );
