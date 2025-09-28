@@ -7,6 +7,10 @@ import { type AnalysisEngine, type Question, type Quiz } from "@features/quiz/do
 import {
   Badge,
   Button,
+  Card,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
   cn,
   DropdownMenu,
   ResizableHandle,
@@ -14,18 +18,28 @@ import {
   ResizablePanelGroup,
   ScrollArea,
   Select,
+  type ChartConfig,
 } from "@ui/shadcn";
+import { Effect } from "effect";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
+  BarChart3Icon,
   EditIcon,
   GitBranchIcon,
+  PlayIcon,
   PlusIcon,
   SaveIcon,
   SettingsIcon,
 } from "lucide-react";
 import React from "react";
-import { getArtistIconPath } from "../components/artist-type/artist-data-utils.js";
+import { Label, Pie, PieChart } from "recharts";
+import { AnalysisService } from "../../domain/analysis/analysis.service.js";
+import {
+  artistColors,
+  endingNameToArtistType,
+  getArtistIconPath,
+} from "../components/artist-type/artist-data-utils.js";
 import { QuestionCard } from "../components/question-card.js";
 import { QuizProgressBar } from "../components/quiz-progress-bar.js";
 import { VersionIncrementDialog } from "../components/version-increment-dialog.js";
@@ -35,6 +49,7 @@ import {
   EngineAction,
   enginesAtom,
 } from "../engines/engines-atoms.js";
+import { allAnalysisAtom, responsesAtom } from "../index.js";
 import {
   clearTempQuizzesAtom,
   createNewQuizVersionAtom,
@@ -54,8 +69,11 @@ const pendingRatingAtom = Atom.make<number | null>(null).pipe(Atom.keepAlive);
 const expectedNewVersionAtom = Atom.make<string | null>(null).pipe(Atom.keepAlive);
 const expectedTempQuizAtom = Atom.make<{
   originalQuizId: string;
-  existingTempQuizIds: string[];
+  existingTempQuizIds: Array<string>;
 } | null>(null).pipe(Atom.keepAlive);
+
+// Sidebar view state atom for switching between inspector and graphs
+const sidebarViewAtom = Atom.make<"inspector" | "graphs">("inspector").pipe(Atom.keepAlive);
 
 // Generate consistent random colors for temp/edit badges based on quiz ID
 const getTempBadgeColor = (quizId: string): string => {
@@ -555,17 +573,23 @@ const InspectorPanel: React.FC<{
     isPrimary: boolean;
   }>;
   onToggleIdealAnswers: () => void;
+  onTogglePrimaryRule: (isPrimary: boolean) => void;
+  onUpdateIdealAnswer: (value: number) => void;
   question: Question | undefined;
   questionIndex: number;
   selectedArtistType: string;
+  selectedValues: Array<number>;
   showIdealAnswers: boolean;
   totalQuestions: number;
 }> = ({
   idealAnswers,
   onToggleIdealAnswers,
+  onTogglePrimaryRule,
+  onUpdateIdealAnswer,
   question,
   questionIndex,
   selectedArtistType,
+  selectedValues,
   showIdealAnswers,
   totalQuestions,
 }) => {
@@ -674,23 +698,91 @@ const InspectorPanel: React.FC<{
             <div className="space-y-2">
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Current Type</label>
-                <div className="px-3 py-2 text-sm border border-border rounded-md bg-muted capitalize">
-                  {selectedArtistType}
+                <div className="flex items-center gap-2 px-3 py-2 text-sm border border-border rounded-md bg-muted">
+                  <ArtistIcon artistType={selectedArtistType} size={16} />
+                  <span className="capitalize">{selectedArtistType}</span>
                 </div>
               </div>
+
+              {/* Current Selection Display */}
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Ideal Answer</label>
-                <input
-                  type="number"
-                  placeholder="Enter ideal answer"
-                  className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <input type="checkbox" id="isPrimary" className="rounded" />
-                <label htmlFor="isPrimary" className="text-xs font-medium">
-                  Primary Rule
+                <label className="text-xs font-medium text-muted-foreground">
+                  Current Selection
                 </label>
+                <div className="px-3 py-2 text-sm border border-border rounded-md bg-muted">
+                  {selectedValues.length > 0 ? selectedValues.join(", ") : "None selected"}
+                </div>
+              </div>
+
+              {/* Quick Ideal Answer Input */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">
+                  Set Ideal Answer
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min={question.data.type === "rating" ? question.data.minRating : 1}
+                    max={question.data.type === "rating" ? question.data.maxRating : 10}
+                    placeholder="Enter value"
+                    className="flex-1 px-3 py-2 text-sm border border-border rounded-md bg-background"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const value = Number.parseInt(e.currentTarget.value);
+                        if (!Number.isNaN(value)) {
+                          onUpdateIdealAnswer(value);
+                          e.currentTarget.value = "";
+                        }
+                      }
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      const input = e.currentTarget.parentElement?.querySelector("input");
+                      if (input !== null && input !== undefined) {
+                        const value = Number.parseInt(input.value);
+                        if (!Number.isNaN(value)) {
+                          onUpdateIdealAnswer(value);
+                          input.value = "";
+                        }
+                      }
+                    }}
+                  >
+                    Set
+                  </Button>
+                </div>
+              </div>
+
+              {/* Primary Rule Toggle */}
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-muted-foreground">Primary Rule</label>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant={
+                      idealAnswers.find(
+                        (a) => a.endingId === `the-${selectedArtistType.toLowerCase()}-artist`,
+                      )?.isPrimary === true
+                        ? "default"
+                        : "outline"
+                    }
+                    onClick={() => {
+                      const currentRule = idealAnswers.find(
+                        (a) => a.endingId === `the-${selectedArtistType.toLowerCase()}-artist`,
+                      );
+                      onTogglePrimaryRule(!(currentRule?.isPrimary === true));
+                    }}
+                    className="h-6 px-2 text-xs"
+                  >
+                    {idealAnswers.find(
+                      (a) => a.endingId === `the-${selectedArtistType.toLowerCase()}-artist`,
+                    )?.isPrimary === true
+                      ? "Primary"
+                      : "Secondary"}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -755,6 +847,844 @@ const InspectorPanel: React.FC<{
         </div>
       </ScrollArea>
     </div>
+  );
+};
+
+// Right Sidebar Component (Inspector + Graphs)
+const RightSidebar: React.FC<{
+  engines: ReadonlyArray<AnalysisEngine>;
+  idealAnswers: Array<{
+    endingId: string;
+    endingName: string;
+    idealAnswers: Array<number>;
+    isPrimary: boolean;
+  }>;
+  onToggleIdealAnswers: () => void;
+  onTogglePrimaryRule: (isPrimary: boolean) => void;
+  onUpdateIdealAnswer: (value: number) => void;
+  question: Question | undefined;
+  questionIndex: number;
+  quiz: Quiz;
+  selectedArtistType: string;
+  selectedEngineId: string;
+  selectedValues: Array<number>;
+  showIdealAnswers: boolean;
+  totalQuestions: number;
+}> = ({
+  engines,
+  idealAnswers,
+  onToggleIdealAnswers,
+  onTogglePrimaryRule,
+  onUpdateIdealAnswer,
+  question,
+  questionIndex,
+  quiz,
+  selectedArtistType,
+  selectedEngineId,
+  selectedValues,
+  showIdealAnswers,
+  totalQuestions,
+}) => {
+  const sidebarView = useAtomValue(sidebarViewAtom);
+  const setSidebarView = useAtomSet(sidebarViewAtom);
+
+  return (
+    <div className="flex h-full flex-col border-l border-border/50">
+      {/* Sidebar Header with View Switcher */}
+      <div className="flex items-center justify-between p-3 border-b border-border/50">
+        <h3 className="text-sm font-medium">
+          {sidebarView === "inspector" ? "Question Inspector" : "Analysis Graphs"}
+        </h3>
+        <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
+          <Button
+            variant={sidebarView === "inspector" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => {
+              setSidebarView("inspector");
+            }}
+            className="gap-1 h-6 px-2 text-xs"
+          >
+            <EditIcon className="h-3 w-3" />
+            Inspector
+          </Button>
+          <Button
+            variant={sidebarView === "graphs" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => {
+              setSidebarView("graphs");
+            }}
+            className="gap-1 h-6 px-2 text-xs"
+          >
+            <BarChart3Icon className="h-3 w-3" />
+            Graphs
+          </Button>
+        </div>
+      </div>
+
+      {/* Sidebar Content */}
+      {sidebarView === "inspector" ? (
+        <InspectorPanel
+          idealAnswers={idealAnswers}
+          onToggleIdealAnswers={onToggleIdealAnswers}
+          onTogglePrimaryRule={onTogglePrimaryRule}
+          onUpdateIdealAnswer={onUpdateIdealAnswer}
+          question={question}
+          questionIndex={questionIndex}
+          selectedArtistType={selectedArtistType}
+          selectedValues={selectedValues}
+          showIdealAnswers={showIdealAnswers}
+          totalQuestions={totalQuestions}
+        />
+      ) : (
+        <SidebarGraphsView quiz={quiz} engines={engines} selectedEngineId={selectedEngineId} />
+      )}
+    </div>
+  );
+};
+
+// Chart config matching the admin AnalysisChart
+const chartConfig = {
+  count: {
+    label: "Count",
+  },
+  visionary: {
+    label: "Visionary",
+    color: "var(--artist-visionary)",
+  },
+  consummate: {
+    label: "Consummate",
+    color: "var(--artist-consummate)",
+  },
+  analyzer: {
+    label: "Analyzer",
+    color: "var(--artist-analyzer)",
+  },
+  tech: {
+    label: "Tech",
+    color: "var(--artist-tech)",
+  },
+  entertainer: {
+    label: "Entertainer",
+    color: "var(--artist-entertainer)",
+  },
+  maverick: {
+    label: "Maverick",
+    color: "var(--artist-maverick)",
+  },
+  dreamer: {
+    label: "Dreamer",
+    color: "var(--artist-dreamer)",
+  },
+  feeler: {
+    label: "Feeler",
+    color: "var(--artist-feeler)",
+  },
+  tortured: {
+    label: "Tortured",
+    color: "var(--artist-tortured)",
+  },
+  solo: {
+    label: "Solo",
+    color: "var(--artist-solo)",
+  },
+} satisfies ChartConfig;
+
+// Projected Analysis Chart Component (mimics the admin AnalysisChart)
+const ProjectedAnalysisChart: React.FC<{
+  responsesResult: ReturnType<typeof responsesAtom.read>;
+  selectedEngine: AnalysisEngine;
+}> = ({ responsesResult, selectedEngine }) => {
+  // Calculate projected analysis based on current engine
+  const { chartData, totalProjected } = React.useMemo(() => {
+    if (!Result.isSuccess(responsesResult)) {
+      return { chartData: [], totalProjected: 0 };
+    }
+
+    const responses = responsesResult.value;
+
+    // Simulate what the analysis would be with the current engine
+    // This creates a more realistic distribution based on engine configuration
+    const artistTypeCounts: Record<string, number> = {};
+
+    selectedEngine.endings.forEach((ending) => {
+      // Calculate weight based on number of rules and ideal answers
+      const ruleWeight = ending.questionRules.length;
+      const answerWeight = ending.questionRules.reduce(
+        (sum, rule) => sum + rule.idealAnswers.length,
+        0,
+      );
+      const primaryWeight = ending.questionRules.filter((r) => r.isPrimary).length * 2;
+
+      // Total weight determines how likely this artist type is to be selected
+      const totalWeight = ruleWeight + answerWeight + primaryWeight;
+
+      // Convert ending name to artist type
+      const artistType = endingNameToArtistType[ending.name];
+      if (artistType !== undefined) {
+        // Distribute responses based on weights (simplified simulation)
+        const baseCount = Math.floor(responses.length / selectedEngine.endings.length);
+        const weightedCount = Math.floor(baseCount * (totalWeight / 10)); // Scale weight
+        artistTypeCounts[artistType] = Math.max(1, weightedCount);
+      }
+    });
+
+    // Normalize to match total responses
+    const totalCounts = Object.values(artistTypeCounts).reduce((sum, count) => sum + count, 0);
+    const scaleFactor = responses.length / totalCounts;
+
+    Object.keys(artistTypeCounts).forEach((artistType) => {
+      const currentCount = artistTypeCounts[artistType];
+      if (currentCount !== undefined) {
+        artistTypeCounts[artistType] = Math.round(currentCount * scaleFactor);
+      }
+    });
+
+    // Convert to chart data format (matching admin chart)
+    const projectedChartData = Object.entries(artistTypeCounts).map(([artistType, count]) => ({
+      type: artistType.toLowerCase(),
+      count,
+      fill: artistColors[artistType as keyof typeof artistColors],
+    }));
+
+    return { chartData: projectedChartData, totalProjected: responses.length };
+  }, [selectedEngine, responsesResult]);
+
+  return (
+    <Card className="flex flex-col h-full">
+      <Card.Header className="pb-2">
+        <Card.Title className="text-sm">Projected Results</Card.Title>
+        <Card.Description className="text-xs">
+          What distribution would be with current engine
+        </Card.Description>
+      </Card.Header>
+      <Card.Content className="flex-1 pb-2">
+        {!Result.isSuccess(responsesResult) ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-muted-foreground text-xs">Loading...</div>
+          </div>
+        ) : (
+          <ChartContainer config={chartConfig} className="w-full h-full">
+            <PieChart>
+              <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+              <Pie data={chartData} dataKey="count" nameKey="type" innerRadius={40} strokeWidth={3}>
+                <Label
+                  content={({ viewBox }) => {
+                    if (
+                      Boolean(viewBox) &&
+                      typeof viewBox === "object" &&
+                      "cx" in viewBox &&
+                      "cy" in viewBox
+                    ) {
+                      return (
+                        <text
+                          x={viewBox.cx}
+                          y={viewBox.cy}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                        >
+                          <tspan
+                            x={viewBox.cx}
+                            y={viewBox.cy}
+                            className="fill-foreground text-xl font-bold"
+                          >
+                            {totalProjected.toLocaleString()}
+                          </tspan>
+                          <tspan
+                            x={viewBox.cx}
+                            y={(viewBox.cy ?? 0) + 16}
+                            className="fill-muted-foreground text-xs"
+                          >
+                            Projected
+                          </tspan>
+                        </text>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+              </Pie>
+            </PieChart>
+          </ChartContainer>
+        )}
+      </Card.Content>
+    </Card>
+  );
+};
+
+// Real Analysis Chart with Card wrapper
+const RealAnalysisChart: React.FC = () => {
+  const analysisResult = useAtomValue(allAnalysisAtom);
+  const responsesResult = useAtomValue(responsesAtom);
+
+  const chartData = React.useMemo(() => {
+    if (!Result.isSuccess(analysisResult)) {
+      return [];
+    }
+
+    const analyses = analysisResult.value;
+
+    // Count artist types from the most recent analysis for each response
+    const artistTypeCounts: Record<string, number> = {};
+
+    analyses.forEach((analysis) => {
+      // Get primary artist type logic (copied from admin chart)
+      if (analysis.endingResults.length === 0) return;
+
+      const primaryResult = analysis.endingResults.reduce((prev, current) =>
+        current.points > prev.points ? current : prev,
+      );
+
+      // Map endingId to full name
+      const endingIdToFullName: Record<string, string> = {};
+      Object.keys(endingNameToArtistType).forEach((fullName) => {
+        const endingId = fullName.toLowerCase().replace(/\s+/g, "-");
+        endingIdToFullName[endingId] = fullName;
+      });
+
+      const primaryArtistType =
+        endingIdToFullName[primaryResult.endingId] ?? primaryResult.endingId;
+      const artistType = endingNameToArtistType[primaryArtistType];
+      if (artistType !== undefined) {
+        artistTypeCounts[artistType] = (artistTypeCounts[artistType] ?? 0) + 1;
+      }
+    });
+
+    // Convert to chart data format
+    return Object.entries(artistTypeCounts).map(([artistType, count]) => ({
+      type: artistType.toLowerCase(),
+      count,
+      fill: artistColors[artistType as keyof typeof artistColors],
+    }));
+  }, [analysisResult]);
+
+  const totalAnalyses = React.useMemo(() => {
+    if (!Result.isSuccess(analysisResult)) {
+      return 0;
+    }
+    return analysisResult.value.length;
+  }, [analysisResult, responsesResult]);
+
+  return (
+    <Card className="flex flex-col h-full">
+      <Card.Header className="pb-2">
+        <Card.Title className="text-sm">Current Real Results</Card.Title>
+        <Card.Description className="text-xs">
+          Actual analysis results from all responses
+        </Card.Description>
+      </Card.Header>
+      <Card.Content className="flex-1 pb-2">
+        {!Result.isSuccess(analysisResult) ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-muted-foreground text-xs">Loading...</div>
+          </div>
+        ) : (
+          <ChartContainer config={chartConfig} className="w-full h-full">
+            <PieChart>
+              <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+              <Pie data={chartData} dataKey="count" nameKey="type" innerRadius={40} strokeWidth={3}>
+                <Label
+                  content={({ viewBox }) => {
+                    if (
+                      Boolean(viewBox) &&
+                      typeof viewBox === "object" &&
+                      "cx" in viewBox &&
+                      "cy" in viewBox
+                    ) {
+                      return (
+                        <text
+                          x={viewBox.cx}
+                          y={viewBox.cy}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                        >
+                          <tspan
+                            x={viewBox.cx}
+                            y={viewBox.cy}
+                            className="fill-foreground text-xl font-bold"
+                          >
+                            {totalAnalyses.toLocaleString()}
+                          </tspan>
+                          <tspan
+                            x={viewBox.cx}
+                            y={(viewBox.cy ?? 0) + 16}
+                            className="fill-muted-foreground text-xs"
+                          >
+                            Real
+                          </tspan>
+                        </text>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+              </Pie>
+            </PieChart>
+          </ChartContainer>
+        )}
+      </Card.Content>
+    </Card>
+  );
+};
+
+// Re-analysis Chart - Analyzes all responses with current engine
+const ReanalysisChart: React.FC<{
+  responsesResult: ReturnType<typeof responsesAtom.read>;
+  selectedEngine: AnalysisEngine;
+}> = ({ responsesResult, selectedEngine }) => {
+  // Get quiz data and current selections from atoms
+  const quizzesResult = useAtomValue(quizzesAtom);
+  const selectedQuizId = useAtomValue(selectedQuizIdAtom);
+  const [isAnalyzing, setIsAnalyzing] = React.useState(false);
+  const [reanalysisData, setReanalysisData] = React.useState<Array<{
+    type: string;
+    count: number;
+    fill: string;
+  }> | null>(null);
+
+  // Function to re-analyze all responses with current engine using the real AnalysisService
+  const handleReanalyze = React.useCallback(async () => {
+    if (!Result.isSuccess(responsesResult) || !Result.isSuccess(quizzesResult)) {
+      // eslint-disable-next-line no-console
+      console.log("❌ Cannot re-analyze: missing data", {
+        responsesSuccess: Result.isSuccess(responsesResult),
+        quizzesSuccess: Result.isSuccess(quizzesResult),
+      });
+      return;
+    }
+
+    if (selectedQuizId === "") {
+      // eslint-disable-next-line no-console
+      console.log("❌ Cannot re-analyze: no quiz selected");
+      return;
+    }
+
+    setIsAnalyzing(true);
+
+    try {
+      const allResponses = responsesResult.value;
+      const allQuizzes = quizzesResult.value;
+
+      // Use the currently selected quiz version from the dropdown for analysis
+      const selectedQuiz = allQuizzes.find((quiz) => quiz.id === selectedQuizId);
+
+      if (selectedQuiz === undefined) {
+        // eslint-disable-next-line no-console
+        console.error("❌ No selected quiz found for analysis");
+        return;
+      }
+
+      // Find all "My Artist Type Quiz" versions for response filtering
+      const artistTypeQuizzes = allQuizzes.filter(
+        (quiz) =>
+          quiz.title === "My Artist Type Quiz" || quiz.title === "My Artist Type Quiz (Editing)",
+      );
+      const artistTypeQuizIds = new Set(artistTypeQuizzes.map((q) => q.id));
+
+      // Filter responses to only include those from "My Artist Type Quiz" versions
+      const responses = allResponses.filter((response) => artistTypeQuizIds.has(response.quizId));
+
+      const artistTypeCounts: Record<string, number> = {};
+
+      // eslint-disable-next-line no-console
+      console.log("🔄 Starting re-analysis with current engine:", {
+        engineName: selectedEngine.name,
+        engineId: selectedEngine.id,
+        selectedQuizVersion: selectedQuiz.version.semver,
+        selectedQuizId: selectedQuiz.id,
+        totalAllResponses: allResponses.length,
+        totalArtistTypeQuizzes: artistTypeQuizzes.length,
+        totalFilteredResponses: responses.length,
+        engineEndings: selectedEngine.endings.length,
+      });
+
+      // Log detailed engine configuration
+      // eslint-disable-next-line no-console
+      console.log("🔧 Engine configuration details:", {
+        engineName: selectedEngine.name,
+        engineId: selectedEngine.id,
+        isActive: selectedEngine.isActive,
+        scoringConfig: selectedEngine.scoringConfig,
+        endingsCount: selectedEngine.endings.length,
+        endings: selectedEngine.endings.map((ending) => ({
+          endingId: ending.endingId,
+          name: ending.name,
+          questionRulesCount: ending.questionRules.length,
+          questionRules: ending.questionRules.map((rule) => ({
+            questionId: rule.questionId,
+            idealAnswers: rule.idealAnswers,
+            idealAnswersCount: rule.idealAnswers.length,
+            isPrimary: rule.isPrimary,
+            weightMultiplier: rule.weightMultiplier,
+          })),
+        })),
+      });
+
+      // Check if this engine has any question rules with ideal answers
+      const totalQuestionRules = selectedEngine.endings.reduce(
+        (total, ending) => total + ending.questionRules.length,
+        0,
+      );
+      const rulesWithIdealAnswers = selectedEngine.endings.reduce(
+        (total, ending) =>
+          total + ending.questionRules.filter((rule) => rule.idealAnswers.length > 0).length,
+        0,
+      );
+
+      // eslint-disable-next-line no-console
+      console.log("🔍 Engine rules summary:", {
+        totalQuestionRules,
+        rulesWithIdealAnswers,
+        rulesWithoutIdealAnswers: totalQuestionRules - rulesWithIdealAnswers,
+        engineHasAnyRules: totalQuestionRules > 0,
+        engineHasAnyIdealAnswers: rulesWithIdealAnswers > 0,
+      });
+
+      // Group responses by quiz ID for efficient lookup
+      const responsesByQuizId: Record<string, Array<(typeof responses)[0]>> = {};
+      for (const response of responses) {
+        const quizId = response.quizId;
+        if (responsesByQuizId[quizId] === undefined) {
+          responsesByQuizId[quizId] = [];
+        }
+        responsesByQuizId[quizId].push(response);
+      }
+
+      // eslint-disable-next-line no-console
+      console.log(
+        "📊 Responses grouped by quiz version:",
+        Object.keys(responsesByQuizId).map((quizId) => {
+          const quiz = artistTypeQuizzes.find((q) => q.id === quizId);
+          return {
+            quizId,
+            quizTitle: quiz?.title ?? "Unknown",
+            quizVersion: quiz?.version.semver ?? "Unknown",
+            responseCount: responsesByQuizId[quizId]?.length ?? 0,
+          };
+        }),
+      );
+
+      // Log basic info about the analysis setup
+      // eslint-disable-next-line no-console
+      console.log("🎯 Analysis setup complete:", {
+        selectedQuizFound: selectedQuiz !== undefined,
+        selectedEngineFound: selectedEngine !== undefined,
+        responsesToAnalyze: responses.length,
+        readyToAnalyze: true,
+      });
+
+      // Create a function to map old response question IDs to current quiz question IDs
+      const mapResponseToCurrentQuiz = (response: (typeof responses)[0]) => {
+        const originalQuiz = artistTypeQuizzes.find((q) => q.id === response.quizId);
+        if (originalQuiz === undefined) return null;
+
+        const originalQuestions = originalQuiz.questions ?? [];
+        const selectedQuestions = selectedQuiz.questions ?? [];
+
+        // Map responses by question position (index) since question content should be the same
+        const mappedAnswers = (response.answers ?? [])
+          .map((answer, index) => {
+            // Try to find the corresponding question in the selected quiz by index
+            const selectedQuestion = selectedQuestions[index];
+            if (selectedQuestion !== undefined) {
+              return {
+                ...answer,
+                questionId: selectedQuestion.id, // Use selected quiz's question ID
+              };
+            }
+            return answer; // Keep original if no mapping found
+          })
+          .filter((answer) => {
+            // Only keep answers that have a corresponding question in selected quiz
+            return selectedQuestions.some((q) => q.id === answer.questionId);
+          });
+
+        return {
+          ...response,
+          answers: mappedAnswers,
+        };
+      };
+
+      // For each response, map it to current quiz structure and analyze
+      for (const response of responses) {
+        try {
+          // Map the response to use selected quiz question IDs
+          const mappedResponse = mapResponseToCurrentQuiz(response);
+          if (mappedResponse === null) {
+            // eslint-disable-next-line no-console
+            console.warn(
+              "⚠️ Could not map response to selected quiz:",
+              response.id,
+              "quizId:",
+              response.quizId,
+            );
+            continue;
+          }
+
+          // eslint-disable-next-line no-console
+          console.log("🔍 Analyzing response:", {
+            responseId: response.id,
+            originalQuizId: response.quizId,
+            selectedQuizId: selectedQuiz.id,
+            selectedQuizTitle: selectedQuiz.title,
+            selectedQuizVersion: selectedQuiz.version.semver,
+            questionCount: selectedQuiz.questions?.length ?? 0,
+            originalAnswerCount: response.answers?.length ?? 0,
+            mappedAnswerCount: mappedResponse.answers?.length ?? 0,
+            sampleMappedAnswers: (mappedResponse.answers ?? []).slice(0, 3).map((a) => ({
+              questionId: a.questionId,
+              value: a.value,
+            })),
+          });
+
+          // Quick validation of the mapping
+          const mappedResponseQuestionIds = new Set(
+            (mappedResponse.answers ?? []).map((a) => a.questionId),
+          );
+          const selectedQuizQuestionIds = (selectedQuiz.questions ?? []).map((q) => q.id);
+          const responseToQuizMatches = [...mappedResponseQuestionIds].filter((id) =>
+            selectedQuizQuestionIds.includes(id),
+          );
+
+          // Only log the first response for debugging
+          if (response === responses[0]) {
+            // eslint-disable-next-line no-console
+            console.log("🔗 First response mapping check:", {
+              originalAnswerCount: (response.answers ?? []).length,
+              mappedAnswerCount: mappedResponse.answers?.length ?? 0,
+              selectedQuizQuestionCount: selectedQuizQuestionIds.length,
+              matchingQuestionCount: responseToQuizMatches.length,
+              mappingSuccessful: responseToQuizMatches.length > 0,
+            });
+          }
+
+          // Use the actual AnalysisService to analyze this mapped response
+          const analysisResult = await Effect.runPromise(
+            Effect.provide(
+              AnalysisService.pipe(
+                Effect.flatMap((service) =>
+                  service.analyzeResponse(selectedEngine, selectedQuiz, mappedResponse),
+                ),
+              ),
+              AnalysisService.Default,
+            ),
+          );
+
+          // eslint-disable-next-line no-console
+          console.log("📈 Analysis result:", {
+            responseId: response.id,
+            endingResultsCount: analysisResult.endingResults.length,
+            allResults: analysisResult.endingResults
+              .sort((a, b) => b.points - a.points)
+              .map((r) => ({ endingId: r.endingId, points: r.points, percentage: r.percentage })),
+          });
+
+          // Find the winning artist type (highest points)
+          if (analysisResult.endingResults.length > 0) {
+            const winningResult = analysisResult.endingResults.reduce((winner, current) =>
+              current.points > winner.points ? current : winner,
+            );
+
+            // Map endingId to full name, then to artist type
+            const endingIdToFullName: Record<string, string> = {};
+            Object.keys(endingNameToArtistType).forEach((fullName) => {
+              const endingId = fullName.toLowerCase().replace(/\s+/g, "-");
+              endingIdToFullName[endingId] = fullName;
+            });
+
+            const fullName = endingIdToFullName[winningResult.endingId] ?? winningResult.endingId;
+            const artistType = endingNameToArtistType[fullName];
+
+            // eslint-disable-next-line no-console
+            console.log("🎯 Winner for response:", {
+              responseId: response.id,
+              winningEndingId: winningResult.endingId,
+              winningPoints: winningResult.points,
+              fullName,
+              artistType,
+            });
+
+            if (artistType !== undefined) {
+              artistTypeCounts[artistType] = (artistTypeCounts[artistType] ?? 0) + 1;
+            } else {
+              // eslint-disable-next-line no-console
+              console.warn("⚠️ Could not map ending to artist type:", {
+                endingId: winningResult.endingId,
+                fullName,
+                availableArtistTypes: Object.keys(endingNameToArtistType),
+              });
+            }
+          } else {
+            // eslint-disable-next-line no-console
+            console.warn("⚠️ No ending results for response:", response.id);
+          }
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error("❌ Failed to analyze response:", response.id, error);
+          // Continue with other responses even if one fails
+        }
+      }
+
+      // eslint-disable-next-line no-console
+      console.log("📊 Final artist type counts:", artistTypeCounts);
+
+      // Convert to chart data format
+      const chartData = Object.entries(artistTypeCounts).map(([artistType, count]) => ({
+        type: artistType.toLowerCase(),
+        count,
+        fill: artistColors[artistType as keyof typeof artistColors],
+      }));
+
+      // eslint-disable-next-line no-console
+      console.log("🎨 Chart data:", chartData);
+
+      setReanalysisData(chartData);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("❌ Re-analysis failed:", error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [responsesResult, quizzesResult, selectedEngine, selectedQuizId]);
+
+  const totalReanalyzed = React.useMemo(() => {
+    if (reanalysisData === null) return 0;
+    return reanalysisData.reduce((sum, item) => sum + item.count, 0);
+  }, [reanalysisData]);
+
+  return (
+    <Card className="flex flex-col h-full">
+      <Card.Header className="pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <Card.Title className="text-sm">Re-analyze with Current Engine</Card.Title>
+            <Card.Description className="text-xs">
+              {reanalysisData === null
+                ? "Click to analyze all responses with current engine settings"
+                : "Fresh analysis results with current engine configuration"}
+            </Card.Description>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleReanalyze}
+            disabled={isAnalyzing || !Result.isSuccess(responsesResult)}
+            className="h-8 w-8 p-0"
+          >
+            <PlayIcon className="h-4 w-4" />
+          </Button>
+        </div>
+      </Card.Header>
+      <Card.Content className="flex-1 pb-2">
+        {isAnalyzing ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-muted-foreground text-xs">Analyzing...</div>
+          </div>
+        ) : reanalysisData === null ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center text-muted-foreground">
+              <PlayIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p className="text-xs">Click the play button to re-analyze</p>
+            </div>
+          </div>
+        ) : (
+          <ChartContainer config={chartConfig} className="w-full h-full">
+            <PieChart>
+              <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+              <Pie
+                data={reanalysisData}
+                dataKey="count"
+                nameKey="type"
+                innerRadius={40}
+                strokeWidth={3}
+              >
+                <Label
+                  content={({ viewBox }) => {
+                    if (
+                      Boolean(viewBox) &&
+                      typeof viewBox === "object" &&
+                      "cx" in viewBox &&
+                      "cy" in viewBox
+                    ) {
+                      return (
+                        <text
+                          x={viewBox.cx}
+                          y={viewBox.cy}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                        >
+                          <tspan
+                            x={viewBox.cx}
+                            y={viewBox.cy}
+                            className="fill-foreground text-xl font-bold"
+                          >
+                            {totalReanalyzed.toLocaleString()}
+                          </tspan>
+                          <tspan
+                            x={viewBox.cx}
+                            y={(viewBox.cy ?? 0) + 16}
+                            className="fill-muted-foreground text-xs"
+                          >
+                            Re-analyzed
+                          </tspan>
+                        </text>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+              </Pie>
+            </PieChart>
+          </ChartContainer>
+        )}
+      </Card.Content>
+    </Card>
+  );
+};
+
+// Sidebar Graphs View Component (Compact version for sidebar)
+const SidebarGraphsView: React.FC<{
+  engines: ReadonlyArray<AnalysisEngine>;
+  quiz: Quiz;
+  selectedEngineId: string;
+}> = ({ engines, selectedEngineId }) => {
+  const selectedEngine = engines.find((e) => e.id === selectedEngineId);
+
+  // Get real analysis data from atoms
+  const responsesResult = useAtomValue(responsesAtom);
+
+  if (selectedEngine === undefined) {
+    return (
+      <div className="flex items-center justify-center h-full p-4">
+        <div className="text-center text-muted-foreground">
+          <BarChart3Icon className="h-8 w-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">No analysis engine selected</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ScrollArea className="flex-1 p-3">
+      <div className="space-y-3">
+        {/* Re-analysis Chart - Top */}
+        <div className="h-[200px]">
+          <ReanalysisChart responsesResult={responsesResult} selectedEngine={selectedEngine} />
+        </div>
+
+        {/* Real Analysis Distribution */}
+        <div className="h-[200px]">
+          <RealAnalysisChart />
+        </div>
+
+        {/* Projected Analysis Distribution */}
+        <div className="h-[200px]">
+          <ProjectedAnalysisChart
+            responsesResult={responsesResult}
+            selectedEngine={selectedEngine}
+          />
+        </div>
+      </div>
+    </ScrollArea>
   );
 };
 
@@ -840,12 +1770,6 @@ export const QuizEditorLayout: React.FC = () => {
 
     if (currentQuiz.isTemp) {
       // Save temp quiz as official version with the new version info
-      console.log(
-        "💾 Saving temp quiz as new version:",
-        versionObject.semver,
-        versionObject.comment,
-      );
-      console.log("💾 Current temp quiz:", currentQuiz.id, currentQuiz.title);
 
       saveTempQuiz({
         quiz: currentQuiz,
@@ -855,7 +1779,6 @@ export const QuizEditorLayout: React.FC = () => {
 
       // Set expected version to auto-select the new official version
       setExpectedNewVersion(versionObject.semver);
-      console.log("💾 Set expected new version:", versionObject.semver);
     } else {
       // Create new version from existing quiz
       const expectedVersion = versionObject.semver;
@@ -915,18 +1838,6 @@ export const QuizEditorLayout: React.FC = () => {
         const matchingEngine = findMatchingEngine(selectedQuiz, engines);
 
         if (matchingEngine !== undefined && matchingEngine.id !== selectedEngineId) {
-          console.log("🔄 Auto-switching engine for quiz change:");
-          console.log(
-            "  Quiz:",
-            getDisplayVersion(selectedQuiz, []),
-            selectedQuiz.isTemp ? "(TEMP)" : "(PERMANENT)",
-          );
-          console.log("  From engine:", selectedEngineId);
-          console.log(
-            "  To engine:",
-            matchingEngine.id,
-            matchingEngine.isTemp ? "(TEMP)" : "(PERMANENT)",
-          );
           setSelectedEngineId(matchingEngine.id);
         }
       }
@@ -965,11 +1876,6 @@ export const QuizEditorLayout: React.FC = () => {
             q.id !== selectedQuizId, // Don't select the same quiz
         );
 
-        console.log("🔍 Looking for new version with semver:", expectedNewVersion);
-        console.log("🔍 Base title:", baseTitle);
-        console.log("🔍 Current quiz title:", currentQuiz.title);
-        console.log("🔍 Found new version quiz:", newVersionQuiz?.id, newVersionQuiz?.title);
-
         if (newVersionQuiz !== undefined) {
           setSelectedQuizId(newVersionQuiz.id);
           setExpectedNewVersion(null); // Clear the expected version
@@ -1002,24 +1908,8 @@ export const QuizEditorLayout: React.FC = () => {
           // Get the newest temp quiz (most recently created based on ID)
           const newestTempQuiz = newTempQuizzes.sort((a, b) => b.id.localeCompare(a.id))[0];
           if (newestTempQuiz !== undefined) {
-            console.log(
-              "🎯 Auto-selecting NEWLY CREATED temp quiz:",
-              newestTempQuiz.id,
-              newestTempQuiz.title,
-            );
             setSelectedQuizId(newestTempQuiz.id);
             setExpectedTempQuiz(null); // Clear the expectation
-
-            // Also check if we have the matching temp engine available
-            if (Result.isSuccess(enginesResult)) {
-              const engines = enginesResult.value;
-              const matchingEngine = engines.find((e) => e.quizId === newestTempQuiz.id);
-              console.log(
-                "🔧 Temp quiz selected, checking for matching engine:",
-                matchingEngine?.id,
-                matchingEngine?.isTemp ? "(TEMP)" : "(PERMANENT)",
-              );
-            }
           }
         }
       }
@@ -1077,7 +1967,6 @@ export const QuizEditorLayout: React.FC = () => {
     } else if (isWorkingWithTempQuiz && !hasMatchingTempEngine) {
       // We have a temp quiz but no matching temp engine - this shouldn't happen
       // but let's handle it by just updating the current engine
-      console.log("⚠️ Temp quiz without temp engine - updating current engine");
       updateEngineIdealAnswerOptimistic(currentEngine, rating);
     } else {
       // Need to create temp versions first
@@ -1198,24 +2087,6 @@ export const QuizEditorLayout: React.FC = () => {
     // Simple direct lookup by quizId - this is much more reliable!
     const matchingEngine = availableEngines.find((engine) => engine.quizId === targetQuiz.id);
 
-    console.log("🔍 Finding matching engine:");
-    console.log("  Target Quiz ID:", targetQuiz.id);
-    console.log("  Target Quiz isTemp:", targetQuiz.isTemp);
-    console.log(
-      "  Available engines:",
-      availableEngines.map((e) => ({
-        id: e.id,
-        quizId: e.quizId,
-        isTemp: e.isTemp,
-        matches: e.quizId === targetQuiz.id,
-      })),
-    );
-    console.log(
-      "  Found matching engine:",
-      matchingEngine?.id,
-      matchingEngine?.isTemp ? "(TEMP)" : "(PERMANENT)",
-    );
-
     if (matchingEngine !== undefined) {
       return matchingEngine;
     }
@@ -1295,6 +2166,69 @@ export const QuizEditorLayout: React.FC = () => {
     }, 100); // Small delay to allow atom to update
   };
 
+  // Handler for updating ideal answers from inspector
+  const handleUpdateIdealAnswer = (value: number) => {
+    void handleRatingSelect(value);
+  };
+
+  // Handler for toggling primary rule status
+  const handleTogglePrimaryRule = (isPrimary: boolean) => {
+    const currentEngine = engines.find((e) => e.id === selectedEngineId);
+    if (currentEngine === undefined || selectedQuestion === undefined) return;
+
+    const artistTypeEndingId = `the-${selectedArtistType.toLowerCase()}-artist`;
+
+    // Create updated engine with modified primary status
+    const updatedEndings = currentEngine.endings.map((ending) => {
+      if (ending.endingId === artistTypeEndingId) {
+        const existingRuleIndex = ending.questionRules.findIndex(
+          (rule) => rule.questionId === selectedQuestion.id,
+        );
+
+        if (existingRuleIndex >= 0) {
+          // Update existing rule
+          const updatedRules = [...ending.questionRules];
+          const existingRule = updatedRules[existingRuleIndex];
+          if (existingRule !== undefined) {
+            updatedRules[existingRuleIndex] = {
+              ...existingRule,
+              isPrimary,
+            };
+          }
+          return {
+            ...ending,
+            questionRules: updatedRules,
+          };
+        }
+
+        // Create new rule with primary status
+        return {
+          ...ending,
+          questionRules: [
+            ...ending.questionRules,
+            {
+              questionId: selectedQuestion.id,
+              idealAnswers: [],
+              isPrimary,
+            },
+          ],
+        };
+      }
+      return ending;
+    });
+
+    const updatedEngine = {
+      ...currentEngine,
+      endings: updatedEndings,
+    };
+
+    // Apply optimistic update
+    setEnginesAtom(EngineAction.Upsert({ engine: updatedEngine }));
+
+    // Persist to server
+    autoSaveTempEngine({ engine: updatedEngine });
+  };
+
   const handlePreviousQuestion = () => {
     if (selectedQuestionIndex > 0) {
       setSelectedQuestionIndex(selectedQuestionIndex - 1);
@@ -1367,7 +2301,6 @@ export const QuizEditorLayout: React.FC = () => {
         selectedEngineId={selectedEngineId}
         selectedArtistType={selectedArtistType}
         onQuizChange={(quizId) => {
-          const selectedQuiz = quizzes.find((q) => q.id === quizId);
           setSelectedQuizId(quizId);
         }}
         onArtistTypeChange={setSelectedArtistType}
@@ -1471,16 +2404,22 @@ export const QuizEditorLayout: React.FC = () => {
 
         <ResizableHandle withHandle />
 
-        {/* Right Sidebar - Inspector Panel */}
+        {/* Right Sidebar - Inspector + Graphs */}
         <ResizablePanel defaultSize={25} minSize={20} maxSize={35} className="min-w-[280px]">
-          <InspectorPanel
+          <RightSidebar
+            quiz={quiz}
+            engines={engines}
+            selectedEngineId={selectedEngineId}
             idealAnswers={currentQuestionIdealAnswers}
             onToggleIdealAnswers={() => {
               setShowIdealAnswers(!showIdealAnswers);
             }}
+            onTogglePrimaryRule={handleTogglePrimaryRule}
+            onUpdateIdealAnswer={handleUpdateIdealAnswer}
             question={selectedQuestion}
             questionIndex={selectedQuestionIndex}
             selectedArtistType={selectedArtistType}
+            selectedValues={currentSelectedValues}
             showIdealAnswers={showIdealAnswers}
             totalQuestions={questions.length}
           />
