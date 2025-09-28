@@ -9,7 +9,7 @@ import { QuizProgressBar } from "../components/quiz-progress-bar.js";
 import { enginesAtom } from "../engines/engines-atoms.js";
 import { activeQuizAtom, quizzesAtom } from "../quizzes-atoms.js";
 import { DevPanel, type AnalysisConfigOverrides } from "./dev-panel.js";
-import { useLocalAnalysis } from "./local-analysis.js";
+import { performLocalAnalysis } from "./local-analysis.js";
 import {
   currentQuestionAtom,
   initializeQuizAtom,
@@ -89,12 +89,18 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
     : undefined;
 
   // Get real-time local analysis with dev config overrides
-  const localAnalysisData = useLocalAnalysis(
-    quizSession.responses,
-    currentQuiz,
-    defaultEngine,
-    devConfig,
-  );
+  const localAnalysisData = React.useMemo(() => {
+    if (currentQuiz === undefined || defaultEngine === undefined) {
+      return [];
+    }
+    try {
+      // Call the analysis function directly instead of the hook
+      return performLocalAnalysis(quizSession.responses, currentQuiz, defaultEngine, devConfig);
+    } catch (error) {
+      console.warn("Local analysis failed:", error);
+      return [];
+    }
+  }, [quizSession.responses, currentQuiz, defaultEngine, devConfig]);
 
   // Get ideal answers for the current question
   const getIdealAnswersForQuestion = React.useCallback(
@@ -138,6 +144,30 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
       initializeQuiz(targetQuiz);
     }
   }, [targetQuiz, currentQuiz, initializeQuiz]);
+
+  // Show loading state if engines are not loaded yet
+  if (!Result.isSuccess(enginesResult)) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Loading Analysis Engine...</h2>
+          <p className="text-muted-foreground">Setting up analysis capabilities</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if no active engine is found
+  if (defaultEngine === undefined) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Analysis Engine Not Found</h2>
+          <p className="text-muted-foreground">No active analysis engine is available</p>
+        </div>
+      </div>
+    );
+  }
 
   // Handle loading states
   if (!Result.isSuccess(activeQuizResult)) {
@@ -390,7 +420,12 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
               </div>
             ) : (
               <div className="relative w-full h-full min-w-96 rounded-[32px] border border-neutral-200/50 bg-neutral-100 pt-4 px-2 pb-2 backdrop-blur-lg md:pt-6 md:px-4 md:pb-4 dark:border-neutral-700 dark:bg-neutral-800/50 overflow-visible">
-                <div className="flex items-center justify-center h-64 border-2 border-dashed border-muted-foreground/25 rounded-lg"></div>
+                <div className="flex items-center justify-center h-64 border-2 border-dashed border-muted-foreground/25 rounded-lg">
+                  <div className="text-center text-muted-foreground">
+                    <p className="text-sm">Analysis will appear here</p>
+                    <p className="text-xs mt-1">Answer questions to see your artist type</p>
+                  </div>
+                </div>
               </div>
             )}
           </div>

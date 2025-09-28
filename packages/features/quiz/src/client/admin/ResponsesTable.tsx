@@ -41,8 +41,8 @@ const ArtistTypeBadge: React.FC<{
   artistType: string;
   variant?: "default" | "secondary";
 }> = ({ artistType, variant = "default" }) => {
-  // Map artist type name to database ID
-  const databaseId = artistType.toLowerCase().replace(/\s+/g, "-");
+  // Convert clean name back to database ID for icon lookup
+  const databaseId = `the-${artistType.toLowerCase().replace(/\s+/g, "-")}-artist`;
   const iconPath = getArtistIconPath(databaseId);
   const color = getArtistColorHex(artistType);
 
@@ -155,6 +155,17 @@ function isTypeformResponse(response: QuizResponse): boolean {
   return false;
 }
 
+// Helper function to convert database ID to artist type name
+function convertDatabaseIdToArtistType(databaseId: string): string {
+  // Remove "the-" prefix and "-artist" suffix, then capitalize
+  return databaseId
+    .replace(/^the-/, "")
+    .replace(/-artist$/, "")
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 // Helper function to extract artist types from analysis results
 function extractArtistTypes(analysisResult?: AnalysisResult): {
   primary?: string;
@@ -177,10 +188,10 @@ function extractArtistTypes(analysisResult?: AnalysisResult): {
 
   const result: { primary?: string; secondary?: string } = {};
   if (primary !== undefined) {
-    result.primary = primary;
+    result.primary = convertDatabaseIdToArtistType(primary);
   }
   if (secondary !== undefined) {
-    result.secondary = secondary;
+    result.secondary = convertDatabaseIdToArtistType(secondary);
   }
   return result;
 }
@@ -486,10 +497,12 @@ export function ResponsesTable({ data }: { data: ReadonlyArray<TableRow> }) {
               setActiveTab("completed");
             }}
           >
-            Completed{" "}
-            <Badge variant="secondary">
-              {data.filter((r) => r.sessionMetadata.completedAt !== undefined).length}
-            </Badge>
+            <span>Completed</span>
+            <span className="ml-2">
+              <Badge variant="secondary">
+                {data.filter((r) => r.sessionMetadata.completedAt !== undefined).length}
+              </Badge>
+            </span>
           </Tabs.Trigger>
           <Tabs.Trigger
             value="in-progress"
@@ -497,10 +510,12 @@ export function ResponsesTable({ data }: { data: ReadonlyArray<TableRow> }) {
               setActiveTab("in-progress");
             }}
           >
-            In Progress{" "}
-            <Badge variant="secondary">
-              {data.filter((r) => r.sessionMetadata.completedAt === undefined).length}
-            </Badge>
+            <span>In Progress</span>
+            <span className="ml-2">
+              <Badge variant="secondary">
+                {data.filter((r) => r.sessionMetadata.completedAt === undefined).length}
+              </Badge>
+            </span>
           </Tabs.Trigger>
         </Tabs.List>
         <div className="flex items-center gap-2">

@@ -41,6 +41,7 @@ export class QuestionResponse extends S.Class<QuestionResponse>("QuestionRespons
   value: S.Union(S.Number, S.String),
   answeredAt: S.optional(S.DateTimeUtc),
   timeSpentMs: S.optional(S.Number.pipe(S.int(), S.nonNegative())),
+  questionContent: S.optional(S.String), // Include question content for content-based matching
 }) {}
 
 // User interaction log entry

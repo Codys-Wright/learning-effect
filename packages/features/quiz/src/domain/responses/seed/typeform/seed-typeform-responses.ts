@@ -3,7 +3,7 @@ import typeformProcessedData from "./typeform-processed.json" with { type: "json
 
 type TypeformResponse = {
   id: string;
-  answers: Array<{ questionId: string; value: number }>;
+  answers: Array<{ questionId: string; value: number; questionContent: string }>;
   artistType: string;
   legacyAnalysis: {
     primaryArtistType: string | null;
@@ -73,6 +73,7 @@ export const getTypeformResponseSeedData = (): Array<TypeformResponseSeedData> =
       value: answer.value,
       answeredAt: undefined, // Typeform doesn't have individual answer timestamps
       timeSpentMs: undefined,
+      questionContent: answer.questionContent, // Include question content for content-based matching
     }));
 
     // Create session metadata using real dates from Typeform

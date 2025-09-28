@@ -213,6 +213,9 @@ export const analyzeResponseWithServiceAtom = runtime.fn(
         api.http.Responses.byId({ payload: { id: params.responseId } }),
       ]);
 
+      // Log the full response object
+      console.log("🔍 Full response object:", response);
+
       // Get the quiz for this response
       const quiz = yield* api.http.Quizzes.byId({ payload: { id: response.quizId } });
 

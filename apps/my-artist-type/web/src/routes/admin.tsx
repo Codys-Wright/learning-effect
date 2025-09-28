@@ -67,14 +67,14 @@ const AdminLayout: React.FC = () => {
 
                   {/* Charts Section */}
                   <div className="px-4 lg:px-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
                       {/* Analysis Chart */}
-                      <div className="lg:col-span-1">
+                      <div className="lg:col-span-3">
                         <AnalysisChart />
                       </div>
 
                       {/* Responses Over Time Chart */}
-                      <div className="lg:col-span-4">
+                      <div className="lg:col-span-7">
                         <ResponsesOverTimeChart />
                       </div>
                     </div>

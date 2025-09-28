@@ -42,6 +42,7 @@ export type ArtistType = S.Schema.Type<typeof ArtistType>;
 
 // CSS variable-based colors (theme-aware)
 export const artistColors = {
+  // Short artist type names
   Visionary: "var(--artist-visionary)",
   Consummate: "var(--artist-consummate)",
   Analyzer: "var(--artist-analyzer)",
@@ -52,6 +53,17 @@ export const artistColors = {
   Feeler: "var(--artist-feeler)",
   Tortured: "var(--artist-tortured)",
   Solo: "var(--artist-solo)",
+  // Database IDs
+  "the-visionary-artist": "var(--artist-visionary)",
+  "the-consummate-artist": "var(--artist-consummate)",
+  "the-analyzer-artist": "var(--artist-analyzer)",
+  "the-tech-artist": "var(--artist-tech)",
+  "the-entertainer-artist": "var(--artist-entertainer)",
+  "the-maverick-artist": "var(--artist-maverick)",
+  "the-dreamer-artist": "var(--artist-dreamer)",
+  "the-feeler-artist": "var(--artist-feeler)",
+  "the-tortured-artist": "var(--artist-tortured)",
+  "the-solo-artist": "var(--artist-solo)",
 } as const;
 
 // =============================================================================

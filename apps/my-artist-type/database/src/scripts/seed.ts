@@ -70,14 +70,158 @@ const seedEffect = Effect.gen(function* () {
     questionIdMap.set(question.order.toString(), question.id);
   });
 
+  // Create content-based mapping for Typeform responses
+  // Map from question content to question UUID for Typeform response matching
+  const contentToQuestionIdMap = new Map<string, string>();
+  seededQuiz.questions?.forEach((question) => {
+    const contentKey = question.title.toLowerCase().trim();
+    contentToQuestionIdMap.set(contentKey, question.id);
+  });
+
+  // Function to convert Typeform response question IDs to quiz question UUIDs
+  const convertTypeformResponseQuestionIds = (response: any) => {
+    if (!response.answers) return response;
+
+    const convertedAnswers = response.answers
+      .map((answer: any) => {
+        // If questionContent exists, use content-based matching
+        if (answer.questionContent) {
+          const normalizedContent = answer.questionContent.toLowerCase().trim();
+
+          // Try exact match first
+          let quizQuestionId = contentToQuestionIdMap.get(normalizedContent);
+
+          // If no exact match, try partial matching
+          if (!quizQuestionId) {
+            for (const [contentKey, questionId] of contentToQuestionIdMap.entries()) {
+              if (
+                contentKey.includes(normalizedContent) ||
+                normalizedContent.includes(contentKey)
+              ) {
+                quizQuestionId = questionId;
+                break;
+              }
+            }
+          }
+
+          // Manual mappings for common variations
+          if (!quizQuestionId) {
+            const manualMappings: Record<string, string> = {
+              "i lose myself in my work and find it natural to enter a flow state.":
+                "i lose myself in my work and lose track of time.",
+              "i lose myself in my work and find it natural to enter a flow state":
+                "i lose myself in my work and lose track of time",
+            };
+
+            const manualMatch = manualMappings[normalizedContent];
+            if (manualMatch) {
+              quizQuestionId = contentToQuestionIdMap.get(manualMatch);
+            }
+          }
+
+          if (quizQuestionId) {
+            return {
+              ...answer,
+              questionId: quizQuestionId,
+            };
+          }
+        }
+
+        return answer;
+      })
+      .filter((answer: any) => {
+        // Keep answers that either already have correct UUIDs or were successfully matched
+        const existingQuizQuestion = seededQuiz.questions?.find((q) => q.id === answer.questionId);
+        if (existingQuizQuestion) {
+          return true; // Already has correct UUID
+        }
+
+        // Check if it was matched by content
+        if (answer.questionContent) {
+          const normalizedContent = answer.questionContent.toLowerCase().trim();
+          return Array.from(contentToQuestionIdMap.keys()).some(
+            (key) => key.includes(normalizedContent) || normalizedContent.includes(key),
+          );
+        }
+        return false;
+      });
+
+    return {
+      ...response,
+      answers: convertedAnswers,
+    };
+  };
+
   // Update analysis engine endings to use actual question IDs
+  // First, create a mapping from question content to UUID for engine rules
+  const contentToQuestionIdForEngine = new Map<string, string>();
+  seededQuiz.questions?.forEach((question) => {
+    const contentKey = question.title.toLowerCase().trim();
+    contentToQuestionIdForEngine.set(contentKey, question.id);
+  });
+
+  // Function to convert analysis engine question rules to use actual question UUIDs
+  const convertEngineQuestionRules = (questionRules: Array<any>) => {
+    return questionRules
+      .map((rule) => {
+        // Try to find the question by content matching
+        let actualQuestionId = questionIdMap.get(rule.questionId); // Try numeric mapping first
+
+        if (!actualQuestionId) {
+          // If numeric mapping fails, try content-based matching
+          // The engine data might have question content that we can match
+          for (const [contentKey, questionId] of contentToQuestionIdForEngine.entries()) {
+            // Try to match by question order or content similarity
+            const ruleQuestionId = parseInt(rule.questionId);
+            const questionOrder =
+              Array.from(seededQuiz.questions || []).findIndex((q) => q.id === questionId) + 1;
+
+            if (ruleQuestionId === questionOrder) {
+              actualQuestionId = questionId;
+              break;
+            }
+          }
+        }
+
+        const convertedRule = {
+          ...rule,
+          questionId: actualQuestionId ?? rule.questionId, // Use actual question ID if found, fallback to original
+        };
+
+        // Track conversion for summary logging
+        if (actualQuestionId && actualQuestionId !== rule.questionId) {
+          // Conversion successful - no need to log each one
+        }
+
+        return convertedRule;
+      })
+      .filter((rule) => {
+        // Only keep rules that have valid question IDs
+        const isValid = seededQuiz.questions?.some((q) => q.id === rule.questionId);
+        if (!isValid) {
+          // Invalid rule filtered out - no need to log each one
+        }
+        return isValid;
+      });
+  };
+
   const updatedEndings = analysisEnginePayload.endings.map((ending) => ({
     ...ending,
-    questionRules: ending.questionRules.map((rule) => ({
-      ...rule,
-      questionId: questionIdMap.get(rule.questionId) ?? rule.questionId, // Use actual question ID if found, fallback to original
-    })),
+    questionRules: convertEngineQuestionRules(ending.questionRules),
   }));
+
+  // Log conversion statistics for engine rules
+  const totalEngineRules = analysisEnginePayload.endings.reduce(
+    (sum, ending) => sum + ending.questionRules.length,
+    0,
+  );
+  const convertedEngineRules = updatedEndings.reduce(
+    (sum, ending) => sum + ending.questionRules.length,
+    0,
+  );
+  yield* Effect.log(
+    `Analysis engine rule conversion: ${convertedEngineRules}/${totalEngineRules} rules successfully mapped to quiz question UUIDs`,
+  );
 
   // Check if analysis engine already exists for this quiz version
   const existingEngines = yield* analysisEngineRepo.findAll();
@@ -161,13 +305,24 @@ const seedEffect = Effect.gen(function* () {
   let errorCount = 0;
   let analysisSuccessCount = 0;
   let analysisErrorCount = 0;
+  let conversionSuccessCount = 0;
+  let conversionTotalCount = 0;
   const typeformResponses: Array<QuizResponse> = [];
 
   for (const [index, responseData] of typeformResponseData.entries()) {
     try {
+      // Convert Typeform response question IDs to quiz question UUIDs using content matching
+      const convertedResponseData = convertTypeformResponseQuestionIds(responseData);
+
+      // Track conversion success
+      const originalAnswerCount = responseData.answers?.length || 0;
+      const convertedAnswerCount = convertedResponseData.answers?.length || 0;
+      conversionTotalCount += originalAnswerCount;
+      conversionSuccessCount += convertedAnswerCount;
+
       // Map the quizId from the Typeform data to the actual quiz ID
       const createResponsePayload = {
-        ...responseData,
+        ...convertedResponseData,
         quizId: seededQuiz.id, // Use the actual quiz ID from the seeded quiz
         interactionLogs: [], // Fix type mismatch by providing empty array
       };
@@ -211,6 +366,9 @@ const seedEffect = Effect.gen(function* () {
   yield* Effect.log(`Typeform response seeding completed!`);
   yield* Effect.log(`Successfully imported: ${successCount} responses`);
   yield* Effect.log(`Errors: ${errorCount} responses`);
+  yield* Effect.log(
+    `Question ID conversion: ${conversionSuccessCount}/${conversionTotalCount} answers successfully mapped to quiz question UUIDs`,
+  );
 
   // Create analysis results directly from Typeform data (using legacy artist type assignments)
   if (successCount > 0) {

@@ -20,6 +20,7 @@ import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as ExampleRouteImport } from './routes/example'
 import { Route as EnginesRouteImport } from './routes/engines'
+import { Route as ArtistTypesRouteImport } from './routes/artist-types'
 import { Route as AnalysisRouteImport } from './routes/analysis'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -76,6 +77,11 @@ const EnginesRoute = EnginesRouteImport.update({
   path: '/engines',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArtistTypesRoute = ArtistTypesRouteImport.update({
+  id: '/artist-types',
+  path: '/artist-types',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AnalysisRoute = AnalysisRouteImport.update({
   id: '/analysis',
   path: '/analysis',
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/analysis': typeof AnalysisRoute
+  '/artist-types': typeof ArtistTypesRoute
   '/engines': typeof EnginesRoute
   '/example': typeof ExampleRoute
   '/playground': typeof PlaygroundRoute
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/analysis': typeof AnalysisRoute
+  '/artist-types': typeof ArtistTypesRoute
   '/engines': typeof EnginesRoute
   '/example': typeof ExampleRoute
   '/playground': typeof PlaygroundRoute
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/analysis': typeof AnalysisRoute
+  '/artist-types': typeof ArtistTypesRoute
   '/engines': typeof EnginesRoute
   '/example': typeof ExampleRoute
   '/playground': typeof PlaygroundRoute
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/analysis'
+    | '/artist-types'
     | '/engines'
     | '/example'
     | '/playground'
@@ -198,6 +208,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/analysis'
+    | '/artist-types'
     | '/engines'
     | '/example'
     | '/playground'
@@ -216,6 +227,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/analysis'
+    | '/artist-types'
     | '/engines'
     | '/example'
     | '/playground'
@@ -235,6 +247,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   AnalysisRoute: typeof AnalysisRoute
+  ArtistTypesRoute: typeof ArtistTypesRoute
   EnginesRoute: typeof EnginesRoute
   ExampleRoute: typeof ExampleRoute
   PlaygroundRoute: typeof PlaygroundRoute
@@ -330,6 +343,13 @@ declare module '@tanstack/react-router' {
       path: '/engines'
       fullPath: '/engines'
       preLoaderRoute: typeof EnginesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/artist-types': {
+      id: '/artist-types'
+      path: '/artist-types'
+      fullPath: '/artist-types'
+      preLoaderRoute: typeof ArtistTypesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/analysis': {
@@ -438,6 +458,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   AnalysisRoute: AnalysisRoute,
+  ArtistTypesRoute: ArtistTypesRoute,
   EnginesRoute: EnginesRoute,
   ExampleRoute: ExampleRoute,
   PlaygroundRoute: PlaygroundRoute,

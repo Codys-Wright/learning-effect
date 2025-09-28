@@ -36,27 +36,30 @@ export function NavMain({
         <Sidebar.Menu>
           {items.map((item) => (
             <Sidebar.MenuItem key={item.title}>
-              <Sidebar.MenuButton
-                tooltip={item.tooltip ?? item.title}
-                className={
-                  item.disabled === true ? "opacity-50 cursor-not-allowed pointer-events-auto" : ""
-                }
-                onClick={
-                  item.disabled === true
-                    ? (e) => {
-                        e.preventDefault();
-                      }
-                    : undefined
-                }
-              >
-                {item.icon !== undefined && <item.icon />}
-                <span>{item.title}</span>
-                {item.disabled === true && item.tooltip === "Coming Soon!" && (
-                  <Badge variant="secondary" className="ml-auto text-xs">
-                    Coming Soon!
-                  </Badge>
-                )}
-              </Sidebar.MenuButton>
+              {item.disabled === true ? (
+                <Sidebar.MenuButton
+                  tooltip={item.tooltip ?? item.title}
+                  className="opacity-50 cursor-not-allowed pointer-events-auto"
+                  onClick={(e) => {
+                    e.preventDefault();
+                  }}
+                >
+                  {item.icon !== undefined && <item.icon />}
+                  <span>{item.title}</span>
+                  {item.tooltip === "Coming Soon!" && (
+                    <Badge variant="secondary" className="ml-auto text-xs">
+                      Coming Soon!
+                    </Badge>
+                  )}
+                </Sidebar.MenuButton>
+              ) : (
+                <Sidebar.MenuButton asChild tooltip={item.tooltip ?? item.title}>
+                  <a href={item.url}>
+                    {item.icon !== undefined && <item.icon />}
+                    <span>{item.title}</span>
+                  </a>
+                </Sidebar.MenuButton>
+              )}
             </Sidebar.MenuItem>
           ))}
         </Sidebar.Menu>

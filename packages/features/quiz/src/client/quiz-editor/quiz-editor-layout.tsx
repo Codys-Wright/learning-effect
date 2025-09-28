@@ -3,8 +3,13 @@
 import { Version } from "@core/domain";
 import { Atom, Result, useAtomSet, useAtomValue } from "@effect-atom/atom-react";
 import { BrowserKeyValueStore } from "@effect/platform-browser";
-import { type AnalysisEngine, type Question, type Quiz } from "@features/quiz/domain";
-import { Effect, Schema } from "effect";
+import {
+  type AnalysisEngine,
+  type Question,
+  type Quiz,
+  type ScoringConfig,
+} from "@features/quiz/domain";
+import { Config, Effect, Schema } from "effect";
 // Use the actual Result types from the atoms instead of importing platform types
 import {
   Badge,
@@ -60,7 +65,6 @@ import {
   enginesAtom,
 } from "../engines/engines-atoms.js";
 import { allAnalysisAtom, responsesAtom } from "../index.js";
-import { type AnalysisConfigOverrides } from "../quiz-taker/dev-panel.js";
 import {
   clearTempQuizzesAtom,
   createNewQuizVersionAtom,
@@ -150,27 +154,47 @@ const reanalysisDataAtom = Atom.kvs({
   defaultValue: () => null,
 });
 
-// Analysis config overrides atom for engine tweaks
-const AnalysisConfigSchema = Schema.Struct({
-  primaryPointValue: Schema.optional(Schema.Number),
-  secondaryPointValue: Schema.optional(Schema.Number),
-  primaryPointWeight: Schema.optional(Schema.Number),
-  secondaryPointWeight: Schema.optional(Schema.Number),
-  primaryDistanceFalloff: Schema.optional(Schema.Number),
-  secondaryDistanceFalloff: Schema.optional(Schema.Number),
-  beta: Schema.optional(Schema.Number),
-  primaryMinPoints: Schema.optional(Schema.Number),
-  secondaryMinPoints: Schema.optional(Schema.Number),
-  idealAnswerOverlay: Schema.optional(Schema.Boolean),
-  progressBarColors: Schema.optional(Schema.Boolean),
-});
-
+// Analysis config atom using the service's AnalysisConfig structure
 const analysisConfigAtom = Atom.kvs({
   runtime: localStorageRuntime,
   key: "quiz-editor-analysis-config",
-  schema: AnalysisConfigSchema,
-  defaultValue: () => ({}),
+  schema: Schema.Struct({
+    primaryPointValue: Schema.Number,
+    secondaryPointValue: Schema.Number,
+    primaryPointWeight: Schema.Number,
+    secondaryPointWeight: Schema.Number,
+    primaryDistanceFalloff: Schema.Number,
+    secondaryDistanceFalloff: Schema.Number,
+    beta: Schema.Number,
+    disableSecondaryPoints: Schema.Boolean,
+    primaryMinPoints: Schema.Number,
+    secondaryMinPoints: Schema.Number,
+    minPercentageThreshold: Schema.Number,
+    enableQuestionBreakdown: Schema.Boolean,
+    maxEndingResults: Schema.Number,
+  }),
+  defaultValue: () => ({
+    primaryPointValue: 10.0,
+    secondaryPointValue: 5.0,
+    primaryPointWeight: 1.0,
+    secondaryPointWeight: 1.0,
+    primaryDistanceFalloff: 0.1,
+    secondaryDistanceFalloff: 0.8,
+    beta: 1.0,
+    disableSecondaryPoints: false,
+    primaryMinPoints: 0.0,
+    secondaryMinPoints: 0.0,
+    minPercentageThreshold: 0.0,
+    enableQuestionBreakdown: true,
+    maxEndingResults: 10,
+  }),
 });
+
+// Combined type that includes ScoringConfig + UI settings
+type AnalysisConfigOverrides = ScoringConfig & {
+  idealAnswerOverlay: boolean;
+  progressBarColors: boolean;
+};
 
 const pendingRatingAtom = Atom.make<number | null>(null).pipe(Atom.keepAlive);
 const expectedNewVersionAtom = Atom.make<string | null>(null).pipe(Atom.keepAlive);
@@ -544,21 +568,6 @@ const ToggleControl: React.FC<{
   </div>
 );
 
-// Get default values for analysis config
-const getAnalysisDefaults = (): Partial<AnalysisConfigOverrides> => ({
-  primaryPointValue: 10.0, // Primary Point Value: 10
-  secondaryPointValue: 5.0, // Secondary Point: 5
-  primaryPointWeight: 1.0, // Primary Point Weight: 1
-  secondaryPointWeight: 1.0, // Secondary Point Weight: 1
-  primaryDistanceFalloff: 0.1, // Primary Distance Falloff % 10%
-  secondaryDistanceFalloff: 0.8, // Secondary Distance Falloff % 80%
-  beta: 1.0, // Beta: 1
-  primaryMinPoints: 0.0, // Primary Min Points: 0
-  secondaryMinPoints: 0.0, // Secondary Min Points: 0
-  idealAnswerOverlay: true,
-  progressBarColors: true,
-});
-
 // Engine Tweaks Component (for Analysis tab)
 const EngineTweaks: React.FC<{
   engines: ReadonlyArray<AnalysisEngine>;
@@ -566,26 +575,10 @@ const EngineTweaks: React.FC<{
   selectedArtistType: string;
   selectedEngineId: string;
 }> = ({ engines, onArtistTypeChange, selectedArtistType, selectedEngineId }) => {
-  const selectedEngine = engines.find((e) => e.id === selectedEngineId);
-  const analysisConfig = useAtomValue(analysisConfigAtom) as Partial<AnalysisConfigOverrides>;
+  const analysisConfig = useAtomValue(analysisConfigAtom);
   const setAnalysisConfig = useAtomSet(analysisConfigAtom);
 
-  const defaults = getAnalysisDefaults();
-
-  const artistTypes = [
-    "visionary",
-    "consummate",
-    "analyzer",
-    "tech",
-    "entertainer",
-    "maverick",
-    "dreamer",
-    "feeler",
-    "tortured",
-    "solo",
-  ];
-
-  const updateConfig = (updates: Partial<AnalysisConfigOverrides>) => {
+  const updateConfig = (updates: Partial<typeof analysisConfig>) => {
     const newConfig = {
       ...analysisConfig,
       ...updates,
@@ -594,15 +587,29 @@ const EngineTweaks: React.FC<{
   };
 
   const resetToDefaults = () => {
-    setAnalysisConfig({});
+    setAnalysisConfig({
+      primaryPointValue: 10.0,
+      secondaryPointValue: 5.0,
+      primaryPointWeight: 1.0,
+      secondaryPointWeight: 1.0,
+      primaryDistanceFalloff: 0.1,
+      secondaryDistanceFalloff: 0.8,
+      beta: 1.0,
+      disableSecondaryPoints: false,
+      primaryMinPoints: 0.0,
+      secondaryMinPoints: 0.0,
+      minPercentageThreshold: 0.0,
+      enableQuestionBreakdown: true,
+      maxEndingResults: 10,
+    });
   };
 
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between p-3 border-b border-border/50">
         <div>
-          <h3 className="text-sm font-medium">Engine Tweaks</h3>
-          <p className="text-xs text-muted-foreground mt-1">Adjust analysis engine settings</p>
+          <h3 className="text-sm font-medium">Analysis Config</h3>
+          <p className="text-xs text-muted-foreground mt-1">Adjust analysis parameters</p>
         </div>
         <Button size="sm" variant="ghost" onClick={resetToDefaults} title="Reset to defaults">
           <RotateCcwIcon className="h-3 w-3" />
@@ -611,50 +618,6 @@ const EngineTweaks: React.FC<{
 
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-4">
-          {/* Engine Info */}
-          {selectedEngine !== undefined && (
-            <Card className="p-3">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <SlidersIcon className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Current Engine</span>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  <div>{selectedEngine.name}</div>
-                  <div>Version: {selectedEngine.version.semver}</div>
-                  <div className="flex items-center gap-1 mt-1">
-                    <Badge
-                      variant={selectedEngine.isTemp ? "secondary" : "default"}
-                      className="text-xs"
-                    >
-                      {selectedEngine.isTemp ? "Draft" : "Published"}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {/* Artist Type Selector */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Focus Artist Type</Label>
-            <Select value={selectedArtistType} onValueChange={onArtistTypeChange}>
-              <Select.Trigger className="w-full">
-                <Select.Value />
-              </Select.Trigger>
-              <Select.Content>
-                {artistTypes.map((type) => (
-                  <Select.Item key={type} value={type}>
-                    <div className="flex items-center gap-2">
-                      <ArtistIcon artistType={type} size={16} />
-                      <span className="capitalize">{type}</span>
-                    </div>
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select>
-          </div>
-
           {/* Analysis Configuration */}
           <Tabs defaultValue="scoring" className="w-full">
             <Tabs.List className="grid w-full grid-cols-2">
@@ -662,81 +625,95 @@ const EngineTweaks: React.FC<{
               <Tabs.Trigger value="ui">UI</Tabs.Trigger>
             </Tabs.List>
 
-            <Tabs.Content value="scoring" className="mt-4 space-y-4">
-              <NumberInput
-                description="Base points awarded for perfect primary ideal answers"
-                label="Primary Point Value"
-                max={50}
-                min={1}
-                onChange={(value) => {
-                  updateConfig({ primaryPointValue: value });
-                }}
-                step={1}
-                value={analysisConfig.primaryPointValue ?? defaults.primaryPointValue ?? 1.5}
-              />
-              <NumberInput
-                description="Base points awarded for perfect secondary ideal answers"
-                label="Secondary Point Value"
-                max={50}
-                min={1}
-                onChange={(value) => {
-                  updateConfig({ secondaryPointValue: value });
-                }}
-                step={1}
-                value={analysisConfig.secondaryPointValue ?? defaults.secondaryPointValue ?? 0.2}
-              />
-              <NumberInput
-                description="Multiplier for primary questions (most important questions)"
-                label="Primary Point Weight"
-                max={3}
-                min={0.1}
-                onChange={(value) => {
-                  updateConfig({ primaryPointWeight: value });
-                }}
-                step={0.1}
-                value={analysisConfig.primaryPointWeight ?? defaults.primaryPointWeight ?? 1.6}
-              />
-              <NumberInput
-                description="Multiplier for secondary questions (supporting questions)"
-                label="Secondary Point Weight"
-                max={3}
-                min={0.1}
-                onChange={(value) => {
-                  updateConfig({ secondaryPointWeight: value });
-                }}
-                step={0.1}
-                value={analysisConfig.secondaryPointWeight ?? defaults.secondaryPointWeight ?? 1.4}
-              />
-              <NumberInput
-                description="Higher number separates the high percentages from the lower ones on the graph visually to reveal a more distinct winner"
-                label="Beta"
-                max={5}
-                min={0.1}
-                onChange={(value) => {
-                  updateConfig({ beta: value });
-                }}
-                step={0.1}
-                value={analysisConfig.beta ?? defaults.beta ?? 1.4}
-              />
+            <Tabs.Content value="scoring" className="mt-4 h-full">
+              <ScrollArea className="h-full">
+                <div className="space-y-4 pr-4">
+                  <NumberInput
+                    description="Base points awarded for perfect primary ideal answers"
+                    label="Primary Point Value"
+                    max={50}
+                    min={0}
+                    onChange={(value) => {
+                      updateConfig({ primaryPointValue: value });
+                    }}
+                    step={1}
+                    value={analysisConfig.primaryPointValue}
+                  />
+                  <NumberInput
+                    description="Base points awarded for perfect secondary ideal answers"
+                    label="Secondary Point Value"
+                    max={50}
+                    min={0}
+                    onChange={(value) => {
+                      updateConfig({ secondaryPointValue: value });
+                    }}
+                    step={1}
+                    value={analysisConfig.secondaryPointValue}
+                  />
+                  <NumberInput
+                    description="Multiplier for primary questions (most important questions)"
+                    label="Primary Point Weight"
+                    max={3}
+                    min={0}
+                    onChange={(value) => {
+                      updateConfig({ primaryPointWeight: value });
+                    }}
+                    step={0.1}
+                    value={analysisConfig.primaryPointWeight}
+                  />
+                  <NumberInput
+                    description="Multiplier for secondary questions (supporting questions)"
+                    label="Secondary Point Weight"
+                    max={3}
+                    min={0}
+                    onChange={(value) => {
+                      updateConfig({ secondaryPointWeight: value });
+                    }}
+                    step={0.1}
+                    value={analysisConfig.secondaryPointWeight}
+                  />
+                  <NumberInput
+                    description="Percentage of points lost per step away from ideal answers. 0% = only exact matches get points, 100% = lose all points after 1 step"
+                    label="Primary Distance Falloff (%)"
+                    max={100}
+                    min={0}
+                    onChange={(value) => {
+                      updateConfig({ primaryDistanceFalloff: value / 100 });
+                    }}
+                    step={5}
+                    value={Math.round(analysisConfig.primaryDistanceFalloff * 100)}
+                  />
+                  <NumberInput
+                    description="Percentage of points lost per step away from ideal answers. 0% = only exact matches get points, 100% = lose all points after 1 step"
+                    label="Secondary Distance Falloff (%)"
+                    max={100}
+                    min={0}
+                    onChange={(value) => {
+                      updateConfig({ secondaryDistanceFalloff: value / 100 });
+                    }}
+                    step={5}
+                    value={Math.round(analysisConfig.secondaryDistanceFalloff * 100)}
+                  />
+                </div>
+              </ScrollArea>
             </Tabs.Content>
 
-            <Tabs.Content value="ui" className="mt-4 space-y-4">
-              <ToggleControl
-                label="Ideal Answer Overlay"
-                description="Show ideal answer dots and bars on question cards"
-                value={analysisConfig.idealAnswerOverlay ?? defaults.idealAnswerOverlay ?? true}
-                onChange={(value) => {
-                  updateConfig({ idealAnswerOverlay: value });
-                }}
-              />
-              <ToggleControl
-                label="Progress Bar Colors"
-                description="Color progress bar segments by artist type"
-                value={analysisConfig.progressBarColors ?? defaults.progressBarColors ?? true}
-                onChange={(value) => {
-                  updateConfig({ progressBarColors: value });
-                }}
-              />
+            <Tabs.Content value="ui" className="mt-4 h-full">
+              <ScrollArea className="h-full">
+                <div className="space-y-4 pr-4">
+                  <NumberInput
+                    description="Higher number separates the high percentages from the lower ones on the graph visually to reveal a more distinct winner"
+                    label="Beta"
+                    max={5}
+                    min={0.1}
+                    onChange={(value) => {
+                      updateConfig({ beta: value });
+                    }}
+                    step={0.1}
+                    value={analysisConfig.beta}
+                  />
+                </div>
+              </ScrollArea>
             </Tabs.Content>
           </Tabs>
         </div>
@@ -888,8 +865,6 @@ const TopBar: React.FC<{
       <div className="flex items-center gap-4 p-4 border-b border-border/50 bg-card/50">
         <div className="flex items-center gap-2">
           <AdminSidebarToggle />
-          <EditIcon className="h-5 w-5" />
-          <h1 className="text-xl font-semibold">Quiz Editor</h1>
         </div>
 
         <div className="flex items-center gap-6 flex-1">
@@ -897,7 +872,7 @@ const TopBar: React.FC<{
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-muted-foreground">Version:</span>
             <Select value={selectedQuizId} onValueChange={onQuizChange}>
-              <Select.Trigger className="w-40">
+              <Select.Trigger className="w-60">
                 <Select.Value placeholder="Select version">
                   {selectedQuiz !== undefined && (
                     <div className="flex items-center gap-1.5">
@@ -947,7 +922,7 @@ const TopBar: React.FC<{
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-muted-foreground">Artist Type:</span>
             <Select value={selectedArtistType} onValueChange={onArtistTypeChange}>
-              <Select.Trigger className="w-48">
+              <Select.Trigger className="w-36">
                 <Select.Value>
                   <div className="flex items-center gap-2">
                     <ArtistIcon artistType={selectedArtistType} size={16} />
@@ -1382,16 +1357,6 @@ const RightSidebar: React.FC<{
 }) => {
   const sidebarView = useAtomValue(rightSidebarViewAtom);
   const setSidebarView = useAtomSet(rightSidebarViewAtom);
-  const leftSidebarView = useAtomValue(leftSidebarViewAtom);
-
-  // Auto-switch right sidebar based on left sidebar selection
-  React.useEffect(() => {
-    if (leftSidebarView === "quiz" && sidebarView !== "inspector") {
-      setSidebarView("inspector");
-    } else if (leftSidebarView === "analysis" && sidebarView !== "graphs") {
-      setSidebarView("graphs");
-    }
-  }, [leftSidebarView, sidebarView, setSidebarView]);
 
   return (
     <div className="flex h-full flex-col border-l border-border/50">
@@ -1762,11 +1727,24 @@ const ArtistTypeComparison: React.FC<{
       return {};
     }
 
+    // Create endingId to fullName mapping
+    const endingIdToFullName: Record<string, string> = {};
+    Object.keys(endingNameToArtistType).forEach((fullName) => {
+      const endingId = fullName.toLowerCase().replace(/\s+/g, "-");
+      endingIdToFullName[endingId] = fullName;
+    });
+
     const counts: Record<string, number> = {};
     reanalysisData.forEach((item) => {
-      // Convert type back to proper case
-      const artistType = item.type.charAt(0).toUpperCase() + item.type.slice(1);
-      counts[artistType] = item.count;
+      // Convert from database ID format (the-dreamer-artist) to artist type (Dreamer)
+      const endingId = item.type.toLowerCase();
+      const fullName = endingIdToFullName[endingId];
+      if (fullName) {
+        const artistType = endingNameToArtistType[fullName];
+        if (artistType) {
+          counts[artistType] = item.count;
+        }
+      }
     });
 
     return counts;
@@ -1866,6 +1844,10 @@ const SidebarGraphsView: React.FC<{
   const setReanalysisData = useAtomSet(reanalysisDataAtom);
   const [isAnalyzing, setIsAnalyzing] = React.useState(false);
 
+  // Get analysis config from the left panel
+  const analysisConfig = useAtomValue(analysisConfigAtom);
+  const reanalysisData = useAtomValue(reanalysisDataAtom);
+
   // Shared reanalyze function that can be used by both components
   const handleReanalyze = React.useCallback(async () => {
     if (
@@ -1880,6 +1862,7 @@ const SidebarGraphsView: React.FC<{
       return;
     }
 
+    console.log("✅ Starting analysis...");
     setIsAnalyzing(true);
 
     try {
@@ -1904,6 +1887,9 @@ const SidebarGraphsView: React.FC<{
       const responses = allResponses.filter((response) => artistTypeQuizIds.has(response.quizId));
 
       const artistTypeCounts: Record<string, number> = {};
+
+      // Log config once at the start
+      console.log("🔧 Analysis Config:", analysisConfig);
 
       // Create a function to map old response question IDs to current quiz question IDs
       const mapResponseToCurrentQuiz = (response: (typeof responses)[0]) => {
@@ -1936,48 +1922,65 @@ const SidebarGraphsView: React.FC<{
         };
       };
 
-      // For each response, map it to current quiz structure and analyze
+      // Process each response using the local analysis function
       for (const response of responses) {
         try {
-          // Map the response to use selected quiz question IDs
-          const mappedResponse = mapResponseToCurrentQuiz(response);
-          if (mappedResponse === null) {
+          if (selectedEngine === undefined) {
             continue;
           }
 
-          // Use the actual AnalysisService to analyze this mapped response
-          const analysisResult = await Effect.runPromise(
-            Effect.provide(
-              AnalysisService.pipe(
-                Effect.flatMap((service) =>
-                  service.analyzeResponse(selectedEngine, selectedQuiz, mappedResponse),
+          // Use AnalysisService directly like the working Typeform analysis
+          try {
+            const analysisResult = Effect.runSync(
+              Effect.provide(
+                AnalysisService.pipe(
+                  Effect.flatMap((service) =>
+                    service.analyzeResponse(
+                      selectedEngine,
+                      selectedQuiz,
+                      response,
+                      Config.succeed(analysisConfig),
+                    ),
+                  ),
                 ),
+                AnalysisService.Default,
               ),
-              AnalysisService.Default,
-            ),
-          );
-
-          // Find the winning artist type (highest points)
-          if (analysisResult.endingResults.length > 0) {
-            const winningResult = analysisResult.endingResults.reduce((winner, current) =>
-              current.points > winner.points ? current : winner,
             );
 
-            // Map endingId to full name, then to artist type
-            const endingIdToFullName: Record<string, string> = {};
-            Object.keys(endingNameToArtistType).forEach((fullName) => {
-              const endingId = fullName.toLowerCase().replace(/\s+/g, "-");
-              endingIdToFullName[endingId] = fullName;
-            });
+            // Transform the analysis result to the expected format
+            const analysisResults = (analysisResult.endingResults ?? []).map((result: any) => ({
+              artistType: endingNameToArtistType[result.endingId] ?? result.endingId,
+              percentage: result.percentage,
+              points: result.points,
+              fullName: result.endingId,
+              databaseId: result.endingId,
+            }));
 
-            const fullName = endingIdToFullName[winningResult.endingId] ?? winningResult.endingId;
-            const artistType = endingNameToArtistType[fullName];
+            // Count the results - find the highest percentage result
+            if (analysisResults.length > 0) {
+              const winningResult = analysisResults.reduce((winner, current) =>
+                current.percentage > winner.percentage ? current : winner,
+              );
 
-            if (artistType !== undefined) {
-              artistTypeCounts[artistType] = (artistTypeCounts[artistType] ?? 0) + 1;
+              // Check if all results have 0 points - this indicates an analysis error
+              const allResultsHaveZeroPoints = analysisResults.every(
+                (result) => result.points === 0,
+              );
+              if (allResultsHaveZeroPoints) {
+                throw new Error(
+                  `Analysis failed: All results have 0 points. This indicates a problem with the analysis engine or question matching. Response ID: ${response.id}`,
+                );
+              }
+
+              if (winningResult.artistType !== undefined) {
+                artistTypeCounts[winningResult.artistType] =
+                  (artistTypeCounts[winningResult.artistType] ?? 0) + 1;
+              }
             }
+          } catch (error) {
+            // Continue with other responses even if one fails
           }
-        } catch {
+        } catch (error) {
           // Continue with other responses even if one fails
         }
       }
@@ -1989,6 +1992,19 @@ const SidebarGraphsView: React.FC<{
         fill: artistColors[artistType as keyof typeof artistColors],
       }));
 
+      // Log analysis results and distribution
+      const totalResponses = responses.length;
+      const distribution = Object.entries(artistTypeCounts)
+        .sort(([, a], [, b]) => b - a)
+        .map(
+          ([type, count]) => `${type}: ${count} (${((count / totalResponses) * 100).toFixed(1)}%)`,
+        )
+        .join(", ");
+
+      console.log(
+        `📊 Analysis Complete: ${totalResponses} responses analyzed. Distribution: ${distribution}`,
+      );
+
       setReanalysisData([...chartData]); // Create mutable copy
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -1996,7 +2012,21 @@ const SidebarGraphsView: React.FC<{
     } finally {
       setIsAnalyzing(false);
     }
-  }, [responsesResult, quizzesResult, selectedEngine, selectedQuizId, setReanalysisData]);
+  }, [
+    responsesResult,
+    quizzesResult,
+    selectedEngine,
+    selectedQuizId,
+    setReanalysisData,
+    analysisConfig,
+  ]);
+
+  // Auto-reanalyze when config changes - DISABLED for now
+  // React.useEffect(() => {
+  //   if (Result.isSuccess(responsesResult) && Result.isSuccess(quizzesResult) && selectedEngine !== undefined) {
+  //     handleReanalyze();
+  //   }
+  // }, [analysisConfigOverrides, handleReanalyze, responsesResult, quizzesResult, selectedEngine]);
 
   if (selectedEngine === undefined) {
     return (
@@ -2042,6 +2072,7 @@ const SidebarGraphsView: React.FC<{
 export const QuizEditorLayout: React.FC = () => {
   const quizzesResult = useAtomValue(quizzesAtom);
   const enginesResult = useAtomValue(enginesAtom);
+  const responsesResult = useAtomValue(responsesAtom);
 
   // Atom-based state for selections
   const selectedQuizId = useAtomValue(selectedQuizIdAtom);

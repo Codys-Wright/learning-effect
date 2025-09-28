@@ -11,7 +11,7 @@ const createEndingIdToFullNameMapping = (): Record<string, string> => {
 
   // Create the reverse mapping from the existing endingNameToArtistType
   Object.keys(endingNameToArtistType).forEach((fullName) => {
-    // Convert "The Visionary Artist" to "the-visionary-artist"
+    // Convert "The Visionary Artist" to "the-visionary-artist" (same as analysis engine)
     const endingId = fullName.toLowerCase().replace(/\s+/g, "-");
     mapping[endingId] = fullName;
   });
@@ -30,144 +30,31 @@ const convertResponsesToServiceFormat = (
   }));
 };
 
-// Create a mock analysis engine for local analysis using actual quiz questions
-const createMockAnalysisEngine = (quiz: Quiz): AnalysisEngine => {
-  const questions = quiz.questions ?? [];
-
-  // Create question rules based on the actual quiz questions
-  // For now, we'll create a simple mapping based on question order
-  const createQuestionRules = (
-    questionIndex: number,
-    idealAnswers: Array<number>,
-    isPrimary: boolean,
-  ) => {
-    const question = questions[questionIndex];
-    return question !== undefined ? { questionId: question.id, idealAnswers, isPrimary } : null;
-  };
-
-  return {
-    id: "local-analysis-engine" as AnalysisEngine["id"],
-    slug: "local-analysis" as AnalysisEngine["slug"],
-    version: "1.0.0" as AnalysisEngine["version"],
-    name: "Local Analysis Engine",
-    description: "Local analysis for real-time preview",
-    scoringConfig: {
-      primaryWeight: 1.5,
-      nonPrimaryWeight: 0.2,
-      distanceGamma: 1.6,
-      beta: 1.4,
-      scoreMultiplier: 1.0,
-    },
-    endings: [
-      {
-        endingId: "the-visionary-artist",
-        name: "The Visionary Artist",
-        questionRules: [
-          createQuestionRules(0, [9, 10], true),
-          createQuestionRules(1, [8, 9, 10], false),
-        ].filter((rule): rule is NonNullable<typeof rule> => rule !== null),
-      },
-      {
-        endingId: "the-consummate-artist",
-        name: "The Consummate Artist",
-        questionRules: [
-          createQuestionRules(0, [7, 8, 9], true),
-          createQuestionRules(1, [6, 7, 8], false),
-        ].filter((rule): rule is NonNullable<typeof rule> => rule !== null),
-      },
-      {
-        endingId: "the-analyzer-artist",
-        name: "The Analyzer Artist",
-        questionRules: [
-          createQuestionRules(0, [6, 7, 8], true),
-          createQuestionRules(1, [5, 6, 7], false),
-        ].filter((rule): rule is NonNullable<typeof rule> => rule !== null),
-      },
-      {
-        endingId: "the-tech-artist",
-        name: "The Tech Artist",
-        questionRules: [
-          createQuestionRules(0, [7, 8, 9], true),
-          createQuestionRules(1, [6, 7, 8], false),
-        ].filter((rule): rule is NonNullable<typeof rule> => rule !== null),
-      },
-      {
-        endingId: "the-entertainer-artist",
-        name: "The Entertainer Artist",
-        questionRules: [
-          createQuestionRules(0, [8, 9, 10], true),
-          createQuestionRules(1, [7, 8, 9], false),
-        ].filter((rule): rule is NonNullable<typeof rule> => rule !== null),
-      },
-      {
-        endingId: "the-maverick-artist",
-        name: "The Maverick Artist",
-        questionRules: [
-          createQuestionRules(0, [9, 10], true),
-          createQuestionRules(1, [8, 9, 10], false),
-        ].filter((rule): rule is NonNullable<typeof rule> => rule !== null),
-      },
-      {
-        endingId: "the-dreamer-artist",
-        name: "The Dreamer Artist",
-        questionRules: [
-          createQuestionRules(0, [7, 8, 9], true),
-          createQuestionRules(1, [6, 7, 8], false),
-        ].filter((rule): rule is NonNullable<typeof rule> => rule !== null),
-      },
-      {
-        endingId: "the-feeler-artist",
-        name: "The Feeler Artist",
-        questionRules: [
-          createQuestionRules(0, [6, 7, 8], true),
-          createQuestionRules(1, [5, 6, 7], false),
-        ].filter((rule): rule is NonNullable<typeof rule> => rule !== null),
-      },
-      {
-        endingId: "the-tortured-artist",
-        name: "The Tortured Artist",
-        questionRules: [
-          createQuestionRules(0, [8, 9, 10], true),
-          createQuestionRules(1, [7, 8, 9], false),
-        ].filter((rule): rule is NonNullable<typeof rule> => rule !== null),
-      },
-      {
-        endingId: "the-solo-artist",
-        name: "The Solo Artist",
-        questionRules: [
-          createQuestionRules(0, [5, 6, 7], true),
-          createQuestionRules(1, [4, 5, 6], false),
-        ].filter((rule): rule is NonNullable<typeof rule> => rule !== null),
-      },
-    ],
-    isActive: true,
-    createdAt: Effect.runSync(DateTime.now),
-    updatedAt: Effect.runSync(DateTime.now),
-    deletedAt: null,
-  };
-};
-
 // Transform local analysis results to ArtistData format
 const transformLocalAnalysisToArtistData = (
   results: Array<{ endingId: string; points: number; percentage: number }>,
 ): Array<ArtistData> => {
   const endingIdToFullName = createEndingIdToFullNameMapping();
 
-  return results.map((result) => {
+  const transformed = results.map((result) => {
     // Get the full name from the endingId
     const fullName = endingIdToFullName[result.endingId];
 
     // Now map to artist type using the existing mapping
     const artistType = fullName !== undefined ? endingNameToArtistType[fullName] : result.endingId;
 
-    return {
+    const transformedResult = {
       artistType: artistType ?? result.endingId,
       percentage: result.percentage,
       points: result.points,
       fullName: fullName ?? result.endingId,
       databaseId: result.endingId,
     };
+
+    return transformedResult;
   });
+
+  return transformed;
 };
 
 // Create a custom config from dev overrides
@@ -241,16 +128,14 @@ export const performLocalAnalysis = (
     deletedAt: null,
   };
 
-  // Use provided engine or fall back to mock engine
-  const analysisEngine = engine ?? createMockAnalysisEngine(quiz);
+  if (engine === undefined) {
+    throw new Error("Analysis engine is required for local analysis");
+  }
+  const analysisEngine = engine;
 
-  // Debug logging removed for production
-
-  // Create custom config if overrides are provided
   const customConfig =
     configOverrides !== undefined ? createCustomConfig(configOverrides) : undefined;
 
-  // Use the analysis service to perform the analysis
   const analysisResult = Effect.runSync(
     Effect.provide(
       AnalysisService.pipe(
@@ -262,16 +147,21 @@ export const performLocalAnalysis = (
     ),
   );
 
-  // Debug logging removed for production
-
   // Transform the analysis result to ArtistData format
-  const artistData = transformLocalAnalysisToArtistData(
-    analysisResult.endingResults.map((result) => ({
-      endingId: result.endingId,
-      points: result.points,
-      percentage: result.percentage,
-    })),
-  );
+  const mappedResults = ((analysisResult as any).endingResults ?? []).map((result: any) => ({
+    endingId: result.endingId,
+    points: result.points,
+    percentage: result.percentage,
+  }));
+
+  const artistData = transformLocalAnalysisToArtistData(mappedResults);
+
+  // Log artist type distribution summary
+  const distribution = artistData
+    .sort((a, b) => b.percentage - a.percentage)
+    .map((item) => `${item.artistType}: ${item.percentage.toFixed(1)}%`)
+    .join(", ");
+  console.log("🎨 Artist Type Distribution:", distribution);
 
   return artistData;
 };

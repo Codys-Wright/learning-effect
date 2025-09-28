@@ -78,23 +78,25 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
   {
     accessors: true,
     effect: Effect.sync(() => {
-      // Build question index map for efficient lookup
-      const buildQuestionIndexMap = (questions: ReadonlyArray<Question>) =>
-        Effect.sync(() =>
-          questions.reduce(
-            (map, question, index) => {
-              // Map by question ID since seed script now maps content to actual IDs
-              map[question.id] = String(index + 1);
-              return map;
-            },
-            {} as Record<string, string>,
-          ),
-        );
+      // No need for question index mapping since we're using UUIDs directly
+
+      // Responses should already have correct question UUIDs from the seed script
+      // No conversion needed - just return the responses as-is
+      const convertResponseQuestionIds = (
+        responses: ReadonlyArray<QuestionResponse>,
+        questions: ReadonlyArray<Question>,
+      ) =>
+        Effect.sync(() => {
+          // Filter out any responses that don't have valid question IDs
+          return responses.filter((response) => {
+            const existingQuizQuestion = questions.find((q) => q.id === response.questionId);
+            return existingQuizQuestion !== undefined;
+          });
+        });
 
       // Compute points for a specific ending given responses and rules
       const computeEndingPoints = (
         responses: ReadonlyArray<QuestionResponse>,
-        questionIndexById: Record<string, string>,
         ending: EndingDefinition,
         scoringConfig: ScoringConfig = defaultScoringConfig,
         analysisConfig?: typeof AnalysisConfig,
@@ -102,6 +104,7 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
         Effect.gen(function* () {
           const runtimeConfig =
             analysisConfig !== undefined ? yield* analysisConfig : yield* AnalysisConfig;
+
           let totalPoints = 0;
           const questionBreakdown: Array<{
             questionId: string;
@@ -112,17 +115,21 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
             weight: number;
           }> = [];
 
+          let matchedRulesCount = 0;
+          let processedResponsesCount = 0;
+
           for (const response of responses) {
             // Only process numeric responses
             if (typeof response.value !== "number") continue;
+            processedResponsesCount++;
 
-            const indexKey = questionIndexById[response.questionId];
-            if (indexKey === undefined) continue;
-
+            // Since we're now using UUIDs directly, we need to match by UUID
             const rule = ending.questionRules.find((r) => r.questionId === response.questionId);
             if (rule === undefined) {
               continue;
             }
+
+            matchedRulesCount++;
 
             // Skip secondary points if disabled
             if (runtimeConfig.disableSecondaryPoints && !rule.isPrimary) {
@@ -136,16 +143,16 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
             }, Number.POSITIVE_INFINITY);
 
             // Get point value and weight based on question type
-            // Use scoringConfig values first, fallback to runtimeConfig for backwards compatibility
+            // Use runtimeConfig (passed config) first, fallback to scoringConfig for backwards compatibility
             const pointValue = rule.isPrimary
-              ? (scoringConfig.primaryPointValue ?? runtimeConfig.primaryPointValue)
-              : (scoringConfig.secondaryPointValue ?? runtimeConfig.secondaryPointValue);
+              ? (runtimeConfig.primaryPointValue ?? scoringConfig.primaryPointValue)
+              : (runtimeConfig.secondaryPointValue ?? scoringConfig.secondaryPointValue);
             const pointWeight = rule.isPrimary
-              ? (scoringConfig.primaryPointWeight ?? runtimeConfig.primaryPointWeight)
-              : (scoringConfig.secondaryPointWeight ?? runtimeConfig.secondaryPointWeight);
+              ? (runtimeConfig.primaryPointWeight ?? scoringConfig.primaryPointWeight)
+              : (runtimeConfig.secondaryPointWeight ?? scoringConfig.secondaryPointWeight);
             const distanceFalloff = rule.isPrimary
-              ? (scoringConfig.primaryDistanceFalloff ?? runtimeConfig.primaryDistanceFalloff)
-              : (scoringConfig.secondaryDistanceFalloff ?? runtimeConfig.secondaryDistanceFalloff);
+              ? (runtimeConfig.primaryDistanceFalloff ?? scoringConfig.primaryDistanceFalloff)
+              : (runtimeConfig.secondaryDistanceFalloff ?? scoringConfig.secondaryDistanceFalloff);
 
             // Calculate points based on distance falloff
             // distanceFalloff represents the percentage of base points (pointValue * pointWeight) taken away per step
@@ -189,7 +196,6 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
       // Compute scores for all endings in an engine
       const computeAllEndingScores = (
         responses: ReadonlyArray<QuestionResponse>,
-        questionIndexById: Record<string, string>,
         engine: AnalysisEngine,
         analysisConfig?: typeof AnalysisConfig,
       ) =>
@@ -213,7 +219,6 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
           for (const ending of engine.endings) {
             const { questionBreakdown, totalPoints } = yield* computeEndingPoints(
               responses,
-              questionIndexById,
               ending,
               engine.scoringConfig,
               analysisConfig,
@@ -227,8 +232,8 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
           }
 
           // Apply nonlinear amplification to sharpen winners (for visual purposes only)
-          // Use scoringConfig beta first, fallback to runtimeConfig for backwards compatibility
-          const beta = scoringConfig.beta ?? runtimeConfig.beta;
+          // Use engine.scoringConfig beta first, fallback to runtimeConfig for backwards compatibility
+          const beta = engine.scoringConfig.beta ?? runtimeConfig.beta;
           const scaled = rawResults.map((r) => Math.pow(r.points, beta));
           const scaledSum = scaled.reduce((sum, value) => sum + value, 0);
 
@@ -277,17 +282,19 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
         analysisConfig?: typeof AnalysisConfig,
       ) =>
         Effect.gen(function* () {
+          const runtimeConfig =
+            analysisConfig !== undefined ? yield* analysisConfig : yield* AnalysisConfig;
+
           // Extract responses and questions
           const responses = response.answers ?? [];
           const questions = quiz.questions ?? [];
 
-          // Build question index map
-          const questionIndexById = yield* buildQuestionIndexMap(questions);
+          // Convert response question IDs to match quiz question order
+          const convertedResponses = yield* convertResponseQuestionIds(responses, questions);
 
           // Compute all ending scores
           const endingResults = yield* computeAllEndingScores(
-            responses,
-            questionIndexById,
+            convertedResponses,
             engine,
             analysisConfig,
           );
@@ -298,7 +305,6 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
           // Create analysis result (without database-managed fields)
           const analysisResult = {
             engineId: engine.id,
-            engineSlug: engine.slug,
             engineVersion: engine.version,
             responseId: response.id,
             endingResults,
@@ -424,7 +430,6 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
 
           return {
             engineId: firstResult.engineId,
-            engineSlug: firstResult.engineSlug,
             engineVersion: firstResult.engineVersion,
             totalResponses: analysisResults.length,
             endingDistribution: distribution,
@@ -433,7 +438,7 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
         });
 
       return {
-        buildQuestionIndexMap,
+        convertResponseQuestionIds,
         computeEndingPoints,
         computeAllEndingScores,
         analyzeResponse,

@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 
 type TypeformResponse = {
   id: string;
-  answers: Array<{ questionId: string; value: number }>;
+  answers: Array<{ questionId: string; value: number; questionContent: string }>;
   artistType: string;
   legacyAnalysis: {
     primaryArtistType: string | null;
@@ -154,7 +154,7 @@ Effect.runSync(Effect.log("Sample record keys:", Object.keys(records[0] ?? {})))
 records.forEach((record, index: number) => {
   const typedRecord = record as Record<string, string>;
   const responseId = `typeform-${index + 1}`;
-  const answers: Array<{ questionId: string; value: number }> = [];
+  const answers: Array<{ questionId: string; value: number; questionContent: string }> = [];
 
   // Process each column (question)
   Object.entries(typedRecord).forEach(([columnName, value]) => {
@@ -172,6 +172,7 @@ records.forEach((record, index: number) => {
         answers.push({
           questionId: questionId.toString(),
           value: numericValue,
+          questionContent: columnName, // Include the original question content
         });
       }
     } else if (index === 0) {
