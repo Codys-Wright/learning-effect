@@ -269,8 +269,8 @@ const defaultDevConfig: AnalysisConfigOverrides = {
   primaryPointWeight: 1.0, // Primary Point Weight: 1
   secondaryPointWeight: 1.0, // Secondary Point Weight: 1
   primaryDistanceFalloff: 0.1, // Primary Distance Falloff % 10%
-  secondaryDistanceFalloff: 0.8, // Secondary Distance Falloff % 80%
-  beta: 1.0, // Beta: 1
+  secondaryDistanceFalloff: 0.5, // Secondary Distance Falloff % 50%
+  beta: 0.8, // Beta: 0.8
   primaryMinPoints: 0.0, // Primary Min Points: 0
   secondaryMinPoints: 0.0, // Secondary Min Points: 0
   idealAnswerOverlay: false,

@@ -53,12 +53,12 @@ export const defaultScoringConfig: ScoringConfig = {
   primaryPointWeight: 1.0, // Primary Point Weight: 1
   secondaryPointWeight: 1.0, // Secondary Point Weight: 1
   distanceGamma: 1.0, // Distance falloff curve (simplified)
-  beta: 1.0, // Beta: 1
+  beta: 0.8, // Beta: 0.8
   scoreMultiplier: 1.0,
   primaryPointValue: 10.0, // Primary Point Value: 10
   secondaryPointValue: 5.0, // Secondary Point Value: 5
   primaryDistanceFalloff: 0.1, // Primary Distance Falloff %: 10%
-  secondaryDistanceFalloff: 0.8, // Secondary Distance Falloff %: 80%
+  secondaryDistanceFalloff: 0.5, // Secondary Distance Falloff %: 50%
 };
 
 // ============================================================================

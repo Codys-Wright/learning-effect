@@ -10,8 +10,9 @@ import {
   ResponsesTable,
   ResponseStatsCards,
 } from "@features/quiz/client";
-import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
-import { SidebarInset, SidebarProvider } from "@ui/shadcn";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
+import { Button, SidebarInset, SidebarProvider } from "@ui/shadcn";
+import { ChevronLeftIcon, ChevronRightIcon, EditIcon } from "lucide-react";
 import React from "react";
 
 const AdminLayout: React.FC = () => {
@@ -51,16 +52,41 @@ const AdminLayout: React.FC = () => {
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div
-              className={`flex flex-col gap-4 ${!isQuizEditorRoute ? "py-4 md:py-6" : ""} md:gap-6`}
+              className={`flex flex-col gap-4 ${!isQuizEditorRoute ? "py-4 md:py-6" : ""} md:gap-6 relative`}
             >
               {!isQuizEditorRoute && (
                 <>
-                  <div className="px-4 lg:px-6">
-                    <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
-                  </div>
+                  {/* Sidebar Toggle Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSidebarOpen(!sidebarOpen);
+                    }}
+                    className="absolute top-4 left-4 z-10 h-8 w-8 p-0"
+                    title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+                  >
+                    {sidebarOpen ? (
+                      <ChevronLeftIcon className="h-4 w-4" />
+                    ) : (
+                      <ChevronRightIcon className="h-4 w-4" />
+                    )}
+                  </Button>
 
+                  {/* Go To Editor Button */}
+                  <Link to="/admin/quiz-editor">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="absolute top-4 right-4 z-10 h-8 px-3"
+                      title="Go to Quiz Editor"
+                    >
+                      <EditIcon className="h-4 w-4 mr-2" />
+                      Go To Editor
+                    </Button>
+                  </Link>
                   {/* Response Statistics */}
-                  <div className="px-4 lg:px-6">
+                  <div className="px-4 lg:px-6 pt-12">
                     <h2 className="text-xl font-semibold mb-4">Response Statistics</h2>
                     <ResponseStatsCards responsesResult={responsesResult} />
                   </div>

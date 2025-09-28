@@ -37,11 +37,9 @@ import {
   BarChart3Icon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  EditIcon,
   GitBranchIcon,
   HelpCircleIcon,
   PlayIcon,
-  PlusIcon,
   RotateCcwIcon,
   SaveIcon,
   SettingsIcon,
@@ -179,8 +177,8 @@ const analysisConfigAtom = Atom.kvs({
     primaryPointWeight: 1.0,
     secondaryPointWeight: 1.0,
     primaryDistanceFalloff: 0.1,
-    secondaryDistanceFalloff: 0.8,
-    beta: 1.0,
+    secondaryDistanceFalloff: 0.5,
+    beta: 0.8,
     disableSecondaryPoints: false,
     primaryMinPoints: 0.0,
     secondaryMinPoints: 0.0,
@@ -477,13 +475,6 @@ const QuestionList: React.FC<{
 }> = ({ onAddQuestion, onSelectQuestion, questions, selectedIndex }) => {
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between p-3 border-b border-border/50">
-        <h3 className="text-sm font-medium">Questions</h3>
-        <Button variant="ghost" size="sm" onClick={onAddQuestion} className="h-6 w-6 p-0">
-          <PlusIcon className="h-3 w-3" />
-        </Button>
-      </div>
-
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
           {questions.map((question, index) => (
@@ -495,20 +486,26 @@ const QuestionList: React.FC<{
               className={cn(
                 "w-full text-left p-2 rounded-md text-xs transition-colors",
                 "hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-ring/40",
-                selectedIndex === index ? "bg-primary text-primary-foreground" : "text-foreground",
+                selectedIndex === index
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "text-foreground",
               )}
             >
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded flex-shrink-0">
+              <div className="flex items-start gap-2 min-w-0">
+                <span
+                  className={cn(
+                    "text-xs font-mono px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5",
+                    selectedIndex === index
+                      ? "bg-primary-foreground text-primary"
+                      : "bg-muted text-foreground",
+                  )}
+                >
                   {index + 1}
                 </span>
-                <span className="truncate flex-1 min-w-0">{question.title}</span>
+                <span className="flex-1 min-w-0 text-xs leading-relaxed break-words">
+                  {question.title}
+                </span>
               </div>
-              {question.subtitle !== undefined && question.subtitle.length > 0 && (
-                <div className="text-xs text-muted-foreground mt-1 truncate">
-                  {question.subtitle}
-                </div>
-              )}
             </button>
           ))}
         </div>
@@ -593,8 +590,8 @@ const EngineTweaks: React.FC<{
       primaryPointWeight: 1.0,
       secondaryPointWeight: 1.0,
       primaryDistanceFalloff: 0.1,
-      secondaryDistanceFalloff: 0.8,
-      beta: 1.0,
+      secondaryDistanceFalloff: 0.5,
+      beta: 0.8,
       disableSecondaryPoints: false,
       primaryMinPoints: 0.0,
       secondaryMinPoints: 0.0,
@@ -1034,380 +1031,16 @@ const TopBar: React.FC<{
   );
 };
 
-// Right Inspector Panel
-const InspectorPanel: React.FC<{
-  idealAnswers: Array<{
-    endingId: string;
-    endingName: string;
-    idealAnswers: Array<number>;
-    isPrimary: boolean;
-  }>;
-  onToggleIdealAnswers: () => void;
-  onTogglePrimaryRule: (isPrimary: boolean) => void;
-  onUpdateIdealAnswer: (value: number) => void;
-  question: Question | undefined;
-  questionIndex: number;
-  selectedArtistType: string;
-  selectedValues: Array<number>;
-  showIdealAnswers: boolean;
-  totalQuestions: number;
-}> = ({
-  idealAnswers,
-  onToggleIdealAnswers,
-  onTogglePrimaryRule,
-  onUpdateIdealAnswer,
-  question,
-  questionIndex,
-  selectedArtistType,
-  selectedValues,
-  showIdealAnswers,
-  totalQuestions,
-}) => {
-  if (question === undefined) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center text-muted-foreground">
-          <EditIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>Select a question to edit</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex h-full flex-col border-l border-border/50">
-      <div className="flex items-center justify-between p-3 border-b border-border/50">
-        <h3 className="text-sm font-medium">Question Inspector</h3>
-        <Badge variant="outline" className="text-xs">
-          {questionIndex + 1} of {totalQuestions}
-        </Badge>
-      </div>
-
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-6">
-          {/* Question Details */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium">Question Details</h4>
-            <div className="space-y-2">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Title</label>
-                <input
-                  type="text"
-                  value={question.title}
-                  className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background"
-                  readOnly
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Subtitle</label>
-                <input
-                  type="text"
-                  value={question.subtitle ?? ""}
-                  className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background"
-                  readOnly
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Description</label>
-                <textarea
-                  value={question.description ?? ""}
-                  rows={3}
-                  className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background resize-none"
-                  readOnly
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Question Settings */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium">Question Settings</h4>
-            <div className="space-y-2">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Type</label>
-                <div className="px-3 py-2 text-sm border border-border rounded-md bg-muted">
-                  {question.data.type === "rating" ? "Rating Scale" : question.data.type}
-                </div>
-              </div>
-              {question.data.type === "rating" && (
-                <>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground">Min Rating</label>
-                    <input
-                      type="number"
-                      value={question.data.minRating}
-                      className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background"
-                      readOnly
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground">Max Rating</label>
-                    <input
-                      type="number"
-                      value={question.data.maxRating}
-                      className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background"
-                      readOnly
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground">
-                      Current Selection
-                    </label>
-                    <div className="px-3 py-2 text-sm border border-border rounded-md bg-muted">
-                      {"Selection from atom data"}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Artist Type Rules */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium">Artist Type Rules</h4>
-            <div className="space-y-2">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Current Type</label>
-                <div className="flex items-center gap-2 px-3 py-2 text-sm border border-border rounded-md bg-muted">
-                  <ArtistIcon artistType={selectedArtistType} size={16} />
-                  <span className="capitalize">{selectedArtistType}</span>
-                </div>
-              </div>
-
-              {/* Current Selection Display */}
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">
-                  Current Selection
-                </label>
-                <div className="px-3 py-2 text-sm border border-border rounded-md bg-muted">
-                  {selectedValues.length > 0 ? selectedValues.join(", ") : "None selected"}
-                </div>
-              </div>
-
-              {/* Quick Ideal Answer Input */}
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">
-                  Set Ideal Answer
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    min={question.data.type === "rating" ? question.data.minRating : 1}
-                    max={question.data.type === "rating" ? question.data.maxRating : 10}
-                    placeholder="Enter value"
-                    className="flex-1 px-3 py-2 text-sm border border-border rounded-md bg-background"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        const value = Number.parseInt(e.currentTarget.value);
-                        if (!Number.isNaN(value)) {
-                          onUpdateIdealAnswer(value);
-                          e.currentTarget.value = "";
-                        }
-                      }
-                    }}
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => {
-                      const input = e.currentTarget.parentElement?.querySelector("input");
-                      if (input !== null && input !== undefined) {
-                        const value = Number.parseInt(input.value);
-                        if (!Number.isNaN(value)) {
-                          onUpdateIdealAnswer(value);
-                          input.value = "";
-                        }
-                      }
-                    }}
-                  >
-                    Set
-                  </Button>
-                </div>
-              </div>
-
-              {/* Primary Rule Toggle */}
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-muted-foreground">Primary Rule</label>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant={
-                      idealAnswers.find(
-                        (a) => a.endingId === `the-${selectedArtistType.toLowerCase()}-artist`,
-                      )?.isPrimary === true
-                        ? "default"
-                        : "outline"
-                    }
-                    onClick={() => {
-                      const currentRule = idealAnswers.find(
-                        (a) => a.endingId === `the-${selectedArtistType.toLowerCase()}-artist`,
-                      );
-                      onTogglePrimaryRule(!(currentRule?.isPrimary === true));
-                    }}
-                    className="h-6 px-2 text-xs"
-                  >
-                    {idealAnswers.find(
-                      (a) => a.endingId === `the-${selectedArtistType.toLowerCase()}-artist`,
-                    )?.isPrimary === true
-                      ? "Primary"
-                      : "Secondary"}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Ideal Answers Info */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium">Ideal Answers</h4>
-            <div className="space-y-2">
-              {idealAnswers.length > 0 ? (
-                idealAnswers.map((answer, index) => (
-                  <div key={index} className="p-2 border border-border rounded-md bg-muted/50">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium capitalize">{answer.endingName}</span>
-                      {answer.isPrimary && (
-                        <Badge variant="secondary" className="text-xs">
-                          Primary
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Values: {answer.idealAnswers.join(", ")}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-xs text-muted-foreground p-2 border border-border rounded-md bg-muted/50">
-                  No ideal answers defined for this question
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Display Options */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium">Display Options</h4>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Show Ideal Answers
-                </label>
-                <Button
-                  variant={showIdealAnswers ? "default" : "outline"}
-                  size="sm"
-                  onClick={onToggleIdealAnswers}
-                  className="h-6 px-2 text-xs"
-                >
-                  {showIdealAnswers ? "ON" : "OFF"}
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="space-y-2">
-            <Button className="w-full" size="sm">
-              Save Changes
-            </Button>
-            <Button variant="outline" className="w-full" size="sm">
-              Reset
-            </Button>
-          </div>
-        </div>
-      </ScrollArea>
-    </div>
-  );
-};
-
-// Right Sidebar Component (Inspector + Graphs)
+// Right Sidebar Component (Graphs only)
 const RightSidebar: React.FC<{
   engines: ReadonlyArray<AnalysisEngine>;
-  idealAnswers: Array<{
-    endingId: string;
-    endingName: string;
-    idealAnswers: Array<number>;
-    isPrimary: boolean;
-  }>;
-  onToggleIdealAnswers: () => void;
-  onTogglePrimaryRule: (isPrimary: boolean) => void;
-  onUpdateIdealAnswer: (value: number) => void;
-  question: Question | undefined;
-  questionIndex: number;
   quiz: Quiz;
-  selectedArtistType: string;
   selectedEngineId: string;
-  selectedValues: Array<number>;
-  showIdealAnswers: boolean;
-  totalQuestions: number;
-}> = ({
-  engines,
-  idealAnswers,
-  onToggleIdealAnswers,
-  onTogglePrimaryRule,
-  onUpdateIdealAnswer,
-  question,
-  questionIndex,
-  quiz,
-  selectedArtistType,
-  selectedEngineId,
-  selectedValues,
-  showIdealAnswers,
-  totalQuestions,
-}) => {
-  const sidebarView = useAtomValue(rightSidebarViewAtom);
-  const setSidebarView = useAtomSet(rightSidebarViewAtom);
-
+}> = ({ engines, quiz, selectedEngineId }) => {
   return (
     <div className="flex h-full flex-col border-l border-border/50">
-      {/* Sidebar Header with View Switcher */}
-      <div className="flex items-center justify-between p-3 border-b border-border/50">
-        <h3 className="text-sm font-medium">
-          {sidebarView === "inspector" ? "Question Inspector" : "Analysis Graphs"}
-        </h3>
-        <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
-          <Button
-            variant={sidebarView === "inspector" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => {
-              setSidebarView("inspector");
-            }}
-            className="gap-1 h-6 px-2 text-xs"
-          >
-            <EditIcon className="h-3 w-3" />
-            Inspector
-          </Button>
-          <Button
-            variant={sidebarView === "graphs" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => {
-              setSidebarView("graphs");
-            }}
-            className="gap-1 h-6 px-2 text-xs"
-          >
-            <BarChart3Icon className="h-3 w-3" />
-            Graphs
-          </Button>
-        </div>
-      </div>
-
       {/* Sidebar Content */}
-      {sidebarView === "inspector" ? (
-        <InspectorPanel
-          idealAnswers={idealAnswers}
-          onToggleIdealAnswers={onToggleIdealAnswers}
-          onTogglePrimaryRule={onTogglePrimaryRule}
-          onUpdateIdealAnswer={onUpdateIdealAnswer}
-          question={question}
-          questionIndex={questionIndex}
-          selectedArtistType={selectedArtistType}
-          selectedValues={selectedValues}
-          showIdealAnswers={showIdealAnswers}
-          totalQuestions={totalQuestions}
-        />
-      ) : (
-        <SidebarGraphsView quiz={quiz} engines={engines} selectedEngineId={selectedEngineId} />
-      )}
+      <SidebarGraphsView quiz={quiz} engines={engines} selectedEngineId={selectedEngineId} />
     </div>
   );
 };
@@ -1589,13 +1222,20 @@ const ReanalysisChart: React.FC<{
   onReanalyze?: () => void;
   responsesResult: ReturnType<typeof responsesAtom.read>;
   selectedEngine: AnalysisEngine;
-}> = ({ isAnalyzing = false, onReanalyze, responsesResult }) => {
+}> = React.memo(({ isAnalyzing = false, onReanalyze, responsesResult }) => {
   const reanalysisData = useAtomValue(reanalysisDataAtom);
 
-  const totalReanalyzed = React.useMemo(() => {
-    if (reanalysisData === null) return 0;
-    return reanalysisData.reduce((sum, item) => sum + item.count, 0);
+  // Keep the last valid data during analysis
+  const [stableData, setStableData] = React.useState<typeof reanalysisData>(null);
+
+  React.useEffect(() => {
+    if (reanalysisData !== null) {
+      setStableData(reanalysisData);
+    }
   }, [reanalysisData]);
+
+  const displayData = isAnalyzing && stableData !== null ? stableData : reanalysisData;
+  const displayTotal = displayData ? displayData.reduce((sum, item) => sum + item.count, 0) : 0;
 
   return (
     <Card className="flex flex-col h-full">
@@ -1606,7 +1246,9 @@ const ReanalysisChart: React.FC<{
             <Card.Description className="text-xs">
               {reanalysisData === null
                 ? "Click to analyze all responses with current engine settings"
-                : "Fresh analysis results with current engine configuration"}
+                : isAnalyzing
+                  ? "Analyzing with current engine configuration..."
+                  : "Fresh analysis results with current engine configuration"}
             </Card.Description>
           </div>
           <Button
@@ -1623,11 +1265,7 @@ const ReanalysisChart: React.FC<{
         </div>
       </Card.Header>
       <Card.Content className="flex-1 pb-2">
-        {isAnalyzing ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-muted-foreground text-xs">Analyzing...</div>
-          </div>
-        ) : reanalysisData === null ? (
+        {displayData === null ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center text-muted-foreground">
               <PlayIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -1639,11 +1277,14 @@ const ReanalysisChart: React.FC<{
             <PieChart>
               <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
               <Pie
-                data={[...reanalysisData]}
+                data={[...displayData]}
                 dataKey="count"
                 nameKey="type"
                 innerRadius={40}
                 strokeWidth={3}
+                animationDuration={1600}
+                animationEasing="ease-out"
+                isAnimationActive={true}
               >
                 <LabelList
                   content={({ viewBox }) => {
@@ -1665,7 +1306,7 @@ const ReanalysisChart: React.FC<{
                             y={viewBox.cy}
                             className="fill-foreground text-xl font-bold"
                           >
-                            {totalReanalyzed.toLocaleString()}
+                            {displayTotal.toLocaleString()}
                           </tspan>
                           <tspan
                             x={viewBox.cx}
@@ -1687,7 +1328,7 @@ const ReanalysisChart: React.FC<{
       </Card.Content>
     </Card>
   );
-};
+});
 
 // Artist Type Comparison Component
 const ArtistTypeComparison: React.FC<{
@@ -2021,12 +1662,22 @@ const SidebarGraphsView: React.FC<{
     analysisConfig,
   ]);
 
-  // Auto-reanalyze when config changes - DISABLED for now
-  // React.useEffect(() => {
-  //   if (Result.isSuccess(responsesResult) && Result.isSuccess(quizzesResult) && selectedEngine !== undefined) {
-  //     handleReanalyze();
-  //   }
-  // }, [analysisConfigOverrides, handleReanalyze, responsesResult, quizzesResult, selectedEngine]);
+  // Auto-reanalyze when config changes with debounce
+  React.useEffect(() => {
+    if (
+      Result.isSuccess(responsesResult) &&
+      Result.isSuccess(quizzesResult) &&
+      selectedEngine !== undefined
+    ) {
+      const timeoutId = setTimeout(() => {
+        handleReanalyze();
+      }, 500); // 500ms debounce
+
+      return () => {
+        clearTimeout(timeoutId);
+      };
+    }
+  }, [analysisConfig, handleReanalyze, responsesResult, quizzesResult, selectedEngine]);
 
   if (selectedEngine === undefined) {
     return (
@@ -2751,7 +2402,7 @@ export const QuizEditorLayout: React.FC = () => {
               {selectedQuestion !== undefined ? (
                 <QuestionCard
                   title={selectedQuestion.title}
-                  content={selectedQuestion.description ?? ""}
+                  content=""
                   minLabel={
                     selectedQuestion.data.type === "rating" ? selectedQuestion.data.minLabel : "Min"
                   }
@@ -2812,25 +2463,9 @@ export const QuizEditorLayout: React.FC = () => {
           <>
             <ResizableHandle withHandle />
 
-            {/* Right Sidebar - Inspector + Graphs */}
+            {/* Right Sidebar - Graphs */}
             <ResizablePanel defaultSize={25} minSize={20} maxSize={35} className="min-w-[280px]">
-              <RightSidebar
-                quiz={quiz}
-                engines={engines}
-                selectedEngineId={selectedEngineId}
-                idealAnswers={currentQuestionIdealAnswers}
-                onToggleIdealAnswers={() => {
-                  setShowIdealAnswers(!showIdealAnswers);
-                }}
-                onTogglePrimaryRule={handleTogglePrimaryRule}
-                onUpdateIdealAnswer={handleUpdateIdealAnswer}
-                question={selectedQuestion}
-                questionIndex={selectedQuestionIndex}
-                selectedArtistType={selectedArtistType}
-                selectedValues={currentSelectedValues}
-                showIdealAnswers={showIdealAnswers}
-                totalQuestions={questions.length}
-              />
+              <RightSidebar quiz={quiz} engines={engines} selectedEngineId={selectedEngineId} />
             </ResizablePanel>
           </>
         )}

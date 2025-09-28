@@ -42,11 +42,11 @@ export const AnalysisConfig = Config.all({
     Config.withDefault(0.1), // Primary Distance Falloff % 10%
   ),
   secondaryDistanceFalloff: Config.number("ANALYSIS_SECONDARY_DISTANCE_FALLOFF").pipe(
-    Config.withDefault(0.8), // Secondary Distance Falloff % 80%
+    Config.withDefault(0.5), // Secondary Distance Falloff % 50%
   ),
 
   // Beta for visual separation
-  beta: Config.number("ANALYSIS_BETA").pipe(Config.withDefault(1.0)), // Beta: 1
+  beta: Config.number("ANALYSIS_BETA").pipe(Config.withDefault(0.8)), // Beta: 1
 
   // Analysis behavior flags
   disableSecondaryPoints: Config.boolean("ANALYSIS_DISABLE_SECONDARY_POINTS").pipe(
@@ -220,7 +220,7 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
             const { questionBreakdown, totalPoints } = yield* computeEndingPoints(
               responses,
               ending,
-              engine.scoringConfig,
+              undefined, // Don't pass engine.scoringConfig, let it use analysisConfig
               analysisConfig,
             );
 

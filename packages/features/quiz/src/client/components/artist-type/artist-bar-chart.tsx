@@ -285,12 +285,12 @@ export const ArtistBarChart = React.memo<ArtistBarChartProps>(
               radius={[0, 3, 3, 0]}
               animationDuration={1600}
               animationEasing="ease-out"
-              isAnimationActive
+              isAnimationActive={true}
             >
               {enrichedData.map((entry) => {
                 const artistType = entry.artistType;
                 // Use hex colors with dark mode support for better chart library compatibility
-                const fillColor = getArtistColorHex(artistType, isDarkMode);
+                const fillColor = getArtistColorHex(artistType);
                 return <Cell key={`${artistType}-bar`} fill={fillColor} />;
               })}
             </Bar>
