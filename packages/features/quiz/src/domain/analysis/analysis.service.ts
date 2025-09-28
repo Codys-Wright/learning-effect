@@ -282,9 +282,6 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
         analysisConfig?: typeof AnalysisConfig,
       ) =>
         Effect.gen(function* () {
-          const runtimeConfig =
-            analysisConfig !== undefined ? yield* analysisConfig : yield* AnalysisConfig;
-
           // Extract responses and questions
           const responses = response.answers ?? [];
           const questions = quiz.questions ?? [];
