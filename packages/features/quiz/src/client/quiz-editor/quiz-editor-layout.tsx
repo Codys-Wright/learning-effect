@@ -43,7 +43,7 @@ import {
   SlidersIcon,
 } from "lucide-react";
 import React from "react";
-import { Pie, PieChart } from "recharts";
+import { LabelList, Pie, PieChart } from "recharts";
 import { AnalysisService } from "../../domain/analysis/analysis.service.js";
 import {
   artistColors,
@@ -1574,7 +1574,7 @@ const RealAnalysisChart: React.FC = () => {
             <PieChart>
               <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
               <Pie data={chartData} dataKey="count" nameKey="type" innerRadius={40} strokeWidth={3}>
-                <Label
+                <LabelList
                   content={({ viewBox }) => {
                     if (
                       Boolean(viewBox) &&
@@ -1680,7 +1680,7 @@ const ReanalysisChart: React.FC<{
                 innerRadius={40}
                 strokeWidth={3}
               >
-                <Label
+                <LabelList
                   content={({ viewBox }) => {
                     if (
                       Boolean(viewBox) &&
