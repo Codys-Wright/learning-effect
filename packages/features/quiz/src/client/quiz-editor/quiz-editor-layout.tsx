@@ -476,7 +476,7 @@ const QuestionList: React.FC<{
   return (
     <div className="flex h-full flex-col">
       <ScrollArea className="flex-1">
-        <div className="p-2 space-y-1">
+        <div className="p-1 space-y-0.5">
           {questions.map((question, index) => (
             <button
               key={question.id}
@@ -484,7 +484,7 @@ const QuestionList: React.FC<{
                 onSelectQuestion(index);
               }}
               className={cn(
-                "w-full text-left p-2 rounded-md text-xs transition-colors",
+                "w-full text-left p-1.5 rounded text-xs transition-colors",
                 "hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-ring/40",
                 selectedIndex === index
                   ? "bg-primary text-primary-foreground hover:bg-primary/90"
@@ -494,7 +494,7 @@ const QuestionList: React.FC<{
               <div className="flex items-start gap-2 min-w-0">
                 <span
                   className={cn(
-                    "text-xs font-mono px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5",
+                    "text-xs font-mono px-1 py-0.5 rounded flex-shrink-0 mt-0.5",
                     selectedIndex === index
                       ? "bg-primary-foreground text-primary"
                       : "bg-muted text-foreground",
@@ -508,6 +508,8 @@ const QuestionList: React.FC<{
               </div>
             </button>
           ))}
+          {/* Bottom spacer to ensure last item is fully scrollable */}
+          <div className="h-16" />
         </div>
       </ScrollArea>
     </div>
@@ -1837,7 +1839,8 @@ export const QuizEditorLayout: React.FC = () => {
       const quizzes = quizzesResult.value;
       const engines = enginesResult.value;
 
-      if (selectedQuizId === "" && quizzes.length > 0) {
+      // Always try to set quiz if not set or if current selection is invalid
+      if (selectedQuizId === "" || !quizzes.some((q) => q.id === selectedQuizId)) {
         // Find "My Artist Type Quiz" versions and select the latest one
         const artistTypeQuizzes = quizzes
           .filter(
@@ -1850,18 +1853,62 @@ export const QuizEditorLayout: React.FC = () => {
           quizzes.find((q) => q.title.includes("My Artist Type")) ??
           quizzes[0];
         if (defaultQuiz !== undefined) {
+          console.log("🎯 Auto-selecting quiz:", defaultQuiz.title, defaultQuiz.version.semver);
           setSelectedQuizId(defaultQuiz.id);
         }
       }
 
-      if (selectedEngineId === "" && engines.length > 0) {
+      // Always try to set engine if not set or if current selection is invalid
+      if (selectedEngineId === "" || !engines.some((e) => e.id === selectedEngineId)) {
         const activeEngine = engines.find((e) => e.isActive) ?? engines[0];
         if (activeEngine !== undefined) {
+          console.log(
+            "🎯 Auto-selecting engine:",
+            activeEngine.name,
+            activeEngine.isActive ? "(active)" : "",
+          );
           setSelectedEngineId(activeEngine.id);
         }
       }
     }
   }, [quizzesResult, enginesResult, selectedQuizId, selectedEngineId]);
+
+  // Fallback initialization - ensure we always have valid selections
+  React.useEffect(() => {
+    if (Result.isSuccess(quizzesResult) && Result.isSuccess(enginesResult)) {
+      const quizzes = quizzesResult.value;
+      const engines = enginesResult.value;
+
+      // Force selection if we have data but no valid selections
+      if (
+        quizzes.length > 0 &&
+        (selectedQuizId === "" || !quizzes.some((q) => q.id === selectedQuizId))
+      ) {
+        const artistTypeQuizzes = quizzes
+          .filter(
+            (q) => q.title === "My Artist Type Quiz" || q.title === "My Artist Type Quiz (Editing)",
+          )
+          .sort((a, b) => b.version.semver.localeCompare(a.version.semver));
+
+        const defaultQuiz = artistTypeQuizzes[0] ?? quizzes[0];
+        if (defaultQuiz !== undefined) {
+          console.log("🔄 Fallback quiz selection:", defaultQuiz.title);
+          setSelectedQuizId(defaultQuiz.id);
+        }
+      }
+
+      if (
+        engines.length > 0 &&
+        (selectedEngineId === "" || !engines.some((e) => e.id === selectedEngineId))
+      ) {
+        const activeEngine = engines.find((e) => e.isActive) ?? engines[0];
+        if (activeEngine !== undefined) {
+          console.log("🔄 Fallback engine selection:", activeEngine.name);
+          setSelectedEngineId(activeEngine.id);
+        }
+      }
+    }
+  }, [quizzesResult, enginesResult]);
 
   // Auto-sync engine selection when quiz selection changes
   React.useEffect(() => {

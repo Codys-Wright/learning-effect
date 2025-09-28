@@ -198,55 +198,55 @@ CREATE INDEX idx_responses_quiz_id ON public.responses USING btree (quiz_id);
 
 CREATE INDEX idx_responses_session_metadata_started_at ON public.responses USING gin (((session_metadata -> 'startedAt'::text)));
 
-CREATE TRIGGER trigger_update_active_quizzes_updated_at BEFORE UPDATE ON public.active_quizzes FOR EACH ROW EXECUTE FUNCTION public.update_active_quizzes_updated_at();
+CREATE TRIGGER trigger_update_active_quizzes_updated_at BEFORE UPDATE ON public.active_quizzes FOR EACH ROW EXECUTE FUNCTION update_active_quizzes_updated_at();
 
-CREATE TRIGGER update_analysis_engines_updated_at BEFORE UPDATE ON public.analysis_engines FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+CREATE TRIGGER update_analysis_engines_updated_at BEFORE UPDATE ON public.analysis_engines FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_analysis_results_updated_at BEFORE UPDATE ON public.analysis_results FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+CREATE TRIGGER update_analysis_results_updated_at BEFORE UPDATE ON public.analysis_results FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_examples_updated_at BEFORE UPDATE ON public.examples FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+CREATE TRIGGER update_examples_updated_at BEFORE UPDATE ON public.examples FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_quizzes_updated_at BEFORE UPDATE ON public.quizzes FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+CREATE TRIGGER update_quizzes_updated_at BEFORE UPDATE ON public.quizzes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_responses_updated_at BEFORE UPDATE ON public.responses FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+CREATE TRIGGER update_responses_updated_at BEFORE UPDATE ON public.responses FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_styles_updated_at BEFORE UPDATE ON public.styles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+CREATE TRIGGER update_styles_updated_at BEFORE UPDATE ON public.styles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_tests_updated_at BEFORE UPDATE ON public.tests FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-
-ALTER TABLE ONLY public.active_quizzes
-    ADD CONSTRAINT active_quizzes_engine_id_fkey FOREIGN KEY (engine_id) REFERENCES public.analysis_engines(id) ON DELETE CASCADE;
+CREATE TRIGGER update_tests_updated_at BEFORE UPDATE ON public.tests FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 ALTER TABLE ONLY public.active_quizzes
-    ADD CONSTRAINT active_quizzes_quiz_id_fkey FOREIGN KEY (quiz_id) REFERENCES public.quizzes(id) ON DELETE CASCADE;
+    ADD CONSTRAINT active_quizzes_engine_id_fkey FOREIGN KEY (engine_id) REFERENCES analysis_engines(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.active_quizzes
+    ADD CONSTRAINT active_quizzes_quiz_id_fkey FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.analysis_results
-    ADD CONSTRAINT analysis_results_engine_id_fkey FOREIGN KEY (engine_id) REFERENCES public.analysis_engines(id);
+    ADD CONSTRAINT analysis_results_engine_id_fkey FOREIGN KEY (engine_id) REFERENCES analysis_engines(id);
 
 ALTER TABLE ONLY public.analysis_results
-    ADD CONSTRAINT analysis_results_response_id_fkey FOREIGN KEY (response_id) REFERENCES public.responses(id);
+    ADD CONSTRAINT analysis_results_response_id_fkey FOREIGN KEY (response_id) REFERENCES responses(id);
 
 ALTER TABLE ONLY public.analysis_engines
-    ADD CONSTRAINT fk_analysis_engines_quiz_id FOREIGN KEY (quiz_id) REFERENCES public.quizzes(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_analysis_engines_quiz_id FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.responses
-    ADD CONSTRAINT responses_quiz_id_fkey FOREIGN KEY (quiz_id) REFERENCES public.quizzes(id);
+    ADD CONSTRAINT responses_quiz_id_fkey FOREIGN KEY (quiz_id) REFERENCES quizzes(id);
 
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (1, '2025-09-28 10:42:30.203284+00', 'create-styles_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (2, '2025-09-28 10:42:30.203284+00', 'create-tests_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (3, '2025-09-28 10:42:30.203284+00', 'create-examples_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (4, '2025-09-28 10:42:30.203284+00', 'create-quizzes_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (5, '2025-09-28 10:42:30.203284+00', 'create_responses_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (6, '2025-09-28 10:42:30.203284+00', 'create_analysis_engines_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (7, '2025-09-28 10:42:30.203284+00', 'create_analysis_results_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (8, '2025-09-28 10:42:30.203284+00', 'add_quiz_publishing');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (9, '2025-09-28 10:42:30.203284+00', 'add_quiz_temp_flag');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (10, '2025-09-28 10:42:30.203284+00', 'add_analysis_engine_publishing');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (11, '2025-09-28 10:42:30.203284+00', 'add_analysis_engine_temp_flag');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (12, '2025-09-28 10:42:30.203284+00', 'add_analysis_engine_quiz_id');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (13, '2025-09-28 10:42:30.203284+00', 'create_active_quizzes_table');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (14, '2025-09-28 10:42:30.203284+00', 'remove_slug_from_quizzes');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (15, '2025-09-28 10:42:30.203284+00', 'remove_slug_from_analysis_engines');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (16, '2025-09-28 10:42:30.203284+00', 'remove_engine_slug_from_analysis_results');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (17, '2025-09-28 10:42:30.203284+00', 'update_version_columns_to_json');
-INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (18, '2025-09-28 10:42:30.203284+00', 'update_analysis_results_engine_version_to_json');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (1, '2025-09-28 12:25:21.269207+00', 'create-styles_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (2, '2025-09-28 12:25:21.269207+00', 'create-tests_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (3, '2025-09-28 12:25:21.269207+00', 'create-examples_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (4, '2025-09-28 12:25:21.269207+00', 'create-quizzes_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (5, '2025-09-28 12:25:21.269207+00', 'create_responses_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (6, '2025-09-28 12:25:21.269207+00', 'create_analysis_engines_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (7, '2025-09-28 12:25:21.269207+00', 'create_analysis_results_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (8, '2025-09-28 12:25:21.269207+00', 'add_quiz_publishing');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (9, '2025-09-28 12:25:21.269207+00', 'add_quiz_temp_flag');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (10, '2025-09-28 12:25:21.269207+00', 'add_analysis_engine_publishing');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (11, '2025-09-28 12:25:21.269207+00', 'add_analysis_engine_temp_flag');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (12, '2025-09-28 12:25:21.269207+00', 'add_analysis_engine_quiz_id');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (13, '2025-09-28 12:25:21.269207+00', 'create_active_quizzes_table');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (14, '2025-09-28 12:25:21.269207+00', 'remove_slug_from_quizzes');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (15, '2025-09-28 12:25:21.269207+00', 'remove_slug_from_analysis_engines');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (16, '2025-09-28 12:25:21.269207+00', 'remove_engine_slug_from_analysis_results');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (17, '2025-09-28 12:25:21.269207+00', 'update_version_columns_to_json');
+INSERT INTO public.effect_sql_migrations (migration_id, created_at, name) VALUES (18, '2025-09-28 12:25:21.269207+00', 'update_analysis_results_engine_version_to_json');
