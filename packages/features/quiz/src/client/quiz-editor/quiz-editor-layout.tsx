@@ -15,12 +15,15 @@ import {
   ChartTooltipContent,
   cn,
   DropdownMenu,
+  Input,
+  Label,
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
   ScrollArea,
   Select,
   Sidebar,
+  Tabs,
   type ChartConfig,
 } from "@ui/shadcn";
 import {
@@ -31,13 +34,16 @@ import {
   ChevronRightIcon,
   EditIcon,
   GitBranchIcon,
+  HelpCircleIcon,
   PlayIcon,
   PlusIcon,
+  RotateCcwIcon,
   SaveIcon,
   SettingsIcon,
+  SlidersIcon,
 } from "lucide-react";
 import React from "react";
-import { Label, Pie, PieChart } from "recharts";
+import { Pie, PieChart } from "recharts";
 import { AnalysisService } from "../../domain/analysis/analysis.service.js";
 import {
   artistColors,
@@ -54,6 +60,7 @@ import {
   enginesAtom,
 } from "../engines/engines-atoms.js";
 import { allAnalysisAtom, responsesAtom } from "../index.js";
+import { type AnalysisConfigOverrides } from "../quiz-taker/dev-panel.js";
 import {
   clearTempQuizzesAtom,
   createNewQuizVersionAtom,
@@ -102,14 +109,22 @@ const showIdealAnswersAtom = Atom.kvs({
   defaultValue: () => true,
 });
 
-// Define sidebar view schema
-const SidebarViewSchema = Schema.Literal("inspector", "graphs");
+// Define sidebar view schemas
+const RightSidebarViewSchema = Schema.Literal("inspector", "graphs");
+const LeftSidebarViewSchema = Schema.Literal("quiz", "analysis");
 
-const sidebarViewAtom = Atom.kvs({
+const rightSidebarViewAtom = Atom.kvs({
   runtime: localStorageRuntime,
-  key: "quiz-editor-sidebar-view",
-  schema: SidebarViewSchema,
+  key: "quiz-editor-right-sidebar-view",
+  schema: RightSidebarViewSchema,
   defaultValue: () => "inspector" as const,
+});
+
+const leftSidebarViewAtom = Atom.kvs({
+  runtime: localStorageRuntime,
+  key: "quiz-editor-left-sidebar-view",
+  schema: LeftSidebarViewSchema,
+  defaultValue: () => "quiz" as const,
 });
 
 const sidebarVisibleAtom = Atom.kvs({
@@ -133,6 +148,28 @@ const reanalysisDataAtom = Atom.kvs({
   key: "quiz-editor-reanalysis-data",
   schema: Schema.NullOr(ChartDataSchema),
   defaultValue: () => null,
+});
+
+// Analysis config overrides atom for engine tweaks
+const AnalysisConfigSchema = Schema.Struct({
+  primaryPointValue: Schema.optional(Schema.Number),
+  secondaryPointValue: Schema.optional(Schema.Number),
+  primaryPointWeight: Schema.optional(Schema.Number),
+  secondaryPointWeight: Schema.optional(Schema.Number),
+  primaryDistanceFalloff: Schema.optional(Schema.Number),
+  secondaryDistanceFalloff: Schema.optional(Schema.Number),
+  beta: Schema.optional(Schema.Number),
+  primaryMinPoints: Schema.optional(Schema.Number),
+  secondaryMinPoints: Schema.optional(Schema.Number),
+  idealAnswerOverlay: Schema.optional(Schema.Boolean),
+  progressBarColors: Schema.optional(Schema.Boolean),
+});
+
+const analysisConfigAtom = Atom.kvs({
+  runtime: localStorageRuntime,
+  key: "quiz-editor-analysis-config",
+  schema: AnalysisConfigSchema,
+  defaultValue: () => ({}),
 });
 
 const pendingRatingAtom = Atom.make<number | null>(null).pipe(Atom.keepAlive);
@@ -210,6 +247,54 @@ const getDisplayVersion = (quiz: Quiz, allQuizzes: ReadonlyArray<Quiz>): string 
   const draftNumber = draftIndex + 1;
 
   return `v${baseVersion} (Draft ${draftNumber})`;
+};
+
+// Helper function to detect if quiz content has changed from its original
+const hasQuizChanged = (currentQuiz: Quiz, allQuizzes: ReadonlyArray<Quiz>): boolean => {
+  if (currentQuiz.isTemp) {
+    // For temp quizzes, find the original quiz and compare
+    const baseTitle = currentQuiz.title.replace(" (Editing)", "");
+    const originalQuiz = allQuizzes.find(
+      (q) =>
+        q.title === baseTitle &&
+        q.version.semver === currentQuiz.version.semver &&
+        q.isTemp === false,
+    );
+
+    if (originalQuiz === undefined) {
+      // If we can't find the original, assume there are changes
+      return true;
+    }
+
+    // Compare the relevant content fields
+    return (
+      JSON.stringify(currentQuiz.questions) !== JSON.stringify(originalQuiz.questions) ||
+      currentQuiz.description !== originalQuiz.description ||
+      currentQuiz.subtitle !== originalQuiz.subtitle ||
+      JSON.stringify(currentQuiz.metadata) !== JSON.stringify(originalQuiz.metadata)
+    );
+  }
+
+  // For non-temp quizzes, check if there's a temp version with changes
+  const tempQuiz = allQuizzes.find(
+    (q) =>
+      q.title === `${currentQuiz.title} (Editing)` &&
+      q.version.semver === currentQuiz.version.semver &&
+      q.isTemp === true,
+  );
+
+  if (tempQuiz === undefined) {
+    // No temp version exists, so no changes
+    return false;
+  }
+
+  // Compare temp version with original
+  return (
+    JSON.stringify(tempQuiz.questions) !== JSON.stringify(currentQuiz.questions) ||
+    tempQuiz.description !== currentQuiz.description ||
+    tempQuiz.subtitle !== currentQuiz.subtitle ||
+    JSON.stringify(tempQuiz.metadata) !== JSON.stringify(currentQuiz.metadata)
+  );
 };
 
 // Helper function to get ideal answers for the current selection
@@ -359,7 +444,7 @@ const ArtistIcon: React.FC<{
   );
 };
 
-// Question List Component (Left Sidebar)
+// Question List Component (for Quiz tab)
 const QuestionList: React.FC<{
   onAddQuestion: () => void;
   onSelectQuestion: (index: number) => void;
@@ -367,7 +452,7 @@ const QuestionList: React.FC<{
   selectedIndex: number;
 }> = ({ onAddQuestion, onSelectQuestion, questions, selectedIndex }) => {
   return (
-    <div className="flex h-full flex-col border-r border-border/50">
+    <div className="flex h-full flex-col">
       <div className="flex items-center justify-between p-3 border-b border-border/50">
         <h3 className="text-sm font-medium">Questions</h3>
         <Button variant="ghost" size="sm" onClick={onAddQuestion} className="h-6 w-6 p-0">
@@ -408,6 +493,334 @@ const QuestionList: React.FC<{
   );
 };
 
+// Utility components for analysis controls
+const NumberInput: React.FC<{
+  description?: string;
+  label: string;
+  max?: number;
+  min?: number;
+  onChange: (value: number) => void;
+  step?: number;
+  value: number;
+}> = ({ description, label, max, min, onChange, step = 0.1, value }) => (
+  <div className="space-y-1">
+    <Label className="text-sm font-medium">{label}</Label>
+    {description !== undefined && <p className="text-xs text-muted-foreground">{description}</p>}
+    <Input
+      type="number"
+      value={value}
+      onChange={(e) => {
+        const numValue = parseFloat(e.target.value);
+        onChange(isNaN(numValue) ? 0 : numValue);
+      }}
+      min={min}
+      max={max}
+      step={step}
+      className="h-8"
+    />
+  </div>
+);
+
+const ToggleControl: React.FC<{
+  description: string;
+  label: string;
+  onChange: (value: boolean) => void;
+  value: boolean;
+}> = ({ description, label, onChange, value }) => (
+  <div className="flex items-center justify-between">
+    <div className="space-y-1">
+      <Label className="text-sm font-medium">{label}</Label>
+      <p className="text-xs text-muted-foreground">{description}</p>
+    </div>
+    <Button
+      size="sm"
+      variant={value ? "default" : "outline"}
+      onClick={() => {
+        onChange(!value);
+      }}
+    >
+      {value ? "ON" : "OFF"}
+    </Button>
+  </div>
+);
+
+// Get default values for analysis config
+const getAnalysisDefaults = (): Partial<AnalysisConfigOverrides> => ({
+  primaryPointValue: 10.0, // Primary Point Value: 10
+  secondaryPointValue: 5.0, // Secondary Point: 5
+  primaryPointWeight: 1.0, // Primary Point Weight: 1
+  secondaryPointWeight: 1.0, // Secondary Point Weight: 1
+  primaryDistanceFalloff: 0.1, // Primary Distance Falloff % 10%
+  secondaryDistanceFalloff: 0.8, // Secondary Distance Falloff % 80%
+  beta: 1.0, // Beta: 1
+  primaryMinPoints: 0.0, // Primary Min Points: 0
+  secondaryMinPoints: 0.0, // Secondary Min Points: 0
+  idealAnswerOverlay: true,
+  progressBarColors: true,
+});
+
+// Engine Tweaks Component (for Analysis tab)
+const EngineTweaks: React.FC<{
+  engines: ReadonlyArray<AnalysisEngine>;
+  onArtistTypeChange: (artistType: string) => void;
+  selectedArtistType: string;
+  selectedEngineId: string;
+}> = ({ engines, onArtistTypeChange, selectedArtistType, selectedEngineId }) => {
+  const selectedEngine = engines.find((e) => e.id === selectedEngineId);
+  const analysisConfig = useAtomValue(analysisConfigAtom) as Partial<AnalysisConfigOverrides>;
+  const setAnalysisConfig = useAtomSet(analysisConfigAtom);
+
+  const defaults = getAnalysisDefaults();
+
+  const artistTypes = [
+    "visionary",
+    "consummate",
+    "analyzer",
+    "tech",
+    "entertainer",
+    "maverick",
+    "dreamer",
+    "feeler",
+    "tortured",
+    "solo",
+  ];
+
+  const updateConfig = (updates: Partial<AnalysisConfigOverrides>) => {
+    const newConfig = {
+      ...analysisConfig,
+      ...updates,
+    };
+    setAnalysisConfig(newConfig);
+  };
+
+  const resetToDefaults = () => {
+    setAnalysisConfig({});
+  };
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex items-center justify-between p-3 border-b border-border/50">
+        <div>
+          <h3 className="text-sm font-medium">Engine Tweaks</h3>
+          <p className="text-xs text-muted-foreground mt-1">Adjust analysis engine settings</p>
+        </div>
+        <Button size="sm" variant="ghost" onClick={resetToDefaults} title="Reset to defaults">
+          <RotateCcwIcon className="h-3 w-3" />
+        </Button>
+      </div>
+
+      <ScrollArea className="flex-1">
+        <div className="p-3 space-y-4">
+          {/* Engine Info */}
+          {selectedEngine !== undefined && (
+            <Card className="p-3">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <SlidersIcon className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Current Engine</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  <div>{selectedEngine.name}</div>
+                  <div>Version: {selectedEngine.version.semver}</div>
+                  <div className="flex items-center gap-1 mt-1">
+                    <Badge
+                      variant={selectedEngine.isTemp ? "secondary" : "default"}
+                      className="text-xs"
+                    >
+                      {selectedEngine.isTemp ? "Draft" : "Published"}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Artist Type Selector */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Focus Artist Type</Label>
+            <Select value={selectedArtistType} onValueChange={onArtistTypeChange}>
+              <Select.Trigger className="w-full">
+                <Select.Value />
+              </Select.Trigger>
+              <Select.Content>
+                {artistTypes.map((type) => (
+                  <Select.Item key={type} value={type}>
+                    <div className="flex items-center gap-2">
+                      <ArtistIcon artistType={type} size={16} />
+                      <span className="capitalize">{type}</span>
+                    </div>
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select>
+          </div>
+
+          {/* Analysis Configuration */}
+          <Tabs defaultValue="scoring" className="w-full">
+            <Tabs.List className="grid w-full grid-cols-2">
+              <Tabs.Trigger value="scoring">Scoring</Tabs.Trigger>
+              <Tabs.Trigger value="ui">UI</Tabs.Trigger>
+            </Tabs.List>
+
+            <Tabs.Content value="scoring" className="mt-4 space-y-4">
+              <NumberInput
+                description="Base points awarded for perfect primary ideal answers"
+                label="Primary Point Value"
+                max={50}
+                min={1}
+                onChange={(value) => {
+                  updateConfig({ primaryPointValue: value });
+                }}
+                step={1}
+                value={analysisConfig.primaryPointValue ?? defaults.primaryPointValue ?? 1.5}
+              />
+              <NumberInput
+                description="Base points awarded for perfect secondary ideal answers"
+                label="Secondary Point Value"
+                max={50}
+                min={1}
+                onChange={(value) => {
+                  updateConfig({ secondaryPointValue: value });
+                }}
+                step={1}
+                value={analysisConfig.secondaryPointValue ?? defaults.secondaryPointValue ?? 0.2}
+              />
+              <NumberInput
+                description="Multiplier for primary questions (most important questions)"
+                label="Primary Point Weight"
+                max={3}
+                min={0.1}
+                onChange={(value) => {
+                  updateConfig({ primaryPointWeight: value });
+                }}
+                step={0.1}
+                value={analysisConfig.primaryPointWeight ?? defaults.primaryPointWeight ?? 1.6}
+              />
+              <NumberInput
+                description="Multiplier for secondary questions (supporting questions)"
+                label="Secondary Point Weight"
+                max={3}
+                min={0.1}
+                onChange={(value) => {
+                  updateConfig({ secondaryPointWeight: value });
+                }}
+                step={0.1}
+                value={analysisConfig.secondaryPointWeight ?? defaults.secondaryPointWeight ?? 1.4}
+              />
+              <NumberInput
+                description="Higher number separates the high percentages from the lower ones on the graph visually to reveal a more distinct winner"
+                label="Beta"
+                max={5}
+                min={0.1}
+                onChange={(value) => {
+                  updateConfig({ beta: value });
+                }}
+                step={0.1}
+                value={analysisConfig.beta ?? defaults.beta ?? 1.4}
+              />
+            </Tabs.Content>
+
+            <Tabs.Content value="ui" className="mt-4 space-y-4">
+              <ToggleControl
+                label="Ideal Answer Overlay"
+                description="Show ideal answer dots and bars on question cards"
+                value={analysisConfig.idealAnswerOverlay ?? defaults.idealAnswerOverlay ?? true}
+                onChange={(value) => {
+                  updateConfig({ idealAnswerOverlay: value });
+                }}
+              />
+              <ToggleControl
+                label="Progress Bar Colors"
+                description="Color progress bar segments by artist type"
+                value={analysisConfig.progressBarColors ?? defaults.progressBarColors ?? true}
+                onChange={(value) => {
+                  updateConfig({ progressBarColors: value });
+                }}
+              />
+            </Tabs.Content>
+          </Tabs>
+        </div>
+      </ScrollArea>
+    </div>
+  );
+};
+
+// Left Sidebar Component (Quiz + Analysis tabs)
+const LeftSidebar: React.FC<{
+  engines: ReadonlyArray<AnalysisEngine>;
+  onAddQuestion: () => void;
+  onArtistTypeChange: (artistType: string) => void;
+  onSelectQuestion: (index: number) => void;
+  questions: ReadonlyArray<Question>;
+  selectedArtistType: string;
+  selectedEngineId: string;
+  selectedQuestionIndex: number;
+}> = ({
+  engines,
+  onAddQuestion,
+  onArtistTypeChange,
+  onSelectQuestion,
+  questions,
+  selectedArtistType,
+  selectedEngineId,
+  selectedQuestionIndex,
+}) => {
+  const leftSidebarView = useAtomValue(leftSidebarViewAtom);
+  const setLeftSidebarView = useAtomSet(leftSidebarViewAtom);
+
+  return (
+    <div className="flex h-full flex-col border-r border-border/50">
+      {/* Sidebar Header with View Switcher */}
+      <div className="flex items-center justify-between p-3 border-b border-border/50">
+        <h3 className="text-sm font-medium">
+          {leftSidebarView === "quiz" ? "Quiz Editor" : "Analysis Tools"}
+        </h3>
+        <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
+          <Button
+            variant={leftSidebarView === "quiz" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => {
+              setLeftSidebarView("quiz");
+            }}
+            className="gap-1 h-6 px-2 text-xs"
+          >
+            <HelpCircleIcon className="h-3 w-3" />
+            Quiz
+          </Button>
+          <Button
+            variant={leftSidebarView === "analysis" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => {
+              setLeftSidebarView("analysis");
+            }}
+            className="gap-1 h-6 px-2 text-xs"
+          >
+            <SlidersIcon className="h-3 w-3" />
+            Analysis
+          </Button>
+        </div>
+      </div>
+
+      {/* Sidebar Content */}
+      {leftSidebarView === "quiz" ? (
+        <QuestionList
+          questions={questions}
+          selectedIndex={selectedQuestionIndex}
+          onSelectQuestion={onSelectQuestion}
+          onAddQuestion={onAddQuestion}
+        />
+      ) : (
+        <EngineTweaks
+          engines={engines}
+          onArtistTypeChange={onArtistTypeChange}
+          selectedArtistType={selectedArtistType}
+          selectedEngineId={selectedEngineId}
+        />
+      )}
+    </div>
+  );
+};
+
 // Top Bar Component
 const TopBar: React.FC<{
   engines: ReadonlyArray<AnalysisEngine>;
@@ -440,6 +853,7 @@ const TopBar: React.FC<{
     .sort((a, b) => b.version.semver.localeCompare(a.version.semver)); // Sort by version desc
 
   const selectedQuiz = quizzes.find((quiz) => quiz.id === selectedQuizId);
+  const hasChanges = selectedQuiz !== undefined ? hasQuizChanged(selectedQuiz, quizzes) : false;
 
   const artistTypes = [
     "visionary",
@@ -577,7 +991,13 @@ const TopBar: React.FC<{
               onClick={() => {
                 setIsVersionDialogOpen(true);
               }}
-              className="gap-2"
+              disabled={!hasChanges}
+              className={cn("gap-2", !hasChanges && "opacity-50 cursor-not-allowed")}
+              title={
+                !hasChanges
+                  ? "No changes to save as new version"
+                  : "Create a new version with your changes"
+              }
             >
               <GitBranchIcon className="h-4 w-4" />
               New Version
@@ -960,8 +1380,18 @@ const RightSidebar: React.FC<{
   showIdealAnswers,
   totalQuestions,
 }) => {
-  const sidebarView = useAtomValue(sidebarViewAtom);
-  const setSidebarView = useAtomSet(sidebarViewAtom);
+  const sidebarView = useAtomValue(rightSidebarViewAtom);
+  const setSidebarView = useAtomSet(rightSidebarViewAtom);
+  const leftSidebarView = useAtomValue(leftSidebarViewAtom);
+
+  // Auto-switch right sidebar based on left sidebar selection
+  React.useEffect(() => {
+    if (leftSidebarView === "quiz" && sidebarView !== "inspector") {
+      setSidebarView("inspector");
+    } else if (leftSidebarView === "analysis" && sidebarView !== "graphs") {
+      setSidebarView("graphs");
+    }
+  }, [leftSidebarView, sidebarView, setSidebarView]);
 
   return (
     <div className="flex h-full flex-col border-l border-border/50">
@@ -2235,13 +2665,17 @@ export const QuizEditorLayout: React.FC = () => {
 
       {/* Main Content Area */}
       <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0 overflow-hidden">
-        {/* Left Sidebar - Question List */}
+        {/* Left Sidebar - Quiz + Analysis tabs */}
         <ResizablePanel defaultSize={25} minSize={20} maxSize={35} className="min-w-[220px]">
-          <QuestionList
+          <LeftSidebar
+            engines={engines}
             questions={questions}
-            selectedIndex={selectedQuestionIndex}
+            selectedQuestionIndex={selectedQuestionIndex}
+            selectedArtistType={selectedArtistType}
+            selectedEngineId={selectedEngineId}
             onSelectQuestion={handleSelectQuestion}
             onAddQuestion={handleAddQuestion}
+            onArtistTypeChange={setSelectedArtistType}
           />
         </ResizablePanel>
 

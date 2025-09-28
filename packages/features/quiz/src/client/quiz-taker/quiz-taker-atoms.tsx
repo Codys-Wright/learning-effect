@@ -264,15 +264,15 @@ export const initializeQuizAtom = quizTakerRuntime.fn(
 
 // Dev panel configuration atoms
 const defaultDevConfig: AnalysisConfigOverrides = {
-  primaryPointValue: 1.5,
-  secondaryPointValue: 0.2,
-  primaryPointWeight: 1.6,
-  secondaryPointWeight: 1.4,
-  primaryDistanceFalloff: 1.0,
-  secondaryDistanceFalloff: 1.0,
-  beta: 1.4,
-  primaryMinPoints: 0.0,
-  secondaryMinPoints: 0.0,
+  primaryPointValue: 10.0, // Primary Point Value: 10
+  secondaryPointValue: 5.0, // Secondary Point: 5
+  primaryPointWeight: 1.0, // Primary Point Weight: 1
+  secondaryPointWeight: 1.0, // Secondary Point Weight: 1
+  primaryDistanceFalloff: 0.1, // Primary Distance Falloff % 10%
+  secondaryDistanceFalloff: 0.8, // Secondary Distance Falloff % 80%
+  beta: 1.0, // Beta: 1
+  primaryMinPoints: 0.0, // Primary Min Points: 0
+  secondaryMinPoints: 0.0, // Secondary Min Points: 0
   idealAnswerOverlay: false,
   progressBarColors: false,
 };

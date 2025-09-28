@@ -98,7 +98,6 @@ export const AnalysisRpcLive = HttpApiBuilder.group(DomainApi, "Analysis", (hand
             return yield* analysisRepo.update({
               id: payload.id,
               engineId: payload.engineId,
-              engineSlug: payload.engineSlug,
               engineVersion: payload.engineVersion,
               responseId: payload.responseId,
               endingResults: payload.endingResults,
@@ -108,7 +107,6 @@ export const AnalysisRpcLive = HttpApiBuilder.group(DomainApi, "Analysis", (hand
           }
           return yield* analysisRepo.create({
             engineId: payload.engineId,
-            engineSlug: payload.engineSlug,
             engineVersion: payload.engineVersion,
             responseId: payload.responseId,
             endingResults: payload.endingResults,
@@ -162,7 +160,6 @@ export const AnalysisRpcLive = HttpApiBuilder.group(DomainApi, "Analysis", (hand
 
           return {
             engineId: payload.engineId,
-            engineSlug: engine.slug,
             engineVersion: engine.version,
             totalResponses,
             endingDistribution,

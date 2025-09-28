@@ -1,3 +1,4 @@
+import { Version } from "@core/domain";
 import { HttpApiBuilder } from "@effect/platform";
 import type { AnalysisEngineId, UpsertAnalysisEnginePayload } from "@features/quiz/domain";
 import { AnalysisEngineNotFoundError } from "@features/quiz/domain";
@@ -29,7 +30,7 @@ export const AnalysisEngineRpcLive = HttpApiBuilder.group(DomainApi, "AnalysisEn
             return yield* repo
               .update({
                 id: payload.id,
-                version: payload.version,
+                version: payload.version ?? new Version({ semver: "1.0.0", comment: "Updated" }),
                 name: payload.name,
                 description: payload.description ?? undefined,
                 scoringConfig: payload.scoringConfig,
@@ -43,7 +44,8 @@ export const AnalysisEngineRpcLive = HttpApiBuilder.group(DomainApi, "AnalysisEn
               .pipe(Effect.catchTag("AnalysisEngineNotFoundError", (error) => Effect.fail(error)));
           }
           return yield* repo.create({
-            version: payload.version ?? "1.0.0",
+            version:
+              payload.version ?? new Version({ semver: "1.0.0", comment: "Initial version" }),
             name: payload.name,
             description: payload.description ?? undefined,
             scoringConfig: payload.scoringConfig,

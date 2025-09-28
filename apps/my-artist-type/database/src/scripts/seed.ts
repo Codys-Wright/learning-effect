@@ -54,7 +54,7 @@ const seedEffect = Effect.gen(function* () {
       version: quizPayload.version,
       questions,
       metadata: quizPayload.metadata ?? null,
-      isPublished: false as const, // Don't publish individual quiz versions
+      isPublished: true as const, // Publish the seed quiz version so it's available
       isTemp: false as const, // Seed data is permanent
     };
 
@@ -106,8 +106,8 @@ const seedEffect = Effect.gen(function* () {
         linkedQuizVersion: seededQuiz.version,
         linkedQuizId: seededQuiz.id,
       },
-      isActive: analysisEnginePayload.isActive,
-      isPublished: false, // Don't publish individual engine versions
+      isActive: true, // Make the seed engine active
+      isPublished: true, // Publish the seed engine version so it's available
       isTemp: false, // Seed data is permanent
       quizId: seededQuiz.id, // Link the engine to the quiz
     };

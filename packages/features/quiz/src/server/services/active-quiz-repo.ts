@@ -1,7 +1,7 @@
 import { SqlClient, SqlSchema } from "@effect/sql";
-import { ActiveQuiz, ActiveQuizNotFoundError } from "@features/quiz/domain";
 import { PgLive } from "@my-artist-type/database/database";
 import { Effect, flow, Schema } from "effect";
+import { ActiveQuiz, ActiveQuizNotFoundError } from "../../domain/active-quiz/active-quiz-rpc.js";
 
 //1) Define the Inputs that the repository is expecting
 const CreateActiveQuizInput = ActiveQuiz.pipe(Schema.pick("slug", "quizId", "engineId"));
@@ -101,25 +101,11 @@ export class ActiveQuizRepo extends Effect.Service<ActiveQuizRepo>()("ActiveQuiz
       update: (request: UpdateActiveQuizInput) =>
         update(request).pipe(
           Effect.catchTags({
-            NoSuchElementException: () => new ActiveQuizNotFoundError({ slug: "unknown" }),
+            NoSuchElementException: () => new ActiveQuizNotFoundError({ slug: request.slug }),
             ParseError: Effect.die,
             SqlError: Effect.die,
           }),
         ),
-
-      // upsert: Create or update an active quiz
-      upsert: (request: CreateActiveQuizInput | UpdateActiveQuizInput) => {
-        if ("id" in request && request.id !== undefined) {
-          return update(request as UpdateActiveQuizInput).pipe(
-            Effect.catchTags({
-              NoSuchElementException: () => new ActiveQuizNotFoundError({ slug: request.slug }),
-              ParseError: Effect.die,
-              SqlError: Effect.die,
-            }),
-          );
-        }
-        return create(request as CreateActiveQuizInput);
-      },
 
       // deleteBySlug: Delete an active quiz by slug
       deleteBySlug: (slug: string) =>

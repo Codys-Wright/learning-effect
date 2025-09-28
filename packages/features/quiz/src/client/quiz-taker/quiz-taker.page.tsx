@@ -7,7 +7,7 @@ import { ArtistTypeGraphCard } from "../components/artist-type/artist-type-graph
 import { QuestionCard } from "../components/question-card.js";
 import { QuizProgressBar } from "../components/quiz-progress-bar.js";
 import { enginesAtom } from "../engines/engines-atoms.js";
-import { quizzesAtom } from "../quizzes-atoms.js";
+import { activeQuizAtom, quizzesAtom } from "../quizzes-atoms.js";
 import { DevPanel, type AnalysisConfigOverrides } from "./dev-panel.js";
 import { useLocalAnalysis } from "./local-analysis.js";
 import {
@@ -40,6 +40,7 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
   const savedResponse = useAtomValue(savedResponseAtom);
   const navigationState = useAtomValue(navigationStateAtom);
   const enginesResult = useAtomValue(enginesAtom);
+  const activeQuizResult = useAtomValue(activeQuizAtom);
 
   // Function setters
   const selectAnswer = useAtomSet(selectAnswerAtom);
@@ -119,8 +120,17 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
     return getIdealAnswersForQuestion(currentQuestion.id);
   }, [currentQuestion, getIdealAnswersForQuestion]);
 
-  // Find the specific quiz by slug
-  const targetQuiz = quizzes.find((quiz) => quiz.slug === "my-artist-type-quiz");
+  // Find the active quiz and get the corresponding quiz from the list
+  const targetQuiz = React.useMemo(() => {
+    if (!Result.isSuccess(activeQuizResult)) {
+      return undefined;
+    }
+    const activeQuiz = activeQuizResult.value;
+    if (activeQuiz === undefined) {
+      return undefined;
+    }
+    return quizzes.find((quiz) => quiz.id === activeQuiz.quizId);
+  }, [activeQuizResult, quizzes]);
 
   // Initialize quiz if not already set
   React.useEffect(() => {
@@ -129,12 +139,34 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
     }
   }, [targetQuiz, currentQuiz, initializeQuiz]);
 
+  // Handle loading states
+  if (!Result.isSuccess(activeQuizResult)) {
+    if (Result.isWaiting(activeQuizResult)) {
+      return (
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold mb-2">Loading Quiz...</h2>
+            <p className="text-muted-foreground">Finding the active My Artist Type quiz</p>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Quiz Configuration Error</h2>
+          <p className="text-muted-foreground">Could not find active quiz configuration</p>
+        </div>
+      </div>
+    );
+  }
+
   if (targetQuiz === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-2">Quiz Not Found</h2>
-          <p className="text-muted-foreground">Could not find quiz with slug "my-artist-type"</p>
+          <p className="text-muted-foreground">Could not find the active My Artist Type quiz</p>
         </div>
       </div>
     );
@@ -324,7 +356,7 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
               }
               min={currentQuestion.data.type === "rating" ? currentQuestion.data.minRating : 1}
               max={currentQuestion.data.type === "rating" ? currentQuestion.data.maxRating : 10}
-              currentValue={savedResponse}
+              selectedValues={savedResponse !== undefined ? [savedResponse] : []}
               idealAnswers={currentQuestionIdealAnswers}
               showIdealAnswers={devConfig.idealAnswerOverlay ?? true}
               onRatingSelect={handleRatingSelect}
@@ -368,6 +400,7 @@ const SuccessView: React.FC<{ quizzes: ReadonlyArray<Quiz> }> = ({ quizzes }) =>
       {/* Dev Panel */}
       <DevPanel
         config={devConfig}
+        {...(defaultEngine !== undefined && { engine: defaultEngine })}
         isVisible={devPanelVisible}
         onConfigChange={(newConfig) => {
           setDevConfig(newConfig);

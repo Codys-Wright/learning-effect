@@ -25,10 +25,10 @@ export type AnalysisResultId = typeof AnalysisResultId.Type;
 // Scoring weights and parameters for an analysis engine
 export class ScoringConfig extends S.Class<ScoringConfig>("ScoringConfig")({
   // Weight for primary questions (key identifying questions)
-  primaryWeight: S.Number.pipe(S.positive()),
+  primaryPointWeight: S.Number.pipe(S.positive()),
 
-  // Weight for non-primary questions
-  nonPrimaryWeight: S.Number.pipe(S.positive()),
+  // Weight for secondary questions (supporting questions)
+  secondaryPointWeight: S.Number.pipe(S.positive()),
 
   // Distance falloff curve (higher = sharper falloff)
   distanceGamma: S.Number.pipe(S.positive()),
@@ -38,15 +38,27 @@ export class ScoringConfig extends S.Class<ScoringConfig>("ScoringConfig")({
 
   // Score multiplier for the entire engine
   scoreMultiplier: S.Number.pipe(S.positive()),
+
+  // Point values for ideal answers
+  primaryPointValue: S.Number.pipe(S.positive()),
+  secondaryPointValue: S.Number.pipe(S.positive()),
+
+  // Distance falloff percentages
+  primaryDistanceFalloff: S.Number.pipe(S.between(0, 1)),
+  secondaryDistanceFalloff: S.Number.pipe(S.between(0, 1)),
 }) {}
 
 // Default scoring configuration
 export const defaultScoringConfig: ScoringConfig = {
-  primaryWeight: 1.5,
-  nonPrimaryWeight: 0.2,
-  distanceGamma: 1.6,
-  beta: 1.4,
+  primaryPointWeight: 1.0, // Primary Point Weight: 1
+  secondaryPointWeight: 1.0, // Secondary Point Weight: 1
+  distanceGamma: 1.0, // Distance falloff curve (simplified)
+  beta: 1.0, // Beta: 1
   scoreMultiplier: 1.0,
+  primaryPointValue: 10.0, // Primary Point Value: 10
+  secondaryPointValue: 5.0, // Secondary Point Value: 5
+  primaryDistanceFalloff: 0.1, // Primary Distance Falloff %: 10%
+  secondaryDistanceFalloff: 0.8, // Secondary Distance Falloff %: 80%
 };
 
 // ============================================================================

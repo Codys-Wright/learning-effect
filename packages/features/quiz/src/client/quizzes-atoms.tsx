@@ -1,7 +1,7 @@
 import { ApiClient, makeAtomRuntime, withToast } from "@core/client";
 import type { Version } from "@core/domain";
 import { Atom, Registry, Result } from "@effect-atom/atom-react";
-import type { Quiz, QuizId, UpsertQuizPayload } from "@features/quiz/domain";
+import type { ActiveQuiz, Quiz, QuizId, UpsertQuizPayload } from "@features/quiz/domain";
 import { Data, Effect, Array as EffectArray } from "effect";
 import { EngineAction, enginesAtom } from "./engines/engines-atoms.js";
 
@@ -527,4 +527,27 @@ export const clearTempQuizzesAtom = runtime.fn(
 
     return tempQuizzes.length;
   }),
+);
+
+// Active Quiz Atom - for getting the currently active "My Artist Type" quiz
+const activeQuizRemoteAtom = runtime.atom(
+  Effect.gen(function* () {
+    const api = yield* ApiClient;
+    // Get all active quizzes and find the first one (should only be one active)
+    const activeQuizzes = yield* api.http.ActiveQuizzes.list();
+    return activeQuizzes[0] as ActiveQuiz | undefined; // Return the first active quiz
+  }),
+);
+
+export const activeQuizAtom = Object.assign(
+  Atom.writable(
+    (get: Atom.Context) => get(activeQuizRemoteAtom),
+    (_ctx, _activeQuiz: ActiveQuiz) => {
+      // Active quiz is read-only, so we don't need to handle writes
+      // This is just for type compatibility
+    },
+  ),
+  {
+    remote: activeQuizRemoteAtom,
+  },
 );

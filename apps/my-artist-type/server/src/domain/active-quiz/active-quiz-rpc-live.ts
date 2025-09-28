@@ -9,19 +9,24 @@ export const ActiveQuizRpcLive = HttpApiBuilder.group(DomainApi, "ActiveQuizzes"
 
     return handlers
       .handle("list", () => repo.findAll())
-      .handle("bySlug", ({ payload }: { payload: { slug: string } }) =>
-        repo.findBySlug(payload.slug),
-      )
+      .handle("bySlug", ({ payload }) => repo.findBySlug(payload.slug))
       .handle("upsert", ({ payload }) =>
-        repo.upsert({
-          id: payload.id,
-          slug: payload.slug,
-          quizId: payload.quizId,
-          engineId: payload.engineId,
+        Effect.gen(function* () {
+          if (payload.id !== undefined) {
+            return yield* repo.update({
+              id: payload.id,
+              slug: payload.slug,
+              quizId: payload.quizId,
+              engineId: payload.engineId,
+            });
+          }
+          return yield* repo.create({
+            slug: payload.slug,
+            quizId: payload.quizId,
+            engineId: payload.engineId,
+          });
         }),
       )
-      .handle("delete", ({ payload }: { payload: { slug: string } }) =>
-        repo.deleteBySlug(payload.slug),
-      );
+      .handle("delete", ({ payload }) => repo.deleteBySlug(payload.slug));
   }),
 ).pipe(Layer.provide([ActiveQuizRepo.Default]));

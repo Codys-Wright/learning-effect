@@ -1,4 +1,4 @@
-import { AnalysisConfig } from "@features/quiz/domain";
+import { AnalysisConfig, type AnalysisEngine } from "@features/quiz/domain";
 import { Badge, Button, Card, Input, Label, Tabs } from "@ui/shadcn";
 import { formatHex, parse } from "culori";
 import { ConfigProvider, Effect } from "effect";
@@ -70,6 +70,37 @@ const getServiceDefaults = (): Partial<AnalysisConfigOverrides> => {
   }
 };
 
+// Get combined defaults from engine scoring config and service config
+const getCombinedDefaults = (engine?: AnalysisEngine): Partial<AnalysisConfigOverrides> => {
+  const serviceDefaults = getServiceDefaults();
+
+  if (engine?.scoringConfig === undefined) {
+    return serviceDefaults;
+  }
+
+  // Engine scoring config takes precedence over service defaults
+  const scoringConfig = engine.scoringConfig;
+  const result: Partial<AnalysisConfigOverrides> = {
+    primaryPointValue: scoringConfig.primaryPointValue,
+    secondaryPointValue: scoringConfig.secondaryPointValue,
+    primaryPointWeight: scoringConfig.primaryPointWeight,
+    secondaryPointWeight: scoringConfig.secondaryPointWeight,
+    primaryDistanceFalloff: scoringConfig.primaryDistanceFalloff,
+    secondaryDistanceFalloff: scoringConfig.secondaryDistanceFalloff,
+    beta: scoringConfig.beta,
+  };
+
+  // Add service defaults for fields not in scoring config, only if they exist
+  if (serviceDefaults.primaryMinPoints !== undefined) {
+    result.primaryMinPoints = serviceDefaults.primaryMinPoints;
+  }
+  if (serviceDefaults.secondaryMinPoints !== undefined) {
+    result.secondaryMinPoints = serviceDefaults.secondaryMinPoints;
+  }
+
+  return result;
+};
+
 // Empty default config - let Effect config handle defaults
 const defaultConfig: Partial<AnalysisConfigOverrides> = {};
 
@@ -90,13 +121,10 @@ const artistTypes = [
 // Function to convert oklch to hex
 const oklchToHex = (oklchValue: string): string => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     const color = parse(oklchValue);
-    if (color !== null) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+    if (color !== undefined) {
       const hex = formatHex(color);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return hex ?? "#000000";
+      return hex;
     }
     return "#000000";
   } catch {
@@ -133,6 +161,7 @@ const updateArtistColor = (type: string, value: string) => {
 
 type DevPanelProps = {
   config: Partial<AnalysisConfigOverrides>;
+  engine?: AnalysisEngine;
   isVisible: boolean;
   onConfigChange: (config: Partial<AnalysisConfigOverrides>) => void;
   onToggleVisibility: () => void;
@@ -229,11 +258,12 @@ const ArtistColorPicker: React.FC<{
 
 export const DevPanel: React.FC<DevPanelProps> = ({
   config,
+  engine,
   isVisible,
   onConfigChange,
   onToggleVisibility,
 }) => {
-  const serviceDefaults = getServiceDefaults();
+  const combinedDefaults = getCombinedDefaults(engine);
   const [currentColors, setCurrentColors] = React.useState<Record<string, string>>({});
 
   // Load colors after hydration
@@ -337,7 +367,7 @@ export const DevPanel: React.FC<DevPanelProps> = ({
                   updateConfig({ primaryPointValue: value });
                 }}
                 step={1}
-                value={config.primaryPointValue ?? serviceDefaults.primaryPointValue ?? 0}
+                value={config.primaryPointValue ?? combinedDefaults.primaryPointValue ?? 0}
               />
               <NumberInput
                 description="Base points awarded for perfect secondary ideal answers"
@@ -348,7 +378,7 @@ export const DevPanel: React.FC<DevPanelProps> = ({
                   updateConfig({ secondaryPointValue: value });
                 }}
                 step={1}
-                value={config.secondaryPointValue ?? serviceDefaults.secondaryPointValue ?? 0}
+                value={config.secondaryPointValue ?? combinedDefaults.secondaryPointValue ?? 0}
               />
               <NumberInput
                 description="Multiplier for primary questions (most important questions)"
@@ -359,7 +389,7 @@ export const DevPanel: React.FC<DevPanelProps> = ({
                   updateConfig({ primaryPointWeight: value });
                 }}
                 step={0.1}
-                value={config.primaryPointWeight ?? serviceDefaults.primaryPointWeight ?? 0}
+                value={config.primaryPointWeight ?? combinedDefaults.primaryPointWeight ?? 0}
               />
               <NumberInput
                 description="Multiplier for secondary questions (supporting questions)"
@@ -370,7 +400,7 @@ export const DevPanel: React.FC<DevPanelProps> = ({
                   updateConfig({ secondaryPointWeight: value });
                 }}
                 step={0.1}
-                value={config.secondaryPointWeight ?? serviceDefaults.secondaryPointWeight ?? 0}
+                value={config.secondaryPointWeight ?? combinedDefaults.secondaryPointWeight ?? 0}
               />
               <NumberInput
                 description="Percentage of points lost per step away from ideal answers. 0% = only exact matches get points, 100% = lose all points after 1 step"
@@ -382,7 +412,7 @@ export const DevPanel: React.FC<DevPanelProps> = ({
                 }}
                 step={5}
                 value={Math.round(
-                  (config.primaryDistanceFalloff ?? serviceDefaults.primaryDistanceFalloff ?? 0) *
+                  (config.primaryDistanceFalloff ?? combinedDefaults.primaryDistanceFalloff ?? 0) *
                     100,
                 )}
               />
@@ -397,7 +427,7 @@ export const DevPanel: React.FC<DevPanelProps> = ({
                 step={5}
                 value={Math.round(
                   (config.secondaryDistanceFalloff ??
-                    serviceDefaults.secondaryDistanceFalloff ??
+                    combinedDefaults.secondaryDistanceFalloff ??
                     0) * 100,
                 )}
               />
@@ -410,7 +440,7 @@ export const DevPanel: React.FC<DevPanelProps> = ({
                   updateConfig({ beta: value });
                 }}
                 step={0.1}
-                value={config.beta ?? serviceDefaults.beta ?? 0}
+                value={config.beta ?? combinedDefaults.beta ?? 0}
               />
               <NumberInput
                 description="Minimum points that can be awarded for primary questions (floor value, can be negative)"
@@ -421,7 +451,7 @@ export const DevPanel: React.FC<DevPanelProps> = ({
                   updateConfig({ primaryMinPoints: value });
                 }}
                 step={0.5}
-                value={config.primaryMinPoints ?? serviceDefaults.primaryMinPoints ?? 0}
+                value={config.primaryMinPoints ?? combinedDefaults.primaryMinPoints ?? 0}
               />
               <NumberInput
                 description="Minimum points that can be awarded for secondary questions (floor value, can be negative)"
@@ -432,7 +462,7 @@ export const DevPanel: React.FC<DevPanelProps> = ({
                   updateConfig({ secondaryMinPoints: value });
                 }}
                 step={0.5}
-                value={config.secondaryMinPoints ?? serviceDefaults.secondaryMinPoints ?? 0}
+                value={config.secondaryMinPoints ?? combinedDefaults.secondaryMinPoints ?? 0}
               />
             </div>
           </Tabs.Content>

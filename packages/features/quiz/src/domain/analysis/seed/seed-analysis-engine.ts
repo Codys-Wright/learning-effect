@@ -20,14 +20,18 @@ type ArtistTypeData = {
 export const getSeedAnalysisEnginePayload = (): {
   name: string;
   description: string;
-  version: string;
+  version: any; // Will be overridden by seed script with quiz version
   slug: string;
   scoringConfig: {
-    primaryWeight: number;
-    nonPrimaryWeight: number;
+    primaryPointWeight: number;
+    secondaryPointWeight: number;
     distanceGamma: number;
     beta: number;
     scoreMultiplier: number;
+    primaryPointValue: number;
+    secondaryPointValue: number;
+    primaryDistanceFalloff: number;
+    secondaryDistanceFalloff: number;
   };
   endings: Array<{
     endingId: string;
@@ -123,11 +127,15 @@ export const getSeedAnalysisEnginePayload = (): {
     },
     slug: "artist-type-quiz-v1",
     scoringConfig: {
-      primaryWeight: 1.5,
-      nonPrimaryWeight: 0.2,
-      distanceGamma: 1.6,
-      beta: 1.4,
+      primaryPointWeight: 1.0, // Primary Point Weight: 1
+      secondaryPointWeight: 1.0, // Secondary Point Weight: 1 (changed from 0.2)
+      distanceGamma: 1.0, // Distance falloff curve (simplified)
+      beta: 1.0, // Beta: 1 (changed from 1.4)
       scoreMultiplier: 1.0,
+      primaryPointValue: 10.0, // Primary Point Value: 10
+      secondaryPointValue: 5.0, // Secondary Point Value: 5
+      primaryDistanceFalloff: 0.1, // Primary Distance Falloff %: 10%
+      secondaryDistanceFalloff: 0.8, // Secondary Distance Falloff %: 80%
     },
     endings,
     metadata: {

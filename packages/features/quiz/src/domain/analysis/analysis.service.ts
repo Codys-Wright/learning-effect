@@ -26,27 +26,27 @@ import {
 // Runtime configuration for analysis behavior using Effect Config
 export const AnalysisConfig = Config.all({
   // Point values for ideal answers
-  primaryPointValue: Config.number("ANALYSIS_PRIMARY_POINT_VALUE").pipe(Config.withDefault(10.0)),
+  primaryPointValue: Config.number("ANALYSIS_PRIMARY_POINT_VALUE").pipe(Config.withDefault(10.0)), // Primary Point Value: 10
   secondaryPointValue: Config.number("ANALYSIS_SECONDARY_POINT_VALUE").pipe(
-    Config.withDefault(5.0),
+    Config.withDefault(5.0), // Secondary Point: 5
   ),
 
   // Point weight multipliers
-  primaryPointWeight: Config.number("ANALYSIS_PRIMARY_POINT_WEIGHT").pipe(Config.withDefault(1.0)),
+  primaryPointWeight: Config.number("ANALYSIS_PRIMARY_POINT_WEIGHT").pipe(Config.withDefault(1.0)), // Primary Point Weight: 1
   secondaryPointWeight: Config.number("ANALYSIS_SECONDARY_POINT_WEIGHT").pipe(
-    Config.withDefault(1.0),
+    Config.withDefault(1.0), // Secondary Point Weight: 1
   ),
 
   // Distance falloff for each type
   primaryDistanceFalloff: Config.number("ANALYSIS_PRIMARY_DISTANCE_FALLOFF").pipe(
-    Config.withDefault(0.1),
+    Config.withDefault(0.1), // Primary Distance Falloff % 10%
   ),
   secondaryDistanceFalloff: Config.number("ANALYSIS_SECONDARY_DISTANCE_FALLOFF").pipe(
-    Config.withDefault(0.8),
+    Config.withDefault(0.8), // Secondary Distance Falloff % 80%
   ),
 
   // Beta for visual separation
-  beta: Config.number("ANALYSIS_BETA").pipe(Config.withDefault(1.0)),
+  beta: Config.number("ANALYSIS_BETA").pipe(Config.withDefault(1.0)), // Beta: 1
 
   // Analysis behavior flags
   disableSecondaryPoints: Config.boolean("ANALYSIS_DISABLE_SECONDARY_POINTS").pipe(
@@ -96,7 +96,7 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
         responses: ReadonlyArray<QuestionResponse>,
         questionIndexById: Record<string, string>,
         ending: EndingDefinition,
-        _scoringConfig: ScoringConfig = defaultScoringConfig,
+        scoringConfig: ScoringConfig = defaultScoringConfig,
         analysisConfig?: typeof AnalysisConfig,
       ) =>
         Effect.gen(function* () {
@@ -136,15 +136,16 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
             }, Number.POSITIVE_INFINITY);
 
             // Get point value and weight based on question type
+            // Use scoringConfig values first, fallback to runtimeConfig for backwards compatibility
             const pointValue = rule.isPrimary
-              ? runtimeConfig.primaryPointValue
-              : runtimeConfig.secondaryPointValue;
+              ? (scoringConfig.primaryPointValue ?? runtimeConfig.primaryPointValue)
+              : (scoringConfig.secondaryPointValue ?? runtimeConfig.secondaryPointValue);
             const pointWeight = rule.isPrimary
-              ? runtimeConfig.primaryPointWeight
-              : runtimeConfig.secondaryPointWeight;
+              ? (scoringConfig.primaryPointWeight ?? runtimeConfig.primaryPointWeight)
+              : (scoringConfig.secondaryPointWeight ?? runtimeConfig.secondaryPointWeight);
             const distanceFalloff = rule.isPrimary
-              ? runtimeConfig.primaryDistanceFalloff
-              : runtimeConfig.secondaryDistanceFalloff;
+              ? (scoringConfig.primaryDistanceFalloff ?? runtimeConfig.primaryDistanceFalloff)
+              : (scoringConfig.secondaryDistanceFalloff ?? runtimeConfig.secondaryDistanceFalloff);
 
             // Calculate points based on distance falloff
             // distanceFalloff represents the percentage of base points (pointValue * pointWeight) taken away per step
@@ -226,7 +227,8 @@ export class AnalysisService extends Effect.Service<AnalysisService>()(
           }
 
           // Apply nonlinear amplification to sharpen winners (for visual purposes only)
-          const beta = runtimeConfig.beta;
+          // Use scoringConfig beta first, fallback to runtimeConfig for backwards compatibility
+          const beta = scoringConfig.beta ?? runtimeConfig.beta;
           const scaled = rawResults.map((r) => Math.pow(r.points, beta));
           const scaledSum = scaled.reduce((sum, value) => sum + value, 0);
 
