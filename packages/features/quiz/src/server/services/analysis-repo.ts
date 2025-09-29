@@ -141,7 +141,7 @@ export class AnalysisRepo extends Effect.Service<AnalysisRepo>()("AnalysisRepo",
       }),
       execute: (request) => {
         const { createdAt, ...insertData } = request;
-        if (createdAt) {
+        if (createdAt !== undefined) {
           return sql`
             INSERT INTO
               analysis_results (

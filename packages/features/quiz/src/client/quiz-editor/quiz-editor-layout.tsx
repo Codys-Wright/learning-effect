@@ -453,7 +453,7 @@ const QuestionList: React.FC<{
   onSelectQuestion: (index: number) => void;
   questions: ReadonlyArray<Question>;
   selectedIndex: number;
-}> = ({ onAddQuestion, onSelectQuestion, questions, selectedIndex }) => {
+}> = ({ onAddQuestion: _onAddQuestion, onSelectQuestion, questions, selectedIndex }) => {
   return (
     <div className="flex h-full flex-col">
       <ScrollArea className="flex-1">
@@ -531,7 +531,12 @@ const EngineTweaks: React.FC<{
   onArtistTypeChange: (artistType: string) => void;
   selectedArtistType: string;
   selectedEngineId: string;
-}> = ({ engines, onArtistTypeChange, selectedArtistType, selectedEngineId }) => {
+}> = ({
+  engines: _engines,
+  onArtistTypeChange: _onArtistTypeChange,
+  selectedArtistType: _selectedArtistType,
+  selectedEngineId: _selectedEngineId,
+}) => {
   const analysisConfig = useAtomValue(analysisConfigAtom);
   const setAnalysisConfig = useAtomSet(analysisConfigAtom);
 
@@ -1462,6 +1467,7 @@ const SidebarGraphsView: React.FC<{
       return;
     }
 
+    // eslint-disable-next-line no-console
     console.log("✅ Starting analysis...");
     setIsAnalyzing(true);
 
@@ -1489,14 +1495,13 @@ const SidebarGraphsView: React.FC<{
       const artistTypeCounts: Record<string, number> = {};
 
       // Log config once at the start
+      // eslint-disable-next-line no-console
       console.log("🔧 Analysis Config:", analysisConfig);
 
       // Process each response using the local analysis function
       for (const response of responses) {
         try {
-          if (selectedEngine === undefined) {
-            continue;
-          }
+          // selectedEngine is already checked above
 
           // Use AnalysisService directly like the working Typeform analysis
           try {
@@ -1517,13 +1522,15 @@ const SidebarGraphsView: React.FC<{
             );
 
             // Transform the analysis result to the expected format
-            const analysisResults = (analysisResult.endingResults ?? []).map((result: any) => ({
-              artistType: endingNameToArtistType[result.endingId] ?? result.endingId,
-              percentage: result.percentage,
-              points: result.points,
-              fullName: result.endingId,
-              databaseId: result.endingId,
-            }));
+            const analysisResults = analysisResult.endingResults.map(
+              (result: { endingId: string; percentage: number; points: number }) => ({
+                artistType: endingNameToArtistType[result.endingId] ?? result.endingId,
+                percentage: result.percentage,
+                points: result.points,
+                fullName: result.endingId,
+                databaseId: result.endingId,
+              }),
+            );
 
             // Count the results - find the highest percentage result
             if (analysisResults.length > 0) {
@@ -1541,15 +1548,15 @@ const SidebarGraphsView: React.FC<{
                 );
               }
 
-              if (winningResult.artistType !== undefined) {
-                artistTypeCounts[winningResult.artistType] =
-                  (artistTypeCounts[winningResult.artistType] ?? 0) + 1;
+              if (winningResult.artistType) {
+                const artistType = winningResult.artistType;
+                artistTypeCounts[artistType] = (artistTypeCounts[artistType] ?? 0) + 1;
               }
             }
-          } catch (error) {
+          } catch {
             // Continue with other responses even if one fails
           }
-        } catch (error) {
+        } catch {
           // Continue with other responses even if one fails
         }
       }
@@ -1570,6 +1577,7 @@ const SidebarGraphsView: React.FC<{
         )
         .join(", ");
 
+      // eslint-disable-next-line no-console
       console.log(
         `📊 Analysis Complete: ${totalResponses} responses analyzed. Distribution: ${distribution}`,
       );
@@ -1598,7 +1606,7 @@ const SidebarGraphsView: React.FC<{
       selectedEngine !== undefined
     ) {
       const timeoutId = setTimeout(() => {
-        handleReanalyze();
+        void handleReanalyze();
       }, 500); // 500ms debounce
 
       return () => {
@@ -1777,6 +1785,7 @@ export const QuizEditorLayout: React.FC = () => {
           quizzes.find((q) => q.title.includes("My Artist Type")) ??
           quizzes[0];
         if (defaultQuiz !== undefined) {
+          // eslint-disable-next-line no-console
           console.log("🎯 Auto-selecting quiz:", defaultQuiz.title, defaultQuiz.version.semver);
           setSelectedQuizId(defaultQuiz.id);
         }
@@ -1786,6 +1795,7 @@ export const QuizEditorLayout: React.FC = () => {
       if (selectedEngineId === "" || !engines.some((e) => e.id === selectedEngineId)) {
         const activeEngine = engines.find((e) => e.isActive) ?? engines[0];
         if (activeEngine !== undefined) {
+          // eslint-disable-next-line no-console
           console.log(
             "🎯 Auto-selecting engine:",
             activeEngine.name,
@@ -1816,6 +1826,7 @@ export const QuizEditorLayout: React.FC = () => {
 
         const defaultQuiz = artistTypeQuizzes[0] ?? quizzes[0];
         if (defaultQuiz !== undefined) {
+          // eslint-disable-next-line no-console
           console.log("🔄 Fallback quiz selection:", defaultQuiz.title);
           setSelectedQuizId(defaultQuiz.id);
         }
@@ -1827,6 +1838,7 @@ export const QuizEditorLayout: React.FC = () => {
       ) {
         const activeEngine = engines.find((e) => e.isActive) ?? engines[0];
         if (activeEngine !== undefined) {
+          // eslint-disable-next-line no-console
           console.log("🔄 Fallback engine selection:", activeEngine.name);
           setSelectedEngineId(activeEngine.id);
         }

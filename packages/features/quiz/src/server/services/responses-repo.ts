@@ -89,7 +89,7 @@ export class ResponsesRepo extends Effect.Service<ResponsesRepo>()("ResponsesRep
       }),
       execute: (request) => {
         const { createdAt, ...insertData } = request;
-        if (createdAt) {
+        if (createdAt !== undefined) {
           return sql`
             INSERT INTO
               responses (

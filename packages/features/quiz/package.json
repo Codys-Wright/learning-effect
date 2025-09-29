@@ -40,7 +40,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -b tsconfig.build.json",
+    "build": "NODE_ENV=production tsc -b tsconfig.build.json",
     "build-annotate": "babel build/esm --plugins annotate-pure-calls --out-dir build/esm --source-maps",
     "check": "tsc -b tsconfig.json",
     "test": "vitest --run",
