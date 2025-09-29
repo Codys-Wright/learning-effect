@@ -3,11 +3,14 @@ import * as RpcClient from "@effect/rpc/RpcClient";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import { WorkerRpc } from "./worker-rpc";
-// @ts-ignore - Worker import for Vite
-import MyWorker from "./worker.ts?worker";
+
+// Use a simple Worker constructor that works in both environments
+const createWorker = () => {
+  return new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
+};
 
 const RpcProtocol = RpcClient.layerProtocolWorker({ size: 1, concurrency: 1 }).pipe(
-  Layer.provide(BrowserWorker.layerPlatform(() => new MyWorker())),
+  Layer.provide(BrowserWorker.layerPlatform(createWorker)),
   Layer.orDie,
 );
 

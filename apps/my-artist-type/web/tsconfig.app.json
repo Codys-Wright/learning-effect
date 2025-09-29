@@ -24,15 +24,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "prettier.config.js"],
-  "references": [
-    { "path": "../domain" },
-    { "path": "../database" },
-    { "path": "../server" },
-    { "path": "../../../packages/core/client" },
-    { "path": "../../../packages/core/domain" },
-    { "path": "../../../packages/core/database" },
-    { "path": "../../../packages/core/server" },
-    { "path": "../../../packages/ui/shadcn" }
-  ]
+  "include": ["src", "prettier.config.js"]
 }

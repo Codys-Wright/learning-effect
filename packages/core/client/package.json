@@ -10,12 +10,12 @@
   },
   "exports": {
     ".": {
-      "production": "./build/esm/index.js",
+      "production": "./build/esm/packages/core/client/src/index.js",
       "default": "./src/index.ts"
     },
     "./package.json": "./package.json",
     "./*": {
-      "production": "./build/esm/*.js",
+      "production": "./build/esm/packages/core/client/src/*.js",
       "default": "./src/*.ts"
     }
   },

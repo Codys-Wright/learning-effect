@@ -36,6 +36,9 @@ export default defineConfig(({ mode }) => ({
       external: ["crypto"],
     },
   },
+  resolve: {
+    conditions: mode === "production" ? ["production", "default"] : ["default"],
+  },
   envDir: "../../",
   test: {
     environment: "jsdom",

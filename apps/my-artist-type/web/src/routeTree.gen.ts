@@ -17,13 +17,10 @@ import { Route as RadarTestRouteImport } from './routes/radar-test'
 import { Route as QuizTakerRouteImport } from './routes/quiz-taker'
 import { Route as QuizEditorRouteImport } from './routes/quiz-editor'
 import { Route as QuizRouteImport } from './routes/quiz'
-import { Route as PlaygroundRouteImport } from './routes/playground'
-import { Route as ExampleRouteImport } from './routes/example'
 import { Route as ArtistTypesRouteImport } from './routes/artist-types'
 import { Route as AnalysisRouteImport } from './routes/analysis'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AdminResponsesRouteImport } from './routes/admin/responses'
 import { Route as AdminQuizEditorRouteImport } from './routes/admin/quiz-editor'
 import { Route as AdminResponsesResponseIdRouteImport } from './routes/admin/responses/$responseId'
 import { Route as AdminResponsesResponseIdAnalysisRouteImport } from './routes/admin/responses/$responseId/analysis'
@@ -61,16 +58,6 @@ const QuizRoute = QuizRouteImport.update({
   path: '/quiz',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PlaygroundRoute = PlaygroundRouteImport.update({
-  id: '/playground',
-  path: '/playground',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ExampleRoute = ExampleRouteImport.update({
-  id: '/example',
-  path: '/example',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ArtistTypesRoute = ArtistTypesRouteImport.update({
   id: '/artist-types',
   path: '/artist-types',
@@ -91,11 +78,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminResponsesRoute = AdminResponsesRouteImport.update({
-  id: '/responses',
-  path: '/responses',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminQuizEditorRoute = AdminQuizEditorRouteImport.update({
   id: '/quiz-editor',
   path: '/quiz-editor',
@@ -103,9 +85,9 @@ const AdminQuizEditorRoute = AdminQuizEditorRouteImport.update({
 } as any)
 const AdminResponsesResponseIdRoute =
   AdminResponsesResponseIdRouteImport.update({
-    id: '/$responseId',
-    path: '/$responseId',
-    getParentRoute: () => AdminResponsesRoute,
+    id: '/responses/$responseId',
+    path: '/responses/$responseId',
+    getParentRoute: () => AdminRoute,
   } as any)
 const AdminResponsesResponseIdAnalysisRoute =
   AdminResponsesResponseIdAnalysisRouteImport.update({
@@ -124,8 +106,6 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/analysis': typeof AnalysisRoute
   '/artist-types': typeof ArtistTypesRoute
-  '/example': typeof ExampleRoute
-  '/playground': typeof PlaygroundRoute
   '/quiz': typeof QuizRoute
   '/quiz-editor': typeof QuizEditorRoute
   '/quiz-taker': typeof QuizTakerRoute
@@ -133,7 +113,6 @@ export interface FileRoutesByFullPath {
   '/responses': typeof ResponsesRoute
   '/sidebar-test': typeof SidebarTestRoute
   '/admin/quiz-editor': typeof AdminQuizEditorRoute
-  '/admin/responses': typeof AdminResponsesRouteWithChildren
   '/admin/responses/$responseId': typeof AdminResponsesResponseIdRouteWithChildren
   '/admin/responses/$responseId/analysis': typeof AdminResponsesResponseIdAnalysisRoute
 }
@@ -142,8 +121,6 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRouteWithChildren
   '/analysis': typeof AnalysisRoute
   '/artist-types': typeof ArtistTypesRoute
-  '/example': typeof ExampleRoute
-  '/playground': typeof PlaygroundRoute
   '/quiz': typeof QuizRoute
   '/quiz-editor': typeof QuizEditorRoute
   '/quiz-taker': typeof QuizTakerRoute
@@ -151,7 +128,6 @@ export interface FileRoutesByTo {
   '/responses': typeof ResponsesRoute
   '/sidebar-test': typeof SidebarTestRoute
   '/admin/quiz-editor': typeof AdminQuizEditorRoute
-  '/admin/responses': typeof AdminResponsesRouteWithChildren
   '/admin/responses/$responseId': typeof AdminResponsesResponseIdRouteWithChildren
   '/admin/responses/$responseId/analysis': typeof AdminResponsesResponseIdAnalysisRoute
 }
@@ -161,8 +137,6 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/analysis': typeof AnalysisRoute
   '/artist-types': typeof ArtistTypesRoute
-  '/example': typeof ExampleRoute
-  '/playground': typeof PlaygroundRoute
   '/quiz': typeof QuizRoute
   '/quiz-editor': typeof QuizEditorRoute
   '/quiz-taker': typeof QuizTakerRoute
@@ -170,7 +144,6 @@ export interface FileRoutesById {
   '/responses': typeof ResponsesRoute
   '/sidebar-test': typeof SidebarTestRoute
   '/admin/quiz-editor': typeof AdminQuizEditorRoute
-  '/admin/responses': typeof AdminResponsesRouteWithChildren
   '/admin/responses/$responseId': typeof AdminResponsesResponseIdRouteWithChildren
   '/admin/responses/$responseId/analysis': typeof AdminResponsesResponseIdAnalysisRoute
 }
@@ -181,8 +154,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/analysis'
     | '/artist-types'
-    | '/example'
-    | '/playground'
     | '/quiz'
     | '/quiz-editor'
     | '/quiz-taker'
@@ -190,7 +161,6 @@ export interface FileRouteTypes {
     | '/responses'
     | '/sidebar-test'
     | '/admin/quiz-editor'
-    | '/admin/responses'
     | '/admin/responses/$responseId'
     | '/admin/responses/$responseId/analysis'
   fileRoutesByTo: FileRoutesByTo
@@ -199,8 +169,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/analysis'
     | '/artist-types'
-    | '/example'
-    | '/playground'
     | '/quiz'
     | '/quiz-editor'
     | '/quiz-taker'
@@ -208,7 +176,6 @@ export interface FileRouteTypes {
     | '/responses'
     | '/sidebar-test'
     | '/admin/quiz-editor'
-    | '/admin/responses'
     | '/admin/responses/$responseId'
     | '/admin/responses/$responseId/analysis'
   id:
@@ -217,8 +184,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/analysis'
     | '/artist-types'
-    | '/example'
-    | '/playground'
     | '/quiz'
     | '/quiz-editor'
     | '/quiz-taker'
@@ -226,7 +191,6 @@ export interface FileRouteTypes {
     | '/responses'
     | '/sidebar-test'
     | '/admin/quiz-editor'
-    | '/admin/responses'
     | '/admin/responses/$responseId'
     | '/admin/responses/$responseId/analysis'
   fileRoutesById: FileRoutesById
@@ -236,8 +200,6 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   AnalysisRoute: typeof AnalysisRoute
   ArtistTypesRoute: typeof ArtistTypesRoute
-  ExampleRoute: typeof ExampleRoute
-  PlaygroundRoute: typeof PlaygroundRoute
   QuizRoute: typeof QuizRoute
   QuizEditorRoute: typeof QuizEditorRoute
   QuizTakerRoute: typeof QuizTakerRoute
@@ -311,20 +273,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof QuizRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/playground': {
-      id: '/playground'
-      path: '/playground'
-      fullPath: '/playground'
-      preLoaderRoute: typeof PlaygroundRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/example': {
-      id: '/example'
-      path: '/example'
-      fullPath: '/example'
-      preLoaderRoute: typeof ExampleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/artist-types': {
       id: '/artist-types'
       path: '/artist-types'
@@ -353,13 +301,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/responses': {
-      id: '/admin/responses'
-      path: '/responses'
-      fullPath: '/admin/responses'
-      preLoaderRoute: typeof AdminResponsesRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/quiz-editor': {
       id: '/admin/quiz-editor'
       path: '/quiz-editor'
@@ -369,10 +310,10 @@ declare module '@tanstack/react-router' {
     }
     '/admin/responses/$responseId': {
       id: '/admin/responses/$responseId'
-      path: '/$responseId'
+      path: '/responses/$responseId'
       fullPath: '/admin/responses/$responseId'
       preLoaderRoute: typeof AdminResponsesResponseIdRouteImport
-      parentRoute: typeof AdminResponsesRoute
+      parentRoute: typeof AdminRoute
     }
     '/admin/responses/$responseId/analysis': {
       id: '/admin/responses/$responseId/analysis'
@@ -410,26 +351,14 @@ const AdminResponsesResponseIdRouteWithChildren =
     AdminResponsesResponseIdRouteChildren,
   )
 
-interface AdminResponsesRouteChildren {
-  AdminResponsesResponseIdRoute: typeof AdminResponsesResponseIdRouteWithChildren
-}
-
-const AdminResponsesRouteChildren: AdminResponsesRouteChildren = {
-  AdminResponsesResponseIdRoute: AdminResponsesResponseIdRouteWithChildren,
-}
-
-const AdminResponsesRouteWithChildren = AdminResponsesRoute._addFileChildren(
-  AdminResponsesRouteChildren,
-)
-
 interface AdminRouteChildren {
   AdminQuizEditorRoute: typeof AdminQuizEditorRoute
-  AdminResponsesRoute: typeof AdminResponsesRouteWithChildren
+  AdminResponsesResponseIdRoute: typeof AdminResponsesResponseIdRouteWithChildren
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminQuizEditorRoute: AdminQuizEditorRoute,
-  AdminResponsesRoute: AdminResponsesRouteWithChildren,
+  AdminResponsesResponseIdRoute: AdminResponsesResponseIdRouteWithChildren,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -439,8 +368,6 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   AnalysisRoute: AnalysisRoute,
   ArtistTypesRoute: ArtistTypesRoute,
-  ExampleRoute: ExampleRoute,
-  PlaygroundRoute: PlaygroundRoute,
   QuizRoute: QuizRoute,
   QuizEditorRoute: QuizEditorRoute,
   QuizTakerRoute: QuizTakerRoute,
