@@ -1,2 +1,2 @@
 [build]
-command = "export VITE_DEPLOY_URL=$URL && pnpm build"
+command = "export VITE_DEPLOY_URL=$URL && npx nx run-many --target=build --all"
