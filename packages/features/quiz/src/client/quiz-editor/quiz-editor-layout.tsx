@@ -1200,7 +1200,8 @@ const ReanalysisChart: React.FC<{
   }, [reanalysisData]);
 
   const displayData = isAnalyzing && stableData !== null ? stableData : reanalysisData;
-  const displayTotal = displayData ? displayData.reduce((sum, item) => sum + item.count, 0) : 0;
+  const displayTotal =
+    displayData !== null ? displayData.reduce((sum, item) => sum + item.count, 0) : 0;
 
   return (
     <Card className="flex flex-col h-full">
@@ -1345,9 +1346,9 @@ const ArtistTypeComparison: React.FC<{
       // Convert from database ID format (the-dreamer-artist) to artist type (Dreamer)
       const endingId = item.type.toLowerCase();
       const fullName = endingIdToFullName[endingId];
-      if (fullName) {
+      if (fullName !== undefined) {
         const artistType = endingNameToArtistType[fullName];
-        if (artistType) {
+        if (artistType !== undefined) {
           counts[artistType] = item.count;
         }
       }
@@ -1548,7 +1549,7 @@ const SidebarGraphsView: React.FC<{
                 );
               }
 
-              if (winningResult.artistType) {
+              if (winningResult.artistType !== "") {
                 const artistType = winningResult.artistType;
                 artistTypeCounts[artistType] = (artistTypeCounts[artistType] ?? 0) + 1;
               }
@@ -1613,6 +1614,7 @@ const SidebarGraphsView: React.FC<{
         clearTimeout(timeoutId);
       };
     }
+    return undefined;
   }, [analysisConfig, handleReanalyze, responsesResult, quizzesResult, selectedEngine]);
 
   if (selectedEngine === undefined) {
