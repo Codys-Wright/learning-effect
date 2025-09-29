@@ -59,13 +59,11 @@ export function ResponsesOverTimeChart() {
       const responseDate = getResponseDate(response);
       const dateKey = responseDate.toISOString().split("T")[0]; // YYYY-MM-DD format
 
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (dateGroups[dateKey] === undefined) {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (dateKey && dateGroups[dateKey] === undefined) {
         dateGroups[dateKey] = { completed: 0, inProgress: 0, notStarted: 0 };
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (!dateKey) return;
       const group = dateGroups[dateKey];
       if (group === undefined) return;
 

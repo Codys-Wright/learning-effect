@@ -163,7 +163,7 @@ const SuccessView: React.FC = () => {
                         className="flex items-center justify-between"
                       >
                         <span>
-                          {engine.name} v{engine.version}
+                          {engine.name} v{engine.version.semver}
                         </span>
                         {selectedEngineId === engine.id && (
                           <CheckIcon className="h-4 w-4 text-primary" />
@@ -216,7 +216,7 @@ const SuccessView: React.FC = () => {
                             Analysis {analysis.id.slice(0, 8)}...
                           </Card.Title>
                           <Card.Description>
-                            Engine: {analysis.engineSlug} v{analysis.engineVersion}
+                            Engine: {analysis.engineId} v{analysis.engineVersion.semver}
                           </Card.Description>
                         </div>
                         <div className="flex items-center gap-2">
@@ -285,7 +285,7 @@ const SuccessView: React.FC = () => {
             <Card.Header>
               <Card.Title>Engine Summary</Card.Title>
               <Card.Description>
-                Engine: {summaryResult.value.engineSlug} v{summaryResult.value.engineVersion}
+                Engine: {summaryResult.value.engineId} v{summaryResult.value.engineVersion.semver}
               </Card.Description>
             </Card.Header>
             <Card.Content>

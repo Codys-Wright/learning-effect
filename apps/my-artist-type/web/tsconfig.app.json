@@ -21,24 +21,7 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@my-artist-type/domain": ["../domain/src/index.js"],
-      "@my-artist-type/domain/*": ["../domain/src/*.js"],
-      "@my-artist-type/server": ["../server/src/index.js"],
-      "@my-artist-type/server/*": ["../server/src/*.js"],
-      "@my-artist-type/database": ["../database/src/index.js"],
-      "@my-artist-type/database/*": ["../database/src/*.js"],
-
-      "@core/client": ["../../../packages/core/client/src/index.js"],
-      "@core/client/*": ["../../../packages/core/client/src/*.js"],
-      "@core/domain": ["../../../packages/core/domain/src/index.js"],
-      "@core/domain/*": ["../../../packages/core/domain/src/*.js"],
-      "@core/server": ["../../../packages/core/server/src/index.js"],
-      "@core/server/*": ["../../../packages/core/server/src/*.js"],
-      "@core/database": ["../../../packages/core/database/src/index.js"],
-      "@core/database/*": ["../../../packages/core/database/src/*.js"],
-      "@ui/shadcn": ["../../../packages/ui/shadcn/src/index.js"],
-      "@ui/shadcn/*": ["../../../packages/ui/shadcn/src/*.js"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src", "prettier.config.js"],

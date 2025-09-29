@@ -4,6 +4,20 @@ import { constant, pipe } from "effect/Function";
 import { TreeFormatter } from "effect/ParseResult";
 import * as Schema from "effect/Schema";
 
+// Type declarations for Vite environment variables
+declare global {
+  interface ImportMetaEnv {
+    readonly VITE_API_URL: string;
+    readonly VITE_DEPLOY_URL: string;
+    readonly VITE_ENV: string;
+    readonly VITEST: string;
+  }
+
+  interface ImportMeta {
+    readonly env: ImportMetaEnv;
+  }
+}
+
 class EnvVars extends Schema.Class<EnvVars>("EnvVars")({
   ENV: Schema.Literal("dev", "staging", "prod", "local").annotations({
     decodingFallback: () => Either.right("prod" as const),

@@ -2,9 +2,15 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "composite": false,
-    "declaration": false,
-    "declarationMap": false,
-    "sourceMap": true
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "build/esm",
+    "declarationDir": "build/dts",
+    "noEmit": false,
+    "moduleResolution": "bundler",
+    "module": "ESNext",
+    "jsx": "react-jsx"
   },
-  "references": [{ "path": "./tsconfig.app.json" }]
+  "include": ["src/**/*", "src/vite-env.d.ts"]
 }

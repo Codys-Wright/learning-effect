@@ -99,10 +99,10 @@ export const UpsertQuizForm: React.FC = () => {
             <FieldInput
               name={fieldApi.name}
               label="Version"
-              value={fieldApi.state.value ?? "1.0.0"}
+              value={fieldApi.state.value?.semver ?? "1.0.0"}
               onChange={(event) => {
                 const value = event.currentTarget.value;
-                fieldApi.handleChange(value || undefined);
+                fieldApi.handleChange(value ? { semver: value, comment: null } : undefined);
               }}
               placeholder="e.g., 1.0.0"
             />

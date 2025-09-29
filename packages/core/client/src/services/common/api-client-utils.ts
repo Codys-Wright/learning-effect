@@ -1,6 +1,6 @@
-import { envVars } from "@/lib/env-vars";
 import { type HttpApi, type HttpApiClient, type HttpApiGroup, HttpClient } from "@effect/platform";
 import { Duration, Effect, Random, Schedule } from "effect";
+import { envVars } from "../../lib/env-vars.js";
 
 // 🎯 NEW: Type-level API Inspector
 // This lets TypeScript see what's in the API at compile time!

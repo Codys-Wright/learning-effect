@@ -12,31 +12,31 @@ export const pgConfig = {
   types: {
     114: {
       to: 25,
-      from: [114],
+      from: [114] as number[],
       parse: identity,
       serialize: identity,
     },
     1082: {
       to: 25,
-      from: [1082],
+      from: [1082] as number[],
       parse: identity,
       serialize: identity,
     },
     1114: {
       to: 25,
-      from: [1114],
+      from: [1114] as number[],
       parse: identity,
       serialize: identity,
     },
     1184: {
       to: 25,
-      from: [1184],
+      from: [1184] as number[],
       parse: identity,
       serialize: identity,
     },
     3802: {
       to: 25,
-      from: [3802],
+      from: [3802] as number[],
       parse: identity,
       serialize: identity,
     },

@@ -226,7 +226,6 @@ export const analyzeResponseWithServiceAtom = runtime.fn(
       const savedAnalysisResult = yield* api.http.Analysis.upsert({
         payload: {
           engineId: analysisResult.engineId,
-          engineSlug: analysisResult.engineSlug,
           engineVersion: analysisResult.engineVersion,
           responseId: analysisResult.responseId,
           endingResults: analysisResult.endingResults,

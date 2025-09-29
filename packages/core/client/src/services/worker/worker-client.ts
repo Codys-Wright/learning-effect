@@ -3,6 +3,7 @@ import * as RpcClient from "@effect/rpc/RpcClient";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import { WorkerRpc } from "./worker-rpc";
+// @ts-ignore - Worker import for Vite
 import MyWorker from "./worker.ts?worker";
 
 const RpcProtocol = RpcClient.layerProtocolWorker({ size: 1, concurrency: 1 }).pipe(

@@ -26,7 +26,7 @@ export const QuizItem: React.FC<{ quiz: Quiz }> = ({ quiz }) => {
             {/* Subtitle if it exists */}
             {quiz.subtitle && <p className="text-sm text-muted-foreground">{quiz.subtitle}</p>}
             {/* Version badge to show semantic version */}
-            <span className="text-xs text-muted-foreground">v{quiz.version}</span>
+            <span className="text-xs text-muted-foreground">v{quiz.version.semver}</span>
           </div>
           {/* Delete button with loading state from the atom */}
           <Button variant="ghost" size="icon" onClick={handleDelete} loading={delState.waiting}>

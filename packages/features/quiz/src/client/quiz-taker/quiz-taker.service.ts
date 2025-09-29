@@ -127,7 +127,9 @@ export class QuizTakerService extends Effect.Service<QuizTakerService>()(
           canNavigateNext: (index: number, totalQuestions: number) => index < totalQuestions - 1,
 
           findQuizBySlug: (quizzes: ReadonlyArray<Quiz>, slug: string) =>
-            Effect.succeed(quizzes.find((quiz) => quiz.slug === slug)),
+            Effect.succeed(
+              quizzes.find((quiz) => quiz.title.toLowerCase().replace(/\s+/g, "-") === slug),
+            ),
 
           getQuestionAtIndex: (questions: ReadonlyArray<Question>, index: number) =>
             Effect.succeed(questions[index]),

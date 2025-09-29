@@ -88,7 +88,7 @@ const analyzeTypeformResponses = Effect.gen(function* () {
       const analysisResult = yield* analysisService.analyzeResponse(activeEngine, quiz, response);
 
       // Save the analysis result
-      const _savedAnalysis = yield* analysisRepo.create({
+      yield* analysisRepo.create({
         engineId: activeEngine.id,
         engineVersion: activeEngine.version,
         responseId: response.id,
@@ -97,7 +97,7 @@ const analyzeTypeformResponses = Effect.gen(function* () {
           source: "typeform-reanalysis",
           originalLegacyType: legacyArtistType,
         },
-        analyzedAt: DateTime.nowInCurrentZone,
+        analyzedAt: yield* DateTime.now,
       });
 
       // Get the primary result (highest scoring)
@@ -113,7 +113,7 @@ const analyzeTypeformResponses = Effect.gen(function* () {
 
       const comparison: AnalysisComparison = {
         responseId: response.id,
-        email,
+        email: email ?? "",
         legacyArtistType,
         newPrimaryArtistType,
         newAnalysisResults: analysisResult.endingResults.map((result) => ({

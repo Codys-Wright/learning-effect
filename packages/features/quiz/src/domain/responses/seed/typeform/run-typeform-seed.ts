@@ -20,7 +20,7 @@ const seedTypeformResponses = Effect.gen(function* () {
 
   // Find the quiz by slug (assuming it's "my-artist-type-quiz")
   const quizzes = yield* quizzesRepo.findAll();
-  const quiz = quizzes.find((q) => q.slug === "my-artist-type-quiz");
+  const quiz = quizzes.find((q) => q.title.toLowerCase().includes("artist type"));
 
   if (quiz === undefined) {
     yield* Effect.fail(

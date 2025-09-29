@@ -5,15 +5,39 @@
   "type": "module",
   "license": "MIT",
   "exports": {
-    ".": "./src/index.ts",
-    "./client": "./src/client/index.ts",
-    "./server": "./src/server/index.ts",
-    "./domain": "./src/domain/index.ts",
-    "./database": "./src/database/index.ts",
+    ".": {
+      "default": "./src/index.ts",
+      "production": "./build/esm/index.js"
+    },
+    "./client": {
+      "default": "./src/client/index.ts",
+      "production": "./build/esm/client/index.js"
+    },
+    "./server": {
+      "default": "./src/server/index.ts",
+      "production": "./build/esm/server/index.js"
+    },
+    "./domain": {
+      "default": "./src/domain/index.ts",
+      "production": "./build/esm/domain/index.js"
+    },
+    "./database": {
+      "default": "./src/database/index.ts",
+      "production": "./build/esm/database/index.js"
+    },
     "./package.json": "./package.json",
-    "./domain/quiz/seed/seed-quiz": "./src/domain/quiz/seed/seed-quiz.ts",
-    "./domain/analysis/seed/seed-analysis-engine": "./src/domain/analysis/seed/seed-analysis-engine.ts",
-    "./*": "./src/*.ts"
+    "./domain/quiz/seed/seed-quiz": {
+      "default": "./src/domain/quiz/seed/seed-quiz.ts",
+      "production": "./build/esm/domain/quiz/seed/seed-quiz.js"
+    },
+    "./domain/analysis/seed/seed-analysis-engine": {
+      "default": "./src/domain/analysis/seed/seed-analysis-engine.ts",
+      "production": "./build/esm/domain/analysis/seed/seed-analysis-engine.js"
+    },
+    "./*": {
+      "default": "./src/*.ts",
+      "production": "./build/esm/*.js"
+    }
   },
   "scripts": {
     "build": "tsc -b tsconfig.build.json",
