@@ -1,2 +1,3 @@
 [build]
 command = "export VITE_DEPLOY_URL=$URL && npx nx run-many --target=build --all"
+publish = "apps/my-artist-type/web/dist"
