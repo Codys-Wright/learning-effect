@@ -1,3 +1,4 @@
+import { Version } from "@core/domain";
 import type { UpsertQuestionPayload } from "../questions/question-rpc.js";
 import type { UpsertRatingQuestion } from "../questions/question-types.js";
 import artistTypeQuestions from "../questions/seed/data/artist-type-questions.json" with { type: "json" };
@@ -29,7 +30,10 @@ export const getSeedPayload = (): UpsertQuizPayload => {
     title: artistTypeQuiz.title,
     subtitle: null,
     description: null,
-    version: artistTypeQuiz.version,
+    version: new Version({
+      semver: artistTypeQuiz.version.semver,
+      comment: artistTypeQuiz.version.comment,
+    }),
     questions,
     metadata: {
       ...artistTypeQuiz.settings,

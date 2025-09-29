@@ -170,7 +170,7 @@ const seedEffect = Effect.gen(function* () {
         if (!actualQuestionId) {
           // If numeric mapping fails, try content-based matching
           // The engine data might have question content that we can match
-          for (const [contentKey, questionId] of contentToQuestionIdForEngine.entries()) {
+          for (const [, questionId] of contentToQuestionIdForEngine.entries()) {
             // Try to match by question order or content similarity
             const ruleQuestionId = parseInt(rule.questionId);
             const questionOrder =

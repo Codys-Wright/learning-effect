@@ -3,12 +3,7 @@
 import { Version } from "@core/domain";
 import { Atom, Result, useAtomSet, useAtomValue } from "@effect-atom/atom-react";
 import { BrowserKeyValueStore } from "@effect/platform-browser";
-import {
-  type AnalysisEngine,
-  type Question,
-  type Quiz,
-  type ScoringConfig,
-} from "@features/quiz/domain";
+import { type AnalysisEngine, type Question, type Quiz } from "@features/quiz/domain";
 import { Config, Effect, Schema } from "effect";
 // Use the actual Result types from the atoms instead of importing platform types
 import {
@@ -112,15 +107,7 @@ const showIdealAnswersAtom = Atom.kvs({
 });
 
 // Define sidebar view schemas
-const RightSidebarViewSchema = Schema.Literal("inspector", "graphs");
 const LeftSidebarViewSchema = Schema.Literal("quiz", "analysis");
-
-const rightSidebarViewAtom = Atom.kvs({
-  runtime: localStorageRuntime,
-  key: "quiz-editor-right-sidebar-view",
-  schema: RightSidebarViewSchema,
-  defaultValue: () => "inspector" as const,
-});
 
 const leftSidebarViewAtom = Atom.kvs({
   runtime: localStorageRuntime,
@@ -187,12 +174,6 @@ const analysisConfigAtom = Atom.kvs({
     maxEndingResults: 10,
   }),
 });
-
-// Combined type that includes ScoringConfig + UI settings
-type AnalysisConfigOverrides = ScoringConfig & {
-  idealAnswerOverlay: boolean;
-  progressBarColors: boolean;
-};
 
 const pendingRatingAtom = Atom.make<number | null>(null).pipe(Atom.keepAlive);
 const expectedNewVersionAtom = Atom.make<string | null>(null).pipe(Atom.keepAlive);
@@ -541,29 +522,6 @@ const NumberInput: React.FC<{
       step={step}
       className="h-8"
     />
-  </div>
-);
-
-const ToggleControl: React.FC<{
-  description: string;
-  label: string;
-  onChange: (value: boolean) => void;
-  value: boolean;
-}> = ({ description, label, onChange, value }) => (
-  <div className="flex items-center justify-between">
-    <div className="space-y-1">
-      <Label className="text-sm font-medium">{label}</Label>
-      <p className="text-xs text-muted-foreground">{description}</p>
-    </div>
-    <Button
-      size="sm"
-      variant={value ? "default" : "outline"}
-      onClick={() => {
-        onChange(!value);
-      }}
-    >
-      {value ? "ON" : "OFF"}
-    </Button>
   </div>
 );
 
@@ -1489,7 +1447,6 @@ const SidebarGraphsView: React.FC<{
 
   // Get analysis config from the left panel
   const analysisConfig = useAtomValue(analysisConfigAtom);
-  const reanalysisData = useAtomValue(reanalysisDataAtom);
 
   // Shared reanalyze function that can be used by both components
   const handleReanalyze = React.useCallback(async () => {
@@ -1533,37 +1490,6 @@ const SidebarGraphsView: React.FC<{
 
       // Log config once at the start
       console.log("🔧 Analysis Config:", analysisConfig);
-
-      // Create a function to map old response question IDs to current quiz question IDs
-      const mapResponseToCurrentQuiz = (response: (typeof responses)[0]) => {
-        const originalQuiz = artistTypeQuizzes.find((q) => q.id === response.quizId);
-        if (originalQuiz === undefined) return null;
-
-        const selectedQuestions = selectedQuiz.questions ?? [];
-
-        // Map responses by question position (index) since question content should be the same
-        const mappedAnswers = (response.answers ?? [])
-          .map((answer, index) => {
-            // Try to find the corresponding question in the selected quiz by index
-            const selectedQuestion = selectedQuestions[index];
-            if (selectedQuestion !== undefined) {
-              return {
-                ...answer,
-                questionId: selectedQuestion.id as string, // Use selected quiz's question ID
-              };
-            }
-            return answer; // Keep original if no mapping found
-          })
-          .filter((answer) => {
-            // Only keep answers that have a corresponding question in selected quiz
-            return selectedQuestions.some((q) => q.id === answer.questionId);
-          });
-
-        return {
-          ...response,
-          answers: mappedAnswers,
-        };
-      };
 
       // Process each response using the local analysis function
       for (const response of responses) {
@@ -1725,7 +1651,6 @@ const SidebarGraphsView: React.FC<{
 export const QuizEditorLayout: React.FC = () => {
   const quizzesResult = useAtomValue(quizzesAtom);
   const enginesResult = useAtomValue(enginesAtom);
-  const responsesResult = useAtomValue(responsesAtom);
 
   // Atom-based state for selections
   const selectedQuizId = useAtomValue(selectedQuizIdAtom);
@@ -1764,7 +1689,6 @@ export const QuizEditorLayout: React.FC = () => {
   const setSelectedEngineId = useAtomSet(selectedEngineIdAtom);
   const setSelectedArtistType = useAtomSet(selectedArtistTypeAtom);
   const setSelectedQuestionIndex = useAtomSet(selectedQuestionIndexAtom);
-  const setShowIdealAnswers = useAtomSet(showIdealAnswersAtom);
   const setPendingRating = useAtomSet(pendingRatingAtom);
   const setExpectedNewVersion = useAtomSet(expectedNewVersionAtom);
   const setExpectedTempQuiz = useAtomSet(expectedTempQuizAtom);
@@ -2247,69 +2171,6 @@ export const QuizEditorLayout: React.FC = () => {
         }
       }
     }, 100); // Small delay to allow atom to update
-  };
-
-  // Handler for updating ideal answers from inspector
-  const handleUpdateIdealAnswer = (value: number) => {
-    void handleRatingSelect(value);
-  };
-
-  // Handler for toggling primary rule status
-  const handleTogglePrimaryRule = (isPrimary: boolean) => {
-    const currentEngine = engines.find((e) => e.id === selectedEngineId);
-    if (currentEngine === undefined || selectedQuestion === undefined) return;
-
-    const artistTypeEndingId = `the-${selectedArtistType.toLowerCase()}-artist`;
-
-    // Create updated engine with modified primary status
-    const updatedEndings = currentEngine.endings.map((ending) => {
-      if (ending.endingId === artistTypeEndingId) {
-        const existingRuleIndex = ending.questionRules.findIndex(
-          (rule) => rule.questionId === selectedQuestion.id,
-        );
-
-        if (existingRuleIndex >= 0) {
-          // Update existing rule
-          const updatedRules = [...ending.questionRules];
-          const existingRule = updatedRules[existingRuleIndex];
-          if (existingRule !== undefined) {
-            updatedRules[existingRuleIndex] = {
-              ...existingRule,
-              isPrimary,
-            };
-          }
-          return {
-            ...ending,
-            questionRules: updatedRules,
-          };
-        }
-
-        // Create new rule with primary status
-        return {
-          ...ending,
-          questionRules: [
-            ...ending.questionRules,
-            {
-              questionId: selectedQuestion.id,
-              idealAnswers: [],
-              isPrimary,
-            },
-          ],
-        };
-      }
-      return ending;
-    });
-
-    const updatedEngine = {
-      ...currentEngine,
-      endings: updatedEndings,
-    };
-
-    // Apply optimistic update
-    setEnginesAtom(EngineAction.Upsert({ engine: updatedEngine }));
-
-    // Persist to server
-    autoSaveTempEngine({ engine: updatedEngine });
   };
 
   const handlePreviousQuestion = () => {

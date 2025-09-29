@@ -10,9 +10,15 @@
     "directory": "packages/core/server"
   },
   "exports": {
-    ".": "./src/index.ts",
+    ".": {
+      "default": "./src/index.ts",
+      "production": "./build/esm/index.js"
+    },
     "./package.json": "./package.json",
-    "./*": "./src/*.ts"
+    "./*": {
+      "default": "./src/*.ts",
+      "production": "./build/esm/*.js"
+    }
   },
   "main": "build/esm/server.js",
   "module": "build/esm/server.js",

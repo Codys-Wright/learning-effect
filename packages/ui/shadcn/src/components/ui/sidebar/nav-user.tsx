@@ -8,8 +8,8 @@ import {
   IconUserCircle,
 } from "@tabler/icons-react";
 
-import { Avatar } from "@/components/ui/avatar";
-import { DropdownMenu } from "@/components/ui/dropdown-menu";
+import { Avatar } from "../avatar";
+import { DropdownMenu } from "../dropdown-menu";
 import { Sidebar, useSidebar } from "./sidebar";
 
 export function NavUser({

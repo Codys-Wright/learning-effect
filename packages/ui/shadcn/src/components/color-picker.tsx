@@ -1,10 +1,5 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
-import { cn } from "@/lib/utils/cn";
 import Color from "color";
 import { PipetteIcon } from "lucide-react";
 import {
@@ -19,6 +14,11 @@ import {
   useRef,
   useState,
 } from "react";
+import { cn } from "../lib/utils/cn";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Select } from "./ui/select";
+import { Slider } from "./ui/slider";
 
 type ColorPickerContextValue = {
   hue: number;

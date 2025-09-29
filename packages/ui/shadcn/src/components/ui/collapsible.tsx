@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils/cn";
 import * as CollapsiblePrimitive from "@radix-ui/react-collapsible";
+import { cn } from "../../lib/utils/cn";
 
 const CollapsibleRoot = ({ ...props }: React.ComponentProps<typeof CollapsiblePrimitive.Root>) => {
   return <CollapsiblePrimitive.Root data-slot="collapsible" {...props} />;

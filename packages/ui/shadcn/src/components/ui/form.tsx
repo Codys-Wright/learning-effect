@@ -1,9 +1,9 @@
-import { cn } from "@/lib/utils/cn";
 import * as String from "effect/String";
 import React from "react";
+import { cn } from "../../lib/utils/cn";
 import { Input } from "./input";
 import { Label } from "./label";
-import { Select, type SelectProps } from "./select";
+import { Select } from "./select";
 import { Textarea } from "./textarea";
 
 const FormControl: React.FC<React.ComponentProps<"div">> = ({ children, ...props }) => {
@@ -108,7 +108,10 @@ type FieldSelectOption = {
   value: string | number;
 };
 
-type FieldSelectProps = Omit<SelectProps, "children" | "id" | "placeholder"> & {
+type FieldSelectProps = Omit<
+  React.ComponentProps<typeof Select>,
+  "children" | "id" | "placeholder"
+> & {
   label: React.ReactNode;
   name: string;
   error?: string | null | undefined;
@@ -117,6 +120,7 @@ type FieldSelectProps = Omit<SelectProps, "children" | "id" | "placeholder"> & {
   noOptionsText?: string;
   required?: boolean;
   placeholder: string;
+  loading?: boolean;
 };
 
 const FieldSelect: React.FC<FieldSelectProps> = ({
@@ -147,25 +151,23 @@ const FieldSelect: React.FC<FieldSelectProps> = ({
         {label}
       </Label>
 
-      <Select
-        id={name}
-        name={name}
-        required={required}
-        loading={loading}
-        disabled={disabled || loading || showNoOptionsMessageAndDisable}
-        {...restSelectProps}
-      >
-        {!hasUserOptions && noOptionsText !== undefined ? (
-          <option value="" disabled>
-            {noOptionsText}
-          </option>
-        ) : (
-          finalOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))
-        )}
+      <Select disabled={disabled || loading || showNoOptionsMessageAndDisable} {...restSelectProps}>
+        <Select.Trigger>
+          <Select.Value placeholder={loading ? "Loading..." : "Select an option"} />
+        </Select.Trigger>
+        <Select.Content>
+          {!hasUserOptions && noOptionsText !== undefined ? (
+            <Select.Item value="" disabled>
+              {noOptionsText}
+            </Select.Item>
+          ) : (
+            finalOptions.map((option) => (
+              <Select.Item key={option.value} value={globalThis.String(option.value)}>
+                {option.label}
+              </Select.Item>
+            ))
+          )}
+        </Select.Content>
       </Select>
       <FieldError error={error} />
     </FormControl>

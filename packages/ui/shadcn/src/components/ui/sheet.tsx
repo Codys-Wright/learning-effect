@@ -1,8 +1,8 @@
-import { cn } from "@/lib/utils/cn";
 import * as SheetPrimitive from "@radix-ui/react-dialog";
 import { cva, type VariantProps } from "class-variance-authority";
 import { XIcon } from "lucide-react";
 import * as React from "react";
+import { cn } from "../../lib/utils/cn";
 
 const Root: React.FC<React.ComponentPropsWithoutRef<typeof SheetPrimitive.Root>> = ({
   children,

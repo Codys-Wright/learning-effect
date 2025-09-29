@@ -163,7 +163,7 @@ const chartSizingAtom = Atom.family((itemCount: number) =>
 const dynamicSizingAtom = Atom.family(
   (params: { data: ReadonlyArray<ArtistData>; sizing: ChartSizing }) =>
     Atom.make(() => {
-      const { data, sizing } = params;
+      const { data } = params;
       const rows = data.length;
       const containerHeightPx = Math.max(MIN_HEIGHT_PX, rows * PER_ROW_PX);
 
@@ -201,15 +201,6 @@ export const ArtistBarChart = React.memo<ArtistBarChartProps>(
       normalizeFrom: "auto",
       preserveBetaEffect: false, // We'll apply beta transformation here instead
     });
-
-    // Detect dark mode for color selection
-    const isDarkMode = React.useMemo(() => {
-      if (typeof window === "undefined") return false;
-      return (
-        document.documentElement.classList.contains("dark") ||
-        window.matchMedia("(prefers-color-scheme: dark)").matches
-      );
-    }, []);
 
     // Use Effect Atom for reactive derived state
     const enrichedData = useAtomValue(enrichedChartDataAtom({ maxItems, normalizedData }));

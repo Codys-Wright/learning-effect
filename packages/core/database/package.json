@@ -6,9 +6,15 @@
   "license": "MIT",
   "description": "The database template",
   "exports": {
-    ".": "./src/index.ts",
+    ".": {
+      "default": "./src/index.ts",
+      "production": "./build/esm/index.js"
+    },
     "./package.json": "./package.json",
-    "./*": "./src/*.ts"
+    "./*": {
+      "default": "./src/*.ts",
+      "production": "./build/esm/*.js"
+    }
   },
   "repository": {
     "type": "git",

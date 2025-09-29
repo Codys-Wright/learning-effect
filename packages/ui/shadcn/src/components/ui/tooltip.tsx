@@ -1,8 +1,8 @@
-import { cn } from "@/lib/utils/cn";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import * as Duration from "effect/Duration";
 import { type DurationInput } from "effect/Duration";
 import * as React from "react";
+import { cn } from "../../lib/utils/cn";
 
 const TooltipProvider = TooltipPrimitive.Provider;
 

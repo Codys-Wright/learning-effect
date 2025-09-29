@@ -2,7 +2,7 @@
 
 import { IconDots, IconFolder, IconShare3, IconTrash, type Icon } from "@tabler/icons-react";
 
-import { DropdownMenu } from "@/components/ui/dropdown-menu";
+import { DropdownMenu } from "../dropdown-menu";
 import { Sidebar, useSidebar } from "./sidebar";
 
 export function NavDocuments({
